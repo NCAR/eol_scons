@@ -33,13 +33,7 @@ def OptPrefixSetup(env):
     if os.path.exists(opt_bin):
         # Prepend opt bin path so that -config tools like log4cpp-config
         # will be found first and used.
-        path = os.environ['PATH']
-        path = "%s:%s" % (opt_bin, path)
-        os.environ['PATH'] = path
-        # print "Using path: ", path
-        path=env['ENV']['PATH']
-        path = "%s:%s" % (opt_bin, path)
-        env['ENV']['PATH'] = path
+        env.PrependENVPath('PATH', opt_bin)
     if os.path.exists(opt_lib):
         env.Append(_LIBFLAGS=['-Wl,-R', opt_lib ])
         env.AppendUnique(LIBPATH=[opt_lib] )
