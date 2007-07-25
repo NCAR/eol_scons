@@ -57,6 +57,8 @@ class QwtPackage(Package):
         # points to an existing library, and if not then resort to the
         # package build location.
 
+        env.Tool('download')
+        env.Tool('unpack')
         qwt_dir = env['QWT_DIR']
         library = os.path.join(qwt_dir, 'lib', 'libqwt.so')
         if not os.access(library, os.R_OK):
