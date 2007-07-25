@@ -1,0 +1,1072 @@
+/**
+
+@page config-page Software Configuration Framework
+
+@section toc Table of Contents
+
+@li @ref overview
+@li @ref implementation
+@li @ref configdirectory
+@li @ref eolsconspackage
+@li @ref eolsconsdetails
+@li @ref migration
+@li @ref configuration
+@li @ref doxygen
+@li @ref subsets
+@li @ref packagebuilds
+@li @ref history
+@li @ref comparison
+
+@section overview Overview
+
+This software configuration framework provides the 'build harness' for
+building a source directory tree of libraries and executables.  The goal is
+to make it easy to separate software into logical and reusable modules
+which can be compiled and shared within a single directory tree, allowing
+libraries to be shared transparently from either internal or external
+(installed) locations.
+
+The main objective is a modular, flexible, and portable build system.
+Given various libraries and executables in the source tree, where each
+builds against some subset of the libraries and some subset of external
+packages, the build for a program in the source tree should only need to
+name its required packages without regard for the location of those
+packages.  For example, a program needing the 'util' library specifies
+'util' as a package requirement which causes the proper libraries and
+include paths to be added to the environment.  The 'util' library itself
+may require other libraries, and those libraries should also be added to
+the environment automatically.  A program which builds against the 'util'
+library should not need to know that the util library must also link
+against library 'tools'.  Each module is responsible for publishing (or
+exporting) the build setup information which other modules would need to
+compile and link against that module, thus isolating the build
+configuration in each source directory from changes in the location or
+configuration of its dependencies.
+
+In the source tree, each module resides in its own directory, either
+directly under the top-level directory or under subdirectories.  The
+convention is that each module represents a namespace, so that as much as
+possible the directory partitioning can match the namespace partitioning,
+and header files can be included with the namespace in the path.  For
+example, all of the dataspace library is defined in the 'dataspace' C++
+namespace, so all public headers are included with "dataspace/" in the
+header path.  One consequence of this convention is that if new modules are
+attached to the source tree with their namespace name, then their header
+files will be accessible without any change to the default include paths in
+the build configuration.  Keeping namespace and source module in sync also
+helps in navigating the source.
+
+
+@section implementation SCons Implementation
+
+The current build framework is based on SCons (http://www.scons.org) and
+called eol_scons.  eol_scons is a python package and a set of scons tools
+which extends the standard SCons.  Every component within the source tree
+as well as all external packages have a particular tool which configures a
+scons Environment for building against that component.  The eol_scons
+package provides a table of global targets that SConscript files throughout
+the source tree can use to find dependencies, without knowing where those
+dependencies are built or installed.  For example, the tool for a library
+like netcdf, whether installed on the system or built within the source
+tree, defines a function for configuring the build environment.  Sometimes
+the tools are loaded from a tool file from the common site_scons/site_tools
+directory, other times the tool is a function defined within the SConscript
+file which builds the library or dependency.  Either way, the tools are
+genuine scons tools, so they can be applied to an Environment using the
+usual means.  In particular, they can be applied with the Tool() method or
+passed in the tools list when the Environment is constructed.
+
+eol_scons extends the SCons.Environment class with convenience methods like
+Packages() and Require() for loading and applying a list of tools.  The
+definitions for the tools are either functions within a SConscript file in
+the source tree, or they are in standard tool files whose directory gets
+added to the scons default tool path.
+
+Below is an example of a very simple tool from eol_scons for building
+against the fftw library.  The `fftw` tool is a tool file in the
+`site_scons/site_tools` directory under the top directory of the project
+source tree.  It's a shared tool file because it's always an external
+dependency.
+
+@code
+def generate(env):
+  # Hardcode the selection of the threaded fftw3, and assume it's installed
+  # somewhere already on the include path, ie, in a system path.
+  env.Append(LIBS=['fftw3_threads','fftw3'])
+
+def exists(env):
+    return True
+@endcode
+
+A source module which depends on `fftw` could include this tool in
+a SConscript Environment file like so:
+
+@code
+env = Environment(tools = ['default', 'fftw'])
+@endcode
+
+On the other hand, below is an example of a tool function defined in the
+`aeros/datastore/SConscript` file.
+
+@code
+def datastore(env):
+    env.AppendSharedLibrary('datastore')
+    env.AppendDoxref('datastore')
+    env.Apply(tools)
+
+Export('datastore')
+@endcode
+
+The tool function is exported using the standard SCons Export() function.
+Then other components which depend on the datastore library can refer
+simply to the 'datastore' tool.  Here's how it looks in the
+`plotlib/SConscript`:
+
+@code
+tools = Split("""datastore numeric qwt soqt qt gsl""")
+env = Environment(tools = ['default'] + tools)
+
+def plotlib(env):
+    env.AppendSharedLibrary('plotlib')
+    env.AppendDoxref('plotlib')
+    env.Require(tools)
+
+Export('plotlib')
+@endcode
+
+The above SConscript excerpt creates an Environment which loads a tool
+called 'datastore', along with some others.  The 'datastore' tool is found
+in the global exports table and applied to the environment.  For backwards
+compatibility, a function exported with the old convention of PKG_DATASTORE
+would have been found also.  The 'plotlib' tool in turn modifies an
+environment to include the plotlib shared library as well as all the
+plotlib dependencies.  If the tool names 'datastore' or 'plotlib' had not
+been found in the global exports as 'datastore' or 'PKG_DATASTORE', then
+eol_scons would have passed the 'datastore' name to scons to load as a
+normal tool, meaning a tool named 'datastore' would need to be found on the
+tool path.
+
+
+Note that source modules which use the 'datastore' component do not need
+to know the dependencies of the datastore library.  If the datastore
+adds another external library as a dependency, then that dependency can
+be added in the datastore tool function.
+
+Here's an example from the 'logx' tool.  Since it's a tool file, the
+function which modifies an environment is called 'generate'.
+
+@code
+def generate(env):
+    env.AppendLibrary ("logx")
+    if env.GetGlobalTarget("liblogx"):
+	env.AppendDoxref("logx")
+    else:
+	env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
+    env.Tool ('log4cpp')
+@endcode
+
+Since the logx library requires log4cpp, the logx tool automatically sets
+up the log4cpp dependencies with the 'env.Tool()' call.
+
+The logx tool appends the liblogx target to the list of libraries and then
+requires the log4cpp tool, which in turn appends the log4cpp dependencies
+to the environment.  Any other module in the source tree which applies only
+the logx tool to its environment will in turn have log4cpp applied
+automatically.  If the logx library someday requires another library or
+other include paths, none of the other modules in the source tree which use
+logx will need to change their SConscript configuration.
+
+Unlike in the log4cpp.py tool file, liblogx is a library built _within_ the
+source tree, and so the actual liblogx target node is added to the LIBS
+construction variable.  The liblogx target node must be retrieved from a
+global registry of such nodes maintained by the eol_scons package.  The
+logx tool could just as well determine whether the logx library should be
+linked from within the source tree or from some external installation, and
+then modify the environment accordingly.  The source module which depends
+upon the logx library need not change either way.
+
+
+@section configdirectory Config Directory
+
+The eol_scons modules and tools reside in a directory meant to be shared
+among software projects.  The idea is that this directory should hold the
+files for a project build framework which are not specific to a particular
+project.  The directoy can be linked into a source tree, checked out
+separately, or referenced using 'svn:extnerals'.  In the past this
+directory was called 'config'.  Since version 0.97, though, SCons
+automatically checks for a directory called 'site_scons' in the top
+directory, where the SConstruct file is located.  So the config directory
+is now called 'site_scons'.
+
+
+
+@section eolsconspackage The eol_scons Package
+
+The eol_scons package extends the standard SCons framework for EOL
+software developments.
+
+This package extends SCons in three ways.  First of all, it overrides or
+adds methods for the SCons Environment class.  See the _ExtendEnvironment()
+function to see the full list.
+
+Second, this package adds a set of EOL tools to the SCons tool path.  Most
+of the tools for configuring and building against third-party software
+packages.
+
+Lastly, this module itself provides an interface of a few functions, for
+configuring and controlling the eol_scons framework outside of the
+Environment methods.  These are the public functions:
+
+<b>GlobalOptions()</b>: for accessing the global list of options maintained
+by this package.
+
+<b>GlobalTools()</b>: for accessing the global tools list.  Each tool in
+the global tools list is applied to every Environment created.  Typically,
+the SConstruct file appends a global tool function and other tools to this
+list.  This is the hook by which the SConsctruct file can provide the basic
+configuration for an entire source tree.
+
+@code
+import eol_scons
+eol_scons.GlobalTools().extend([Aeros, "doxygen"])
+@endcode
+
+The list of global tools can also be extended by passing the list in the
+GLOBAL_TOOLS construction variable when creating an Environment.
+
+@code
+env = Environment(tools = ['default'],
+                  GLOBAL_TOOLS = ['svninfo', 'qtdir', 'doxygen', Aeros])
+@endcode
+
+<b>Debug(msg)</b>: print a debug message if the global debugging flag is true.
+
+<b>SetDebug(enable)</b>: set the global debugging flag to 'enable'.
+
+Nothing else in this module should be called from outside the package.  In
+particular, all the symbols starting with an underscore are meant to be
+private.
+
+@section eolsconsdetails Technical Details on eol_scons
+
+The eol_scons package overrides the standard Tool() method of the SCons
+Environment class to customize the way tools are loaded.  First of all, the
+eol_scons Tool() method only loads a tool once.  The standard SCons method
+reloads a tool through the python 'imp' module every time a tool name is
+referenced, and this seems excessive and unnecessary, besides breaking the
+assumption in many eol_scons that a tool is only loaded once.
+
+Second, eol_scons at one point tried to only apply tools once.  Standard
+SCons keeps track of which tools have been loaded in an environment in the
+TOOLS construction variable, but it always applies a tool even if it's been
+applied already.  The TOOLS variable is a dictionary of Tool instances
+keyed by the module name with which the tool was loaded (imported).
+However, I think I found this name to be inconsistent depending upon how
+and where a tool is referenced.  So eol_scons.Tool() uses its own
+dictionary keyed just by the tool name.  Applying a tool only once seems to
+work, however it might violate some other assumptions about setting up a
+construction environment.  For example, dependencies may need to have their
+libraries listed last, after the last component which requires them, but
+this won't happen if the required tool is required twice but only applied
+the first time.  More experience might determine if it makes more sense to
+only apply tools once, but for now eol_scons follows the prior practice of
+applying tools multiple times, which is consistent with the standard SCons
+behavior.
+
+
+@section migration Migrating from atd_scons to eol_scons
+
+These are tips for adapting tools and SConscript files to the new eol_scons
+framework.
+
+The eol_scons framework requires SCons 0.97.  It wasn't worth it to make
+the eol_scons changes compatible with earlier SCons versions.
+
+Among other things, 0.97 introduces automatic handling of a directory
+called `site_scons` where the SConstruct file is located.  If found, SCons
+adds `site_scons` to the python module search path.  It also adds
+`site_scons/site_tools` to the default tool path if found, but eol_scons
+does not use that feature in favor of keeping the eol_scons tools in the
+eol_scons package directory.  [However, having gained more experience in
+the distinctions between tools and modules and the necessity of treating
+them separately, I'm reconsidering that.]
+
+In scons version 0.97, the default is to use a single signature database
+file, equivalent to calling SConsignFile(".sconsign.dblite").  Therefore
+the corresponding call in eol_scons has been removed, so it can be removed
+in the SConstruct files which still call it.  If you want to override the
+filename for the signature database, call the SConsignFile() method
+directly.
+
+Even though scons itself tries to maintain backwards compatibility with
+python 1.52, there is no such attempt in eol_scons.  eol_scons probably
+contains python code which will only work with python since 2.4.
+
+The atd_scons module is now a python package named eol_scons, defined in
+site_scons/eol_scons/__init__.py.  References to atd_scons need to be
+changed to eol_scons.
+
+Tools must be loaded only through the scons mechanisms such as the Tool()
+or Require() methods of Environment.  Tool() is a standard scons method for
+loading and applying a single tool, while Require() is an eol_scons
+customization which loads and applies a list of tools.  It's similar to the
+SCons.Environment.apply_tools() function.  In other words, tools shouldn't
+be imported with the python 'import' mechanism.  Many tools assume they
+will be loaded only once.  They perform one-time initializations; in
+particular, they create their options and add them to the global set of
+options maintained by the eol_scons module.  If a tool is loaded with
+Tool() in one place and imported in another, that tool's options will
+appear multiple times in the help list.  That doesn't necessarily break
+anything, but it's worth avoiding.
+
+The methods Packages() and Apply() methods have been removed.  Instead, the
+min/max version triplets are not supported for tools anymore, until it can
+be worked back into the new scheme of standard scons tools.  Tool() looks
+for tool names in the global exports, so that tool functions can be
+exported from a SConscript file with Export() and then referenced and
+applied in another SConscript using the exported name.  There is backwards
+support for tool functions defined with the older PKG_ names.  The Apply()
+method is replaced by Require(), which simply loops over the tool list
+calling Tool().  The customized eol_scons Tool() method returns the tool
+that was applied, as opposed to the SCons.Environment.Environment method
+which does not.  This makes it possible to use Require() similarly to past
+usage, where it returns the list of tools which should be applied to
+environments built against the component:
+
+@code
+env = Environment(tools = ['default'])
+tools = env.Require(Split("doxygen qt"))
+
+def this_component_tool(env):
+    env.Require(tools)
+
+Export('this_component_tool')
+@endcode
+
+It should be possible to make tools robust enough to only execute certain
+code once even when loaded multiple times, but that hasn't been explored
+much to find a solution that's not more work than it's worth.  [As far as
+I'm concerned, it seems legitimate to assume that a module or tool is only
+ever loaded once.  That's why the eol_scons Tool() method overrides the
+scons standard method to only load a tool once.]
+
+A similar issue occurs if a module is imported under two names.  For
+example, the 'chdir.py' module can be imported either as 'eol_scons.chdir'
+or just 'chdir'.  It appears that python will load that module under both
+names, causing any one-time code to be executed twice.
+
+No need to change the modules path to include the 'config' subdirectory.
+Scons automatically detects a subdirectory named 'site_scons' and adds it
+to the python path.
+
+No need to call SConsignFile.  It is called by default now when eol_scons
+is loaded.  (Actually scons now defaults to using a single global database
+file, so this call is no longer necessary.)
+
+To construct the root environment, call the normal Environment() 
+constructor, and pass the list of the "global tools" in the GLOBAL_TOOLS
+construction variable.  For example, here's the old form here:
+
+@code
+env = atd_scons.Pkg_Environment()
+env.GlobalSetup ([MaprSetup])
+Export('env')
+@endcode
+
+Here's the replacement:
+
+@code
+env = Environment(tools = ['default'], GLOBAL_TOOLS = [MaprSetup])
+Export('env')
+@endcode
+
+Since most SConscript files also Import the 'env' symbol, the Export is
+still required.  Once all occurrences of Import('env') are removed, the
+Export() can be removed from SConstruct.
+
+Many tools and SConscript files assume the existence of doxygen methods
+like AppendDoxref() and the Apidocs() builder wrapper.  Those methods are
+now added to the Environment class only when the eol_scons 'doxygen' tool
+is applied.  So the workaround is to add the 'doxygen' tool to the list of
+GLOBAL_TOOLS, or add it to the tools for the particular SConscript
+environment which needs it.
+
+Tools are python modules and not SConscript files, so certain functions and
+symbols are not available in the global namespace as they are in SConscript
+files.  In particular, instead of Split(), use string.split().  Export()
+and Import() should not be used.  Consider replacing them with a
+construction variable in the environment.
+
+To refer to tools defined in SConscript files in other directories within a
+source tree, Export() the tool function in the SConscript file, then
+Import() it in the SConscript files which need it.  See
+aeros/source/datastore/SConscript and aeros/source/datastore/tests/SConscript.
+
+Calls to SetupPrefixOptions() are now defunct and need to be removed.  The
+OPT_PREFIX and INSTALL_PREFIX handling has been separated out into a tool
+called 'prefixoptions'.  That tool is included in the global tools list by
+default.  Rather than use a special function like SetupPrefixOptions() as
+before, the prefix variables now default to '$DEFAULT_OPT_PREFIX' and
+'$DEFAULT_INSTALL_PREFIX'.  That means the default prefix paths can be set
+by setting those variables in the environment, such as in global setup tool
+in the SConstruct file.  The default for DEFAULT_INSTALL_PREFIX is
+'$DEFAULT_OPT_PREFIX', so it's possible to provide a default prefix for an
+entire project by setting only DEFAULT_OPT_PREFIX.  Here's an example from
+the aeros SConstruct file:
+
+@code
+env = Environment(tools = ['default'],
+                  DEFAULT_OPT_PREFIX = '/opt/aeros',
+                  GLOBAL_TOOLS = ['svninfo', 'qtdir', 'doxygen', Aeros])
+@endcode
+
+The user can still override the use of those defaults by setting the
+OPT_PREFIX and INSTALL_PREFIX options same as before.  I think using the
+construction variables to set the defaults is more consistent with standard
+SCons than supplying a special function.
+
+The Pkg_Options() function is deprecated in favor of GlobalOptions(), which
+can be called either through the eol_scons package or as an Environment
+method.  Pkg_Options() still exists, though, for a little while.
+
+The FindPackagePath is now only available as an Environment method.  The
+tools which use it now defer their option creation until the first
+environment is passed into their generate() function.
+
+@section configuration Configuration
+
+The eol_scons framework contains a tool called 'prefixoptions'.  It used to
+be part of the environment by default, but now it's a separate tool.
+However, the tool is still loaded by default unless the GlobalTools() list
+is modified first.  The tool adds build options called @p OPT_PREFIX and @p
+INSTALL_PREFIX.  @p OPT_PREFIX defaults to '$DEFAULT_OPT_PREFIX', which in
+turn defaults to '/opt/local'.  A source tree can modify the default by
+setting DEFAULT_OPT_PREFIX in the environment in the global tool.  Run
+'scons -h' to see the help information for all of the local options.  You
+can set an option on the command line like this:
+
+@code
+scons -u OPT_PREFIX=/opt
+@endcode
+
+Or you can set it for good in a file called config.py in the top directory:
+
+@code
+# toplevel config.py
+OPT_PREFIX="/opt"
+@endcode
+
+The @p OPT_PREFIX path is automatically included in the appropriate
+compiler options.  Several of the smaller packages expect to be found there
+by default (eg, netcdf), and so they don't add any paths to the environment
+themselves.
+
+The @p INSTALL_PREFIX option is the path prefix used by the installation
+methods of the Pkg_Environment class:
+
+@code
+InstallLibrary(source)
+InstallProgram(source)
+InstallHeaders(subdir, source)
+@endcode
+
+Therefore the above methods do not exist in the environment instance until
+the prefixoptions tool has been loaded.
+
+The @p INSTALL_PREFIX defaults to the value of @p OPT_PREFIX.
+
+It is also possible for any package script or SConscript to add more
+configuration options to the build framework.  The eol_scons package
+creates a single instance of the SCons Options class, and that is the
+instance to which the @p OPT_PREFIX and @p INSTALL_PREFIX options are
+added.  The eol_scons function GlobalOptions() returns a reference to the
+global Options instance, so further options can be added at any time by
+adding them to that instance.
+
+For example, the spol package script adds an option SPOL_PREFIX:
+
+@code
+print "Adding SPOL_PREFIX to options."
+eol_scons.GlobalOptions().AddOptions (
+	PathOption('SPOL_PREFIX', 'Installation prefix for SPOL software.',
+		   '/opt/spol'))
+@endcode
+
+The option is only added once, the first time the spol.py tool is loaded.
+After that, every time the spol tool is applied it calls Update() on the
+target environment to make sure the spol configuration options are setup in
+that environment.
+
+@code
+	eol_scons.GlobalOptions().Update(env)
+@endcode
+
+Finally, the end of the top-level SConstruct file should contain a call to
+the SCons Help() function using the help text from the GlobalOptions()
+instance.  This ensures that any options added by any of the modules in the
+build tree will appear in the output of 'scons -h'.
+
+@code
+options = env.GlobalOptions()
+options.Update(env)
+Help(options.GenerateHelpText(env))
+@endcode
+
+@section doxygen SCons Doxygen
+
+There are two separate doxygen builders: one for a Doxyfile and one for
+running Doxygen.  Using separate builders facilitates multiple kinds of
+Doxygen output from the same source, such as public API documentation for
+users of a library and documentation of the private interfaces for library
+developers.  The default configuration limits the documentation to the
+public API.
+
+The Apidocs() method is added to an environment instance when the doxygen
+tool is applied.  It simplifies use of the doxygen builder.  Given a list
+of sources, the builder generates both the Doxyfile and doxygen targets.
+The doxygen output is put in a subdirectory of the directory named by the
+APIDOCSDIR construction variable, "#apidocs" by default.
+
+There is no alias for doxygen.  Instead, name the top-level documentation
+directory as the target to update all of the documentation underneath it:
+
+@code
+cd raddx
+scons apidocs
+@endcode
+
+The Doxyfile builder generates a Doxyfile using the sources as the INPUT,
+and it accepts several parameters to customize the configuration.  The
+builder expects one target, the name of the doxygen config file to
+generate.  The generated config file sets directory parameters relative to
+the target directory, so it expects Doxygen to run in the same directory as
+the config file.  The documentation output will be written under that same
+directory.
+
+The Doxyfile builder uses these environment variables:
+
+@code
+    DOXYFILE_FILE
+
+    The name of a doxygen config file that will be used as the basis for
+    the generated configuration.  This file is copied into the destination
+    and then appended according to the DOXYFILE_TEXT and DOXYFILE_DICT
+    settings.
+
+    DOXYFILE_TEXT
+
+    This should hold verbatim Doxyfile configuration text which will be
+    appended to the generated Doxyfile, thus overriding any of the default
+    configuration settings.
+                        
+    DOXYFILE_DICT
+
+    A dictionary of Doxygen configuration parameters which will be
+    translated to Doxyfile form and included in the Doxyfile, after the
+    DOXYFILE_TEXT settings.  Parameters which specify files or directory
+    paths should be given relative to the source directory, then this
+    target adjusts them according to the target location of the generated
+    Doxyfile.
+
+    The order of precedence is DOXYFILE_DICT, DOXYFILE_TEXT, and
+    DOXYFILE_FILE.  In other words, parameter settings in DOXYFILE_DICT and
+    then DOXYFILE_TEXT override all others.  A few parameters will always
+    be enforced by the builder over the DOXYFILE_FILE by appending them
+    after the file, such as OUTPUT_DIRECTORY, GENERATE_TAGFILE, and
+    TAGFILES.  This way the template Doxyfile generated by doxygen can
+    still be used as a basis, but the builder can still control where the
+    output gets placed.  If any of the builder settings really need to be
+    overridden, such as to put output in unusual places, then those
+    settings can be placed in DOXYFILE_TEXT or DOXYFILE_DICT.
+
+    Here are examples of some of the Doxyfile configuration parameters
+    which typically need to be set for each documentation target.  Unless
+    set explicitly, they are given defaults in the Doxyfile.
+    
+    PROJECT_NAME        Title of project, defaults to the source directory.
+    PROJECT_VERSION     Version string for the project.  Defaults to 1.0
+@endcode
+
+
+The Doxygen builder uses these environment construction variables with the
+given defaults:
+
+@code
+    env['DOXYGEN'] = 'doxygen'
+    env['DOXYGEN_FLAGS'] = ''
+    env['DOXYGEN_COM'] = '$DOXYGEN $DOXYGEN_FLAGS $SOURCE'
+@endcode    
+
+
+Here are two typical examples for using the doxygen builders.  The first
+sets the PROJECT_NAME by passing it in the DOXYFILE_DICT construction
+variable.
+
+@code
+sources = Split("""
+ Logging.cc LogLayout.cc LogAppender.cc system_error.cc
+""")
+headers = Split("""
+ CaptureStream.h EventSource.h Logging.h Checks.h
+ system_error.h
+""")
+
+doxconfig = { "PROJECT_NAME" : "logx library" }
+    
+env.Apidocs(sources + headers, DOXYFILE_DICT=doxconfig)
+@endcode
+
+This example passes Doxyfile configuration text directly using the
+DOXYFILE_TEXT construction variable.  The source files to be scanned by
+doxygen are passed to the builder as the 'source' parameter.  Each source
+file is added to the INPUT parameter in the generated Doxyfile.  This may
+seem more cumbersome than using Doxygen's recursive directory and file
+pattern features.  However, strict control on the source files has several
+benefits.  For one, it makes the dependency's explicit so that SCons can
+reliably recreate documentation when source files change.  Also, new source
+files which might still be under development will not be accidentally
+included in the public API documentation.  Likewise, source files for
+internal utilities and private interfaces will not be part of the
+documentation unless explicitly included.  The Doxygen builders allow
+multiple variations for documentation, from internal details to the public
+API, and its likely that those variations work from different sets of
+source files.
+
+@code
+doxyfiletext = """
+PROJECT_NAME           = "DataSpace Library"
+
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+EXPAND_AS_DEFINED = DATAMEMORYTYPETRAITS 
+EXPAND_AS_DEFINED += ENTITY_OBJECT ENTITY_VISIT ENTITY_PART ENTITY_COLLECT
+EXPAND_AS_DEFINED += ENTITY_BASIC
+"""
+
+env.Apidocs(sources+headers, DOXYFILE_TEXT=doxyfiletext)
+@endcode
+
+As a final example, here is how the doxygen builders are used to generate
+the top-level documentation:
+
+@code
+doxyconf = """
+OUTPUT_DIRECTORY       = apidocs
+HTML_OUTPUT            = .
+RECURSIVE              = NO
+SOURCE_BROWSER         = NO
+ALPHABETICAL_INDEX     = NO
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+GENERATE_AUTOGEN_DEF   = NO
+ENABLE_PREPROCESSING   = NO
+CLASS_DIAGRAMS         = NO
+HAVE_DOT               = NO
+GENERATE_HTML          = YES
+"""
+
+df = env.Doxyfile (target="apidocs/Doxyfile",
+                   source=["mainpage.dox","REQUIREMENTS","config/README"],
+                   DOXYFILE_TEXT = doxyconf)
+dx = env.Doxygen (target="apidocs/index.html", source=[df])
+@endcode
+
+The targets are a little different in this case, since the html output (and
+thus the index.html file) is being placed directly into the apidocs
+directory rather than into a subdirectory.  Therefore the two builders are
+setup explicitly rather than with Pkg_Environment.Apidocs().
+
+The SCons doxygen support is defined in the tool file
+site_scons/site_tools/doxygen.py.
+
+The Doxyfile builder also takes care of cross-references between modules
+and between external packages.  The tool for a package can append a doxygen
+reference to the DOXREF construction variable using the AppendDoxref()
+method.  If the module is internal, then it only needs to append its module
+name:
+
+@code
+	env.AppendDoxref("logx")
+@endcode
+
+If the package is external but has html documentation online, then the
+reference should include the root of the html documentation:
+
+@code
+    env.AppendDoxref("log4cpp:%s/doc/log4cpp-%s/api" % (prefix, version))
+@endcode
+
+When the Doxyfile builder parses this reference, it will automatically run
+the 'doxytag' program to generate a tag file from the external
+documentation.
+
+If instead the HTML documentation is online somewhere and a tag file for
+it has already been generated, then the reference to that documentation can
+be specified explicitly, typically in the SConstruct  file:
+
+@code
+    env.SetDoxref('QWT_DOXREF','$TAGDIR/qwt-5.tag',
+              'http://qwt.sourceforge.net')
+@endcode
+
+In this example from aeros, there is a set of tag files stored in the
+source tree, and the TAGDIR variable points to that directory.
+
+
+@section subsets Building Subsets of the Source Tree
+
+With large source trees (like raddx), scons can be very slow to read all of
+the subsidiary SConscript files and scan all of the source files and
+implicit dependencies.  It is not like hierarchical makes, where the build
+only proceeds down from the current subdirectory.  Instead, scons builds
+always start from the top.  So to speed up iterative compiles with scons,
+here are a few ways to build only subsets of the source tree.
+
+The most obvious way is to eliminate subdirectories from the source tree.
+scons issues a warning for every SConscript file it cannot find, but it
+continues anyway.  The raddx SConstruct file actually checks for the
+existence of each SConscript subdirectory and skips the ones that do not
+exist, just to avoid the warning message.
+
+The raddx SConstruct file also supports a SUBDIRS option.  The SUBDIRS
+option contains the specific list of subdirectories whose SConscript files
+should be loaded.  When working on a particular subset of the raddx tree,
+say spol, it is possible to limit builds to the current subdirectory and
+any modules on which it depends.  Unfortunately, for the moment those
+modules need to be known in advance and explicitly included in SUBDIRS.
+For example, if working in the dataspace directory, this command builds
+only the dataspace library and the logx and domx libraries which it
+requires:
+
+@code
+scons -u SUBDIRS="logx domx dataspace"
+@endcode
+
+Note this is different than running this command:
+
+@code
+scons -u .
+@endcode
+
+The above command only builds the current directory, but it first loads and
+scans all of the SConscript files in the entire project.  The SUBDIRS
+version only loads SConscript files from three subdirectories, so it is
+much faster.
+
+Like other options, SUBDIRS can be specified on the command-line or in the
+configuration file, config.py.
+
+Some components define their tool function within the SConscript file in
+their source directory, rather than in the site_scons directory.  To build
+any modules which depend on such packages, the package's subdirectory must
+be included in the SUBDIRS list.  Otherwise the package's tool function
+will never be defined.
+
+Help on the SUBDIRS option shows up in the -h output from scons:
+
+@code
+SUBDIRS: The list of subdirectories from which to load SConscript files.
+    default:
+  rtfcommon logx acex domx inix dorade dbx rtf_disp
+  eldora/eldora
+  radd eldora rdow acex/RingBuf spol
+  lidar
+@endcode
+
+With eol_scons, individual SConscript files do not need to import a root
+environment from which to create their own environment.  Instead they use
+normal SConscript conventions, except the underlying environment instance
+is modified by the 'default' tool.  So it is possible to build logx
+completely separately from the rest of the source tree with something like
+this:
+
+@code
+cd logx
+scons -f SConscript --site-dir ../site_scons
+@endcode
+
+With a few tweaks to the SConscript file, it should be possible for many of
+the shared packages to use the same SConscript file to build both within a
+source tree and standalone.
+
+@section packagebuilds Automatic Builds of External Packages
+
+The eol_scons.Package class is an abstract base class for the notion of
+external software packages in the EOL SCons framework.  In particular, it
+provides a generic algorithm for automatically unpacking, building, and
+installing packages which do not appear to be installed at build time.  The
+algorithm is broken into several steps, each implemented by a particular
+method of the Package class.  Following the strategy pattern, subclasses
+need only override the methods for particular steps, rather than
+reproducing the entire algorithm in the subclass.
+
+The Package base class holds the canonical name for the package, a list of
+key files contained in the package archive, the SCons actions for building
+the package, the targets created when the package is installed, and a
+default name for the package's archive file.  For example, the netcdf
+package has the name NETCDF.  Unpacking the netcdf archive creates the file
+"src/INSTALL".  When built and installed, the netcdf package installs the
+header file "$OPT_PREFIX/include/netcdf.h", so that is one of the SCons
+targets for package's builder.  All of these steps together are a cascade
+of dependencies in SCons.  When SCons discovers source code with a
+dependency on the netcdf.h header file (through the source scanner), SCons
+will initiate the installation of the netcdf package.
+
+In the usual case, a package like netcdf would be required by a SConscript
+file somewhere, using the Require() method or by listing 'netcdf' in the
+tools.  Then the package's tool takes care of setting up the environment to
+build against the particular package.  The tool file implements the
+generate(env) function by calling into a singleton subclassed from
+eol_scons.Package.  The subclass contains the specifics for the package,
+but most of the work can be passed to the Package class through the
+checkBuild() method.  The checkBuild() method first checks whether all of
+the install targets exist.  If so, then nothing needs to be added to the
+environment to build the package.  However, if something is missing, then
+Package calls the setupBuild() method.  That method calls generate(), which
+actually creates a builder for the package archive and adds it to the
+environment.  The rest of setupBuild() adds the builder instances, one for
+unpacking the archive and another for building it.  The generated builder
+is specific to the package subclass.  It uses an emitter to emit that
+package's install files as the builder targets.
+
+As an example, following is a breakdown of the file
+site_scons/site_tools/netcdf.py:
+
+First, it establishes the targets that the package installs, usually header
+files and libraries.
+
+@code
+# Note that netcdf.inc has been left out of this list, since this
+# current setup does not install it.
+
+netcdf_headers = Split("""
+ncvalues.h netcdf.h netcdf.hh netcdfcpp.h
+""")
+
+headers = [ os.path.join("$OPT_PREFIX","include",f)
+            for f in netcdf_headers ]
+
+# We extend the standard netcdf installation slightly by also copying
+# the headers into a netcdf subdirectory, so headers can be qualified
+# with a netcdf/ path when included.  Aeros does that, for example.
+
+headers.extend ([ os.path.join("$OPT_PREFIX","include","netcdf",f)
+                  for f in netcdf_headers ])
+libs = Split("""
+$OPT_PREFIX/lib/libnetcdf.a
+$OPT_PREFIX/lib/libnetcdf_c++.a
+""")
+@endcode
+
+Then there is the list of actions used to build and install the netcdf
+source tree, after it has been extracted from the compressed archive file.
+Note the chdir.MkdirIfMissing method comes from the chdir.py module in the
+eol_scons package, while Copy is one of the standard SCons actions.  The
+copy step is only necessary to copy the netcdf headers into their own
+netcdf subdirectory, a convention that some projects started using so that
+netcdf include directives can be qualified with the "netcdf/" path.
+
+@code
+netcdf_actions = [
+    "./configure --prefix=$OPT_PREFIX FC= CC=gcc CXX=g++",
+    "make",
+    "make install",
+    chdir.MkdirIfMissing("$OPT_PREFIX/include/netcdf") ] + [
+    Copy("$OPT_PREFIX/include/netcdf", h) for h in
+    [ os.path.join("$OPT_PREFIX","include",h2) for h2 in netcdf_headers ]
+    ]
+@endcode
+
+Here is the actual definition of the NetcdfPackage subclass.  The Package
+base class is passed enough information in the constructor to know how to
+find, extract, build, and install the package.  Because it knows the list
+of installed files, the Package class also knows how to check whether
+netcdf appears to have installed or not yet.  The setupBuild() and
+require() methods extend the base class by setting up the environment as
+needed specifically for the netcdf library.  For example, there are two
+library dependencies, the C and C++ libraries.  Also, when building the
+netcdf package explicitly, then the specific library targets can be added
+to the LIBS construction variable by referring to the 'libnetcdfpp' and
+'libnetcdf' global targets.  Otherwise, as is usually the case for external
+libraries which have already been installed, only the library base names
+are added to LIBS.
+
+@code
+class NetcdfPackage(Package):
+
+    def __init__(self):
+        Package.__init__(self, "NETCDF", "src/INSTALL",
+                         netcdf_actions, libs + headers,
+                         default_package_file = "netcdf-3.6.0-p1.tar.gz")
+
+    def setupBuild(self, env):
+        installs = Package.setupBuild(self, env)
+        env.AddGlobalTarget('libnetcdf', installs[0])
+        env.AddGlobalTarget('libnetcdfpp', installs[1])
+
+    def require(self, env):
+        "Need to add both c and c++ libraries to the environment."
+        Package.checkBuild(self, env)
+        prefix = env['OPT_PREFIX']
+        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
+        if self.building:
+            env.Append(LIBS=env.GetGlobalTarget('libnetcdfpp'))
+            env.Append(LIBS=env.GetGlobalTarget('libnetcdf'))
+        else:
+            env.Append(LIBS=['netcdf_c++', 'netcdf'])
+@endcode
+
+The 'default_package_file' argument to the constructor is used by the
+Package base class to find the external package.  If the netcdf package
+needs to be installed, then the Package base class looks for the name of
+package file in the SCons construction variable NETCDF_PACKAGE_FILE, and it
+looks for that file in the path given by the construction variable
+PACKAGE_DIRECTORY.  The default package directory is
+"/net/ftp/pub/archive/aeros/packages", and each package usually passes a
+default package file name to the Package constructor.  However, both of
+these can be overridden for a particular project in the global setup
+function.  For example, the raddx project could add these lines to the
+RaddSetup() function in the raddx/SConstruct file:
+
+@code
+	env['PACKAGE_DIRECTORY'] = "/net/ftp/pub/archive/spol/packages"
+	env['NETCDF_PACKAGE_FILE'] = "netcdf-3.6.1.tar.gz"
+@endcode
+
+Eventually a URL will be allowed for the package directory, and the python
+url module can be used to download the archive file from anywhere on the
+net.
+
+This final code in netcdf.py creates the singleton NetcdfPackage instance,
+and uses that instance to implement the require() functionality of the
+exported PKG_NETCDF() function.
+
+@code
+netcdf_package = NetcdfPackage()
+
+def PKG_NETCDF(env):
+    netcdf_package.require(env)
+
+Export("PKG_NETCDF")
+@endcode
+
+Any SConscript file which requires PKG_NETCDF will have its environment
+setup with the correct library and include paths for netcdf, as usual.
+However, if package builds are enabled, then the netcdf_package instance
+will check if the netcdf requirements are already installed or not.  If
+not, then it will add to the environment the targets and builders necessary
+to automatically extract and install the netcdf source.
+
+Package builds can be enabled or disabled through the package module's sole
+scons option: @p packagebuilds.  That option can be set to @p enable, @p
+disable, or @p force.  By default automatic package builds are disabled.
+They can be enabled with the @p enable option.  The @p force option does
+not force every package to be rebuilt, instead it forces the nodes for
+building the package to be added to the environment, whether the package
+needed to be built or not.  This may not result in any attempt to build the
+package if the built package is already up-to-date.
+
+So far these packages have been updated to use the Package framework and
+allow automatic installs:
+
+@li netcdf
+@li udunits
+@li Xerces-C
+@li log4cpp
+@li qwt
+
+@section history History
+
+I found myself wishing I had copies of small utility source files in
+multiple projects, and in fact originally just used copies.  As I started
+to add features in one copy that I wanted in the other copies, I realized I
+needed some kind of framework to allow me to easily reuse a single, shared
+copy of the utility sources.  The utilities I wanted were mostly extensions
+to much larger outside packages, like the DOM XML library Xerces-C or the
+C++ logging package log4cpp based on Log4J.  So I did not want to throw all
+the utilities into a single library which would have lots of major
+dependencies: I thought that would detract from the library's convenience
+and its likelihood of being reused.  Instead I settled on trying to find a
+way to share easily and conveniently many smaller, more focused libraries.
+
+The result is basically very similar to the framework I put in place for
+the MAPR software tree, which due to the KDevelop IDE used automake and
+autoconf and started out divided into several smaller projects.  That work
+in turn led me to borrow some things from the KDE development framework.  I
+wished there were something better to base this on than the autoconf tools,
+but I did not know what that would be.  Qmake seems to be difficult to
+extend to a larger project or with new make variables and rules.  Perhaps
+JAM or ANT would have been better, but autoconf seemed to be the more
+widely used, and there are huge projects like KDE and GCC rich with working
+examples from which techniques can be pulled.  Given that recent projects
+like RADD have the chance to run on both Windows and UNIX, it would be
+useful if the build system supported compiles on both platforms.  I don't
+know how/if automake/autoconf could handle that.
+
+
+@section comparison Comparison Between SCons and Autoconf
+
+Here's my input into the build tool comparison mix--more of an abstract
+overview than a feature comparison.  I'll admit there are aspects to both
+make tools and scons that I don't like, but I think scons is more on the
+right track.  Make together with shell scripting can be made to handle very
+complex multi-directory builds and dependencies, however it's limitation is
+that Makefiles must describe all of the dependencies, rules, and relations
+statically.  Dynamic checking and hierarchical builds require recursive
+makes (or gnu make).  All of the tools on top of make like autoconf,
+automake, and Imake were built to allow more dynamic generation of
+dependencies, rule templates, and hierarchical (modular) builds while
+sticking to the portable Makefile format, the make program, and Bourne
+shell scripting for actually running the build commands.  This works well
+to a point but requires the incorporation and close cooperation of several
+tools (m4, cpp, sh, make, and various sh scripts), all of which must be
+carefully crafted to be portable between operating systems, especially
+Windows.
+
+So the advantage of scons is that all of the same funcationality can be
+self-contained in a single, portable scripting language--python. The
+build dependencies are not described in yet another static syntax, but
+instead they are assembled through calls to a standard and mostly intuitive
+scripting API built within python.  The assembly of the dependencies and
+build rules on any particular build invocation can be very dynamic and
+runtime configurable.  No preformatting of Makefiles or preconfiguration of
+the build environment is required.  I think this makes scons slower by
+pushing all of that processing back to each and every build run, but it is
+also what allows scons to be more thorough and dynamic.  Ant got the
+portability idea right by encapsulating build rules and their specification
+with XML and Java, but I think it went wrong by adding yet another static
+dependency format in the use of XML.  I think Ant would have been better to
+follow the scons model of using Java for both build phases: first describe
+the rules and dependencies for a build environment using portable Java
+scripting like beanscript, then run the build engine on that environment
+using Java.  The idea is the same: use a portable but powerful runtime like
+Java or python to provide both dynamic dependencies and rule execution.
+Describe the dependencies and write the rules in the same language.
+
+On the other hand, the self-containment of scons lends to some of its
+current drawbacks, from my perspective.  For example, automatic dependency
+scanning is built-in but primitive.  It scans source files for include
+dependencies using regular expression matching, so it fails to catch
+dependencies which only exist with certain preprocessor
+definitions. However, that could be become more accurate as scons develops.
+Also, scons is very strict about thoroughly describing and checking all
+dependencies and only executing build actions when dependencies are
+outdated.  This makes it harder to use scons to run auxiliary build actions
+which do not have such clear cut notions of dependencies, such as
+generating documentation (doxygen), cleaning, and installing.  Scons does
+scale well to managing the dependencies of a large multi-directory project
+like the raddx tree, but only in dependency complexity and not in
+performance.  I'm still trying to get it to scale back down to building
+small subsets of the source tree separately and quickly, which was always
+easy and fast with hierarchical makefiles.
+
+For both autoconf and scons I've ended up grafting some of my own desired
+extensions on top of them to support more modular build environments.  One
+way or another I'll be able to get scons to do what I want.  So as for me,
+I don't see any reason to go back to autoconf or Makefiles.
+
+
+
+**/

@@ -1,0 +1,63 @@
+
+import sys
+
+sys.path.insert(0, '../../site_tools')
+sys.path.insert(0, '../..')
+
+import eol_scons
+
+import qwt
+import ace
+import ace_qt
+import bdb
+import boost_num_util
+import boost
+import boost_python
+import buildmode
+import coin
+import cppunit
+import ddu
+import debug
+import default
+import deploy
+import download
+import doxygen
+import efence
+import fftw
+import gcc68k
+import gcc
+import gl
+import gsl
+import inilib
+import linuxdist
+import log4cpp
+import logx
+import netcdf
+import nexrad
+import nidas
+import omniorb
+import optimize
+import postgres_pq
+import prefixoptions
+import profile
+import pyqt
+import python
+import qt4
+import qtdir
+import qt
+import qwt
+import solo
+import soqt
+import spol
+import svninfo
+import tao
+import tao_qt
+import tnt
+import udunits
+import unpack
+import valgrind
+import vxworks
+import warnings
+import xercesc
+import xmlrpc
+

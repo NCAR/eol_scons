@@ -1,0 +1,59 @@
+
+================================================================
+tool module rewrite notes
+================================================================
+
+Why eol_scons.debug not getting set to true sooner when eolsconsdebug=yes?
+
+more migration notes:
+================================================================
+
+Could we improve scons performance by leaving out targets that will not be
+built?  For example, leave off all of the apidocs rules if there is no
+'apidocs' target on the command line.
+
+Customize should take a list of module names and a list of tools to
+apply, or maybe even a regexp, so that this is possible:
+
+env.Customize('rtf_disp.*',[Optimized,NoUnused])
+
+How to assemble a list of all the source files in all the Program and
+Library targets, especially when in different environments?  Maybe by
+overriding those methods in Pkg_Environment?  But we also need to get
+header files, which are not specified.  With a list of source files in the
+tree an etags target would be trivial and complete.
+
+Allow disabling a module which would in turn disable all modules which
+depend upon it.
+
+Consider 'proxy' Makefiles with targets like 
+
+all:
+	scons -u
+
+clean:
+	scons -c .
+
+Rather than create a new environment in every subdir, maybe better to have
+an aggregate tool which applies a list of tools in turn, and pass that
+specific aggregate tool to the env.Program or env.Library call?
+
+Perhaps make packages full-fledged classes, with once() and always()
+methods which the Require mechanism calls according to whether the package
+has already been applied or not.  That might also be a way to distinguish
+env mods required when linking only as opposed to including headers.
+
+Add env.TestProgram() to generate a Program and add a 'test' alias which
+runs the program and writes FAILED or Passed according to the exit value.
+Should env.Install() be overridden to add the install alias in the default
+environment?
+
+See SCons.Util.AppendPath and PrependPath: perhaps we can use them to
+modify LIBPATH and replace it.  Perhaps the original problem was that
+LIBPATH gets set explicitly in root environment, which overrides the ENV
+libpath?
+
+Internal libraries should be added as files instead of the -l scheme, to be
+certain that we link with the internal file and not some library that may
+exist in other paths that get thrown on the command line.
+
