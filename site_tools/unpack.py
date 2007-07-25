@@ -4,6 +4,7 @@
 import os
 import SCons
 import string
+import new
 
 unpack_variables=[]
 
