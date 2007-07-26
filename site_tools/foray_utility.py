@@ -2,7 +2,6 @@ import os,os.path, sys
 import SCons
 
 def generate(env):
-	print 'foray_utility - generate called'
 	env.Append(LIBS=['forayutil',])
 
 	libpath = os.path.join(env['OPT_PREFIX'], 'foray', 'lib')
