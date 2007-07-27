@@ -14,11 +14,6 @@ def generate(env):
     soqt_config = os.path.join(soqt_dir, 'bin', 'soqt-config')
     env.ParseConfig(soqt_config + ' --cppflags --ldflags --libs')
     prefix = os.popen(soqt_config + ' --prefix').read().strip()
-    #
-    # Make sure all the library directories for which we have "-L<dir>"
-    # directives also have appropriate '-Wl,-R <dir>' directives,
-    # so the resulting binary knows where to find the libs, too...
-    #
     ldflags = os.popen(soqt_config + ' --ldflags').read().split()
     libdirs = []
     for flag in ldflags:
@@ -26,7 +21,7 @@ def generate(env):
             # remove the -L to get the directory, and make the resulting 
             # path absolute
             dir = os.path.abspath(flag.replace('-L', ''))
-            env.Append(_LIBFLAGS=['-Wl,-R', dir])
+            env.Append(RPATH=dir)
 
     if not env.has_key('SOQT_DOXDIR'):
         # When installed into the system as the SoQt-devel package,

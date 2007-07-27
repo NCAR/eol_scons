@@ -26,8 +26,8 @@ def generate(env):
 
   if not env.has_key('HAS_PKG_ACE'):
     libpath=os.path.join(ace_root, 'lib')
-    env.Append(LIBPATH=[libpath, ])
-    env.Append(_LIBFLAGS=['-Wl,-R', libpath]) 
+    env.AppendUnique(LIBPATH=[libpath])
+    env.AppendUnique(RPATH=[libpath]) 
     env['ACE_ROOT'] = ace_root
     env['ENV']['ACE_ROOT'] = ace_root
     env.Union(CPPDEFINES=

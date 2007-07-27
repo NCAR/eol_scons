@@ -82,7 +82,7 @@ def PKG_QT3(env):
     env.AppendUnique(LIBPATH = [qtlib, '/usr/X11R6/lib',])
     # force the dynamic linker to find our libs
     # w/o setting LD_LIBRARY_PATH
-    env.Append(_LIBFLAGS=['-Wl,-R', qtlib])
+    env.AppendUnique(RPATH=[qtlib])
     # need LD_LIBRARY_PATH set for uic to run, because SCons
     # doesn't use user's LD_LIBRARY_PATH
     env.AppendENVPath ('LD_LIBRARY_PATH',qtlib)

@@ -20,8 +20,8 @@ def generate(env):
     bdir=env['BOOST_DIR']
     if bdir and bdir != "/usr" and bdir != "":
       env.Append(CPPPATH=os.path.join(bdir,"include"));
-      env.Append(LIBPATH=os.path.join(bdir,"lib"));
-      env.Append(_LIBFLAGS=["-Wl,-R", os.path.join(bdir,"lib")]);
+      env.AppendUnique(LIBPATH=os.path.join(bdir,"lib"));
+      env.AppendUnique(RPATH=[os.path.join(bdir,"lib")]);
 
 def exists(env):
   return True

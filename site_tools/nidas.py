@@ -21,7 +21,7 @@ def generate(env):
         env.Append(CPPPATH= ['$NIDAS_PATH/x86/include',])
         env.Append(LIBPATH=['$NIDAS_PATH/x86/lib',])
         env.Append(LIBS=['nidas','nidas_dynld','nidas_util','XmlRpc'])
-        env.Append(_LIBFLAGS=['-Wl,-R', "$NIDAS_PATH/x86/lib"]) 
+        env.AppendUnique(RPATH="$NIDAS_PATH/x86/lib") 
         env.Tool("xercesc")
 
 def exists(env):

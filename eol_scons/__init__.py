@@ -422,11 +422,8 @@ def _AppendSharedLibrary (env, name, path=None):
     env.Append(LIBS=[name])
     if not path:
         return
-    # Only set the runtime linker path if not already there
-    env.Append(LIBPATH=[path])
-    if path not in env['_LIBFLAGS']:
-        env.Append(_LIBFLAGS=['-Wl,-R', path])
-
+    env.AppendUnique(LIBPATH=[path])
+    env.AppendUnique(RPATH=[path])
 
 def _FindPackagePath(env, optvar, globspec, defaultpath = None):
     """Check for a package installation path matching globspec."""

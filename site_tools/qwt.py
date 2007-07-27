@@ -73,7 +73,7 @@ class QwtPackage(Package):
             qwt_libdir = os.path.join(qwt_dir, 'lib')
             env.Append(LIBPATH= [qwt_libdir, ])
             env.Append(LIBS=['qwt',])
-            env.Append(_LIBFLAGS=['-Wl,-R', qwt_libdir])
+            env.AppendUnique(RPATH=[qwt_libdir])
 
         env.Append(CPPPATH= [os.path.join(qwt_dir, 'include'),])
         plugindir='$QWT_DIR/designer/plugins/designer'
