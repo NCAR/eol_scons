@@ -42,14 +42,6 @@ class QwtPackage(Package):
                          qwt_actions, libs,
                          default_package_file = "qwt-4.2.0.zip")
 
-    def setupBuild(self, env):
-        # Make sure QWT_DIR is overridden with the build location
-        # before the install targets get expanded by the builder.
-        qwt_dir = env['QWT_DIR']
-        env['QWT_DIR'] = qwt_dir
-        installs = Package.setupBuild(self, env)
-        env.AddGlobalTarget('libqwt', installs[0])
-
     def require(self, env):
 
         # The actual QWT_DIR value to use depends upon whether qwt is being
@@ -60,20 +52,20 @@ class QwtPackage(Package):
         env.Tool('download')
         env.Tool('unpack')
         qwt_dir = env['QWT_DIR']
-        library = os.path.join(qwt_dir, 'lib', 'libqwt.so')
-        if not os.access(library, os.R_OK):
+        libqwt = os.path.join(qwt_dir, 'lib', 'libqwt.so')
+        if not os.access(libqwt, os.R_OK):
             # Not installed in the given QWT_DIR, so try internal path
             qwt_dir = self.getPackagePath(env)
             env['QWT_DIR'] = qwt_dir
         Package.checkBuild(self, env)
+        qwt_libdir = os.path.join(qwt_dir, 'lib')
+        libqwt = os.path.join(qwt_libdir, 'libqwt.so')
         if self.building:
-            libqwt = env.GetGlobalTarget('libqwt')
-            env.Append(LIBS=[libqwt])
+            env.Append(LIBS=[env.File(libqwt)])
         else:
-            qwt_libdir = os.path.join(qwt_dir, 'lib')
             env.Append(LIBPATH= [qwt_libdir, ])
             env.Append(LIBS=['qwt',])
-            env.AppendUnique(RPATH=[qwt_libdir])
+        env.AppendUnique(RPATH=[qwt_libdir])
 
         env.Append(CPPPATH= [os.path.join(qwt_dir, 'include'),])
         plugindir='$QWT_DIR/designer/plugins/designer'

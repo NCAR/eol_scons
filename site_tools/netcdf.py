@@ -41,23 +41,18 @@ class NetcdfPackage(Package):
         Package.__init__(self, "NETCDF", "INSTALL",
                          netcdf_actions, libs + headers, dpf)
 
-
-    def setupBuild(self, env):
-        installs = Package.setupBuild(self, env)
-        env.AddGlobalTarget('libnetcdf', installs[0])
-        env.AddGlobalTarget('libnetcdfpp', installs[1])
-
     def require(self, env):
         "Need to add both c and c++ libraries to the environment."
         Package.checkBuild(self, env)
         prefix = env['OPT_PREFIX']
-        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
-        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include','netcdf'),])
+        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include')])
+        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include','netcdf')])
         if self.building:
-            env.Append(LIBS=env.GetGlobalTarget('libnetcdfpp'))
-            env.Append(LIBS=env.GetGlobalTarget('libnetcdf'))
+            env.Append(LIBS=env.File(libs[0]))
+            env.Append(LIBS=env.File(libs[1]))
         else:
-            env.Append(LIBPATH=['/usr/lib/netcdf-3'])
+            env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib')])
+            env.AppendUnique(LIBPATH=['/usr/lib/netcdf-3'])
             env.Append(LIBS=['netcdf_c++', 'netcdf'])
 
 netcdf_package = NetcdfPackage()

@@ -23,18 +23,13 @@ class Log4cppPackage(Package):
                          actions, install_targets,
                          default_package_file = "log4cpp-2005-10-21.tar.gz")
                          
-    def setupBuild(self, env):
-
-        installs = Package.setupBuild(self, env)
-        env.AddGlobalTarget('liblog4cpp', installs[0])
-
     def require(self, env):
         
         self.checkBuild(env)
         prefix = env['OPT_PREFIX']
         version = '0.3.4b'
         if self.building:
-            env.Append(LIBS=[env.GetGlobalTarget('liblog4cpp'),])
+            env.Append(LIBS=env.File(install_targets[0]))
         else:
             env.Append(LIBS=["log4cpp"])
             env.Append(LIBPATH=[prefix])

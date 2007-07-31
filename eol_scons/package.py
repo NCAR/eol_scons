@@ -116,6 +116,11 @@ class Package:
                       self.name
             return self.build_targets
         complete = 1
+        # Turn on the 'building' flag, since even if the targets are found
+        # and don't need to actually be built, we want to build against
+        # those built package targets rather than the external
+        # alternatives.
+        self.building = 1
         for path in self.getInstallTargets():
             spath = env.subst(path)
             if not os.access(spath, os.R_OK):
