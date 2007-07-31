@@ -37,8 +37,8 @@ netcdf_actions = [
 class NetcdfPackage(Package):
 
     def __init__(self):
-        dpf="ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-3.6.1-beta3.tar.gz"
-        Package.__init__(self, "NETCDF", "src/INSTALL",
+        dpf="ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-3.6.2.tar.gz"
+        Package.__init__(self, "NETCDF", "INSTALL",
                          netcdf_actions, libs + headers, dpf)
 
 
