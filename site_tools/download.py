@@ -21,6 +21,7 @@ import urllib
 import SCons
 import os
 
+
 class URLNode(SCons.Node.Python.Value):
 
     def __init__ (self, url):
@@ -36,7 +37,11 @@ def download_emitter (target, source, env):
     url = str(source[0]).strip("'")
     if not "/" in url:
         url = '$DOWNLOAD_DIRECTORY/%s' % url
-    return target, [URLNode(env.subst(url))]
+    source = [URLNode(env.subst(url))]
+    if env.get('eolsconsdebug'):
+        print "download_emitter returning ([%s],[%s])" % \
+              (",".join(map(str, target)),",".join(map(str, source)))
+    return target, source
 
 
 def download(target, source, env):
@@ -63,6 +68,7 @@ def generate(env):
     if not env.has_key(key):
         env[key] = 'ftp://ftp.atd.ucar.edu/pub/archive/aeros/packages'
     env['BUILDERS']['Download'] = download_builder
+    env.fs.URLNode = URLNode
 
 
 def exists(env):
