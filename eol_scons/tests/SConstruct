@@ -61,3 +61,13 @@ import warnings
 import xercesc
 import xmlrpc
 
+env = Environment()
+
+boost.generate(env)
+
+env.Append(LIBS = [ "logx", "boost_date_time" ])
+
+print boost.boost_libflags(env)
+
+print env.subst(env["_LIBFLAGS"])
+
