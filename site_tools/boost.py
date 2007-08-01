@@ -20,6 +20,8 @@ def generate(env):
     bdir=env['BOOST_DIR']
     if bdir and bdir != "/usr" and bdir != "":
       env.Append(CPPPATH=os.path.join(bdir,"include"));
+      # Windows installs don't have a separate include directory.
+      env.Append(CPPPATH=os.path.join(bdir));
       env.AppendUnique(LIBPATH=os.path.join(bdir,"lib"));
       env.AppendUnique(RPATH=[os.path.join(bdir,"lib")]);
 
