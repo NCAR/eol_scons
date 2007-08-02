@@ -4,12 +4,20 @@ import SCons.Util
 
 options = None
 
+liblibs = [ 'boost_unit_test_framework',
+            'boost_prg_exec_monitor',
+            'boost_test_exec_monitor',
+            'boost_wave' ]
+
 def boost_libflags(env):
   newlibs = []
+  libdir = os.path.join(env['BOOST_DIR'], 'lib')
   for lib in env['LIBS']:
     if SCons.Util.is_String(lib) and \
            lib.startswith("boost_") and \
            not lib.endswith("$BOOST_LIBRARY_SUFFIX"):
+      if env['PLATFORM'] == 'win32' and lib in liblibs:
+          lib = 'lib'+lib
       newlibs.append(lib+"$BOOST_LIBRARY_SUFFIX")
     else:
       newlibs.append(lib)
@@ -32,7 +40,7 @@ def generate(env):
   env.Append(DEPLOY_SHARED_LIBS='boost_serialization')
   if not env.has_key('BOOST_LIBRARY_SUFFIX'):
     if env['PLATFORM'] == 'win32':
-      env['BOOST_LIBRARY_SUFFIX'] = '-vc71-mt-1_33_1'
+      env['BOOST_LIBRARY_SUFFIX'] = '-vc71-mt-gd-1_33_1'
     else:
       env['BOOST_LIBRARY_SUFFIX'] = ''
   if env.has_key('BOOST_DIR'):
