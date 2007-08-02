@@ -52,6 +52,7 @@ class NetcdfPackage(Package):
             env.Append(LIBS=env.File(libs[1]))
         else:
             env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib')])
+            env.AppendUnique(RPATH=[os.path.join(prefix,'lib')])
             env.AppendUnique(LIBPATH=['/usr/lib/netcdf-3'])
             env.Append(LIBS=['netcdf_c++', 'netcdf'])
 

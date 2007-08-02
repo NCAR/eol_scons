@@ -23,7 +23,7 @@ def Profile(env):
     return env
 
 def generate(env):
-	SCons.Tool.gcc.generate(env)
+    SCons.Tool.gcc.generate(env)
     env.Optimize = Optimize
     env.Debug = Debug
     env.Warnings = Warnings
