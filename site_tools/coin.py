@@ -11,9 +11,12 @@ def generate(env):
 
     options.Update(env)
     coin_dir = env['COIN_DIR']
-    coin_config = os.path.join(coin_dir, 'bin', 'coin-config')
-    env.ParseConfig(coin_config + ' --cppflags --ldflags --libs')
-    prefix=os.popen(coin_config + ' --prefix').read().strip()
+    if env['PLATFORM'] != 'win32':
+        coin_config = os.path.join(coin_dir, 'bin', 'coin-config')
+        env.ParseConfig(coin_config + ' --cppflags --ldflags --libs')
+        prefix=os.popen(coin_config + ' --prefix').read().strip()
+    else:
+        prefix="$OPT_PREFIX"
     if not env.has_key('COIN_DOXDIR'):
         # When installed into the system as the Coin2-devel package,
         # the doxygen html has a custom path.

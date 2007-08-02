@@ -11,17 +11,19 @@ def generate(env):
                     env.FindPackagePath('SOQT_DIR','$OPT_PREFIX/SoQt*','/usr'))
     options.Update(env)
     soqt_dir = env['SOQT_DIR']
-    soqt_config = os.path.join(soqt_dir, 'bin', 'soqt-config')
-    env.ParseConfig(soqt_config + ' --cppflags --ldflags --libs')
-    prefix = os.popen(soqt_config + ' --prefix').read().strip()
-    ldflags = os.popen(soqt_config + ' --ldflags').read().split()
-    libdirs = []
-    for flag in ldflags:
-        if (flag.strip().index('-L') == 0):
-            # remove the -L to get the directory, and make the resulting 
-            # path absolute
-            dir = os.path.abspath(flag.replace('-L', ''))
-            env.Append(RPATH=dir)
+    if env['PLATFORM'] != 'win32':    
+        soqt_config = os.path.join(soqt_dir, 'bin', 'soqt-config')
+        env.ParseConfig(soqt_config + ' --cppflags --ldflags --libs')
+        prefix = os.popen(soqt_config + ' --prefix').read().strip()
+        ldflags = os.popen(soqt_config + ' --ldflags').read().split()
+        for flag in ldflags:
+            if (flag.strip().index('-L') == 0):
+                # remove the -L to get the directory, and make the resulting 
+                # path absolute
+                dir = os.path.abspath(flag.replace('-L', ''))
+                env.Append(RPATH=dir)
+    else:
+        prefix = "$OPT_PREFIX"
 
     if not env.has_key('SOQT_DOXDIR'):
         # When installed into the system as the SoQt-devel package,
@@ -34,7 +36,8 @@ def generate(env):
         env['SOQT_DOXREF'] = 'soqt:%s' % env['SOQT_DOXDIR']
     env.AppendDoxref(env['SOQT_DOXREF'])
     env.Append(DEPLOY_SHARED_LIBS='SoQt')
-    env.Append(LIBS='Xi')
+    if env['PLATFORM'] != 'win32':
+        env.Append(LIBS='Xi')
     # This is needed especially to get the doxygen reference.
     env.Require(['PKG_COIN'])
 
