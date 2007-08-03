@@ -11,7 +11,6 @@ liblibs = [ 'boost_unit_test_framework',
 
 def boost_libflags(env):
   newlibs = []
-  libdir = os.path.join(env['BOOST_DIR'], 'lib')
   for lib in env['LIBS']:
     if SCons.Util.is_String(lib) and \
            lib.startswith("boost_") and \
