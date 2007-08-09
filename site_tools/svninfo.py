@@ -5,6 +5,7 @@ from SCons.Builder import Builder
 from SCons.Action import Action
 from SCons.Node import FS
 from SCons.Node.Python import Value
+from subprocess import *
 
 def svninfo_emitter(target, source, env):
     """Given an argument for svn info in the first source, replace that
@@ -14,34 +15,38 @@ def svninfo_emitter(target, source, env):
     workdir = source[0].get_abspath()
     if FS.default_fs.isfile(workdir):
         workdir = source[0].dir.get_abspath()
-    svncmd = "svn info %s" % (workdir)
+    svncmd = [ env.subst("$SVN"), "info", workdir ]
     svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
-    # print svncmd
-    svninfo = os.popen(svncmd).read()
-    svnversion = os.popen("svnversion -n %s" % (workdir)).read()
+    # print " ".join(svncmd)
+    svninfo = Popen(svncmd, stdout=PIPE).stdout.read()
+    # print svninfo
+    svnversioncmd = [ env.subst("$SVNVERSION"), "-n", workdir ]
+    # print " ".join(svnversioncmd)
+    svnversion = Popen(svnversioncmd, stdout=PIPE).stdout.read()
+    # print svnversion
     for k in svndict.keys():
         match = re.search(r"^%s: .*$" % (k), svninfo, re.M)
         if (match):
             svndict[k] = match.group()
     svndict.update ( {'workdir':workdir} )
     svndict['Revision'] = svnversion
-    svnheader = \
-"""
-#ifndef SVNINFOINC
-#define SVNINFOINC
-#define SVNREVISION \"%(Revision)s\"
-#define SVNLASTCHANGEDDATE \"%(Last Changed Date)s\"
-#define SVNURL \"%(URL)s\"
-#define SVNWORKDIRSPEC \"%(Working Directory)s\"
-#define SVNWORKDIR \"%(workdir)s\"
-#endif
-""" % svndict
-    # print svnheader
     env['SVNREVISION'] = svndict['Revision']
     env['SVNLASTCHANGEDDATE'] = svndict['Last Changed Date']
     env['SVNURL'] = svndict['URL']
-    env['SVNWORKDIRSPEC'] = svndict['Working Directory']
-    env['SVNWORKDIR'] = svndict['workdir']
+    env['SVNWORKDIRSPEC'] = svndict['Working Directory'].replace('\\', '/')
+    env['SVNWORKDIR'] = svndict['workdir'].replace('\\', '/')
+    svnheader = env.subst(
+"""
+#ifndef SVNINFOINC
+#define SVNINFOINC
+#define SVNREVISION \"$SVNREVISION\"
+#define SVNLASTCHANGEDDATE \"$SVNLASTCHANGEDDATE\"
+#define SVNURL \"$SVNURL\"
+#define SVNWORKDIRSPEC \"$SVNWORKDIRSPEC\"
+#define SVNWORKDIR \"$SVNWORKDIR\"
+#endif
+""")
+    # print svnheader
     return target, [Value(svnheader)]
 
 def svninfo_build(env, target, source):
@@ -60,6 +65,13 @@ class SvnInfoWarning(SCons.Warnings.Warning):
 
 def generate(env):
     env['BUILDERS']['SvnInfo'] = svninfobuilder
+    env['SVN'] = "svn"
+    env['SVNVERSION'] = "svnversion"
+    # Use the default location for the subversion Windows installer.
+    if env['PLATFORM'] == 'win32':
+        svnbin=r'\Program Files\Subversion\bin'
+        env['SVN'] = os.path.join(svnbin, "svn")
+        env['SVNVERSION'] = os.path.join(svnbin, "svnversion")
 
 def exists(env):
     svn = env.WhereIs('svn')
