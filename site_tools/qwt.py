@@ -42,6 +42,18 @@ class QwtPackage(Package):
                          qwt_actions, libs,
                          default_package_file = "qwt-4.2.0.zip")
 
+    def checkBuild(self, env):
+        if env['PLATFORM'] == 'win32':
+            return
+        qwt_dir = env['QWT_DIR']
+        libqwt = os.path.join(qwt_dir, 'lib', 'libqwt.so')
+        if not os.access(libqwt, os.R_OK):
+            # Not installed in the given QWT_DIR, so try internal path
+            qwt_dir = self.getPackagePath(env)
+            env['QWT_DIR'] = qwt_dir
+        Package.checkBuild(self, env)
+
+
     def require(self, env):
 
         # The actual QWT_DIR value to use depends upon whether qwt is being
@@ -51,13 +63,8 @@ class QwtPackage(Package):
 
         env.Tool('download')
         env.Tool('unpack')
-        qwt_dir = env['QWT_DIR']
-        libqwt = os.path.join(qwt_dir, 'lib', 'libqwt.so')
-        if not os.access(libqwt, os.R_OK):
-            # Not installed in the given QWT_DIR, so try internal path
-            qwt_dir = self.getPackagePath(env)
-            env['QWT_DIR'] = qwt_dir
         Package.checkBuild(self, env)
+        qwt_dir = env['QWT_DIR']
         qwt_libdir = os.path.join(qwt_dir, 'lib')
         libqwt = os.path.join(qwt_libdir, 'libqwt.so')
         if self.building:
