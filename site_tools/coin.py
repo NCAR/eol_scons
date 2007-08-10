@@ -16,7 +16,11 @@ def generate(env):
         env.ParseConfig(coin_config + ' --cppflags --ldflags --libs')
         prefix=os.popen(coin_config + ' --prefix').read().strip()
     else:
-        prefix="$OPT_PREFIX"
+        prefix="$COIN_DIR"
+        env.Append(CPPDEFINES="COIN_DLL")
+        env.AppendUnique(CPPPATH="$COIN_DIR/include")
+        env.Append(LIBPATH="$COIN_DIR/lib")
+        env.Append(LIBS="coin2d")
     if not env.has_key('COIN_DOXDIR'):
         # When installed into the system as the Coin2-devel package,
         # the doxygen html has a custom path.
