@@ -78,6 +78,12 @@ def PKG_QT3(env):
     env.Replace(QT_LIB = 'qt-mt')
     env.AppendUnique(DEPLOY_SHARED_LIBS = ['$QT_LIB'])
     env.AppendUnique(CPPDEFINES = ['QT_THREAD_SUPPORT','_REENTRANT'])
+    if env['PLATFORM'] == 'win32':
+        # qmake on Windows defines WIN32, so we do too for all the qt
+        # code which may depend on it.  Note that Windows compiler normally
+        # only predefines _WIN32 and not WIN32.
+        env.Append(CPPDEFINES=['WIN32'])
+
     env.AppendUnique(CPPPATH = [ os.path.join (qt_root, 'include') ] )
     env.AppendUnique(LIBPATH = [qtlib, '/usr/X11R6/lib',])
     # force the dynamic linker to find our libs
