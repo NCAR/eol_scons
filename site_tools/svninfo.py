@@ -52,6 +52,7 @@ def svninfo_emitter(target, source, env):
 def svninfo_build(env, target, source):
     out = open(target[0].path, "w")
     out.write(source[0].get_contents())
+    out.write("\n")
     out.close()
 
 action = Action(svninfo_build, lambda t,s,e: "Generating %s"%t[0])
