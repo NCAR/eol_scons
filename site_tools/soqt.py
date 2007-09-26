@@ -8,22 +8,28 @@ def generate(env):
     if not options:
         options = env.GlobalOptions() 
         options.Add('SOQT_DIR', 'Set the SoQt directory.', 
-                    env.FindPackagePath('SOQT_DIR','$OPT_PREFIX/SoQt*','/usr'))
+                    env.FindPackagePath('SOQT_DIR','$OPT_PREFIX/SoQt*'))
     options.Update(env)
-    soqt_dir = env['SOQT_DIR']
+    soqt_dir = env.get('SOQT_DIR')
+    if not soqt_dir and env.has_key('OPT_PREFIX'):
+        soqt_dir = env['OPT_PREFIX']
+    if not soqt_dir:
+        soqt_dir = "/usr"
+    prefix = "$OPT_PREFIX"
     if env['PLATFORM'] != 'win32':    
         soqt_config = os.path.join(soqt_dir, 'bin', 'soqt-config')
-        env.ParseConfig(soqt_config + ' --cppflags --ldflags --libs')
-        prefix = os.popen(soqt_config + ' --prefix').read().strip()
-        ldflags = os.popen(soqt_config + ' --ldflags').read().split()
-        for flag in ldflags:
-            if (flag.strip().index('-L') == 0):
-                # remove the -L to get the directory, and make the resulting 
-                # path absolute
-                dir = os.path.abspath(flag.replace('-L', ''))
-                env.Append(RPATH=dir)
-    else:
-        prefix = "$OPT_PREFIX"
+        try:
+            env.ParseConfig(soqt_config + ' --cppflags --ldflags --libs')
+            prefix = os.popen(soqt_config + ' --prefix').read().strip()
+            ldflags = os.popen(soqt_config + ' --ldflags').read().split()
+            for flag in ldflags:
+                if (flag.strip().index('-L') == 0):
+                    # remove the -L to get the directory, and make the
+                    # resulting path absolute
+                    dir = os.path.abspath(flag.replace('-L', ''))
+                    env.Append(RPATH=dir)
+        except:
+            print "Error trying to run soqt-config."
 
     if not env.has_key('SOQT_DOXDIR'):
         # When installed into the system as the SoQt-devel package,

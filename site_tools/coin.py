@@ -7,16 +7,23 @@ def generate(env):
     if not options:
         options = env.GlobalOptions()
         options.Add('COIN_DIR', 'Set the Coin directory.', 
-                    env.FindPackagePath('COIN_DIR','$OPT_PREFIX/Coin*','/usr'))
+                    env.FindPackagePath('COIN_DIR','$OPT_PREFIX/Coin*'))
 
     options.Update(env)
-    coin_dir = env['COIN_DIR']
+    coin_dir = env.get('COIN_DIR')
+    if not coin_dir and env.has_key('OPT_PREFIX'):
+        coin_dir = env['OPT_PREFIX']
+    if not coin_dir:
+        coin_dir = "/usr"
+    prefix="$COIN_DIR"
     if env['PLATFORM'] != 'win32':
         coin_config = os.path.join(coin_dir, 'bin', 'coin-config')
-        env.ParseConfig(coin_config + ' --cppflags --ldflags --libs')
-        prefix=os.popen(coin_config + ' --prefix').read().strip()
+        try:
+            env.ParseConfig(coin_config + ' --cppflags --ldflags --libs')
+            prefix=os.popen(coin_config + ' --prefix').read().strip()
+        except:
+            print "Error trying to run coin-config."
     else:
-        prefix="$COIN_DIR"
         env.Append(CPPDEFINES="COIN_DLL")
         env.AppendUnique(CPPPATH="$COIN_DIR/include")
         env.Append(LIBPATH="$COIN_DIR/lib")
