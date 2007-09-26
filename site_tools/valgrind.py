@@ -12,19 +12,27 @@ from SCons.Action import Action
 class ValgrindWarning(SCons.Warnings.Warning):
     pass
 
+options = None
 
 def findValgrind(env):
+    global options
+    if not options:
+        options = env.GlobalOptions()
+        options.Add('VALGRIND_PATH',
+                    'Path to valgrind, or else "valgrind" if unset.')
+
+    options.Update(env)
+
     # Short circuit the test if VALGRIND_PATH is already set in the
     # run environment.
-    if env.has_key('VALGRIND_PATH'):
+    if env.get('VALGRIND_PATH'):
         return env['VALGRIND_PATH']
-    extra_paths = []
+    extra_paths = [ '/usr/bin' ]
     if env.has_key('OPT_PREFIX'):
         extra_paths.append("%s/bin" % env['OPT_PREFIX'])
     opts = ['el4','el3','ws3','fc4','fc3','fc2']
     extra_paths.extend([ "/net/opt_lnx/local_%s/bin" % o for o in opts])
     return env.WhereIs('valgrind', extra_paths)
-
 
 def getValgrindPath(env):
     valgrind = findValgrind(env)
