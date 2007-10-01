@@ -6,9 +6,9 @@ def generate(env):
     if not options:
         options = env.GlobalOptions()
         options.Add('POSTGRES_DIR',
-"""Set the POSTGRES installation directory.  If set, the pq library and
-headers will be expected in POSTGRES_DIR/lib and POSTGRES_DIR/include.
-Otherwise the default is to use the system location.
+"""Set the POSTGRES installation directory.
+If set, the pq library and headers will be expected in POSTGRES_DIR/lib and
+POSTGRES_DIR/include.  Otherwise the default is to use the system location.
 """, None)
     options.Update(env)
     env.Append(DEPLOY_SHARED_LIBS='pq')
