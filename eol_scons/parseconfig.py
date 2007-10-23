@@ -22,3 +22,20 @@ def ParseConfigPrefix(env, config_script, search_prefixes,
             print "Error trying to run %s." % config_script
     return prefix
 
+
+def PkgConfigPrefix(env, pkg_name, default_prefix = "$OPT_PREFIX"):
+    """Search for a config script and parse the output."""
+    search_prefixes = ['/usr']
+    search_paths = [ os.path.join(env.subst(x),"bin")
+                     for x in filter(lambda y: y, search_prefixes) ]
+    prefix = None
+    if env['PLATFORM'] != 'win32':    
+        config = env.WhereIs('pkg-config', search_paths)
+        try:
+            prefix = os.popen(config + ' --variable=prefix ' +
+                              pkg_name).read().strip()
+        except:
+            print "Error trying to run pkg-config for %s." % pkg_name
+    if not prefix:
+        prefix = default_prefix
+    return prefix
