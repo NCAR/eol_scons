@@ -54,7 +54,7 @@ def tao_idl_generate(env):
 mykey="HAS_PKG_TAO"
 
 def generate(env):
-    env.Require(['PKG_ACE'])
+    env.Require(['ace', 'doxygen'])
     if not env.has_key(mykey):
         tao_root=os.path.join(env['ACE_ROOT'],'TAO')
         env['TAO_ROOT'] = tao_root
@@ -65,7 +65,6 @@ def generate(env):
         tao_idl_generate(env)
 
     env.Append(LIBS=['TAO',])
-    env.Require(['PKG_ACE'])
     env[mykey] = 1
 
 
