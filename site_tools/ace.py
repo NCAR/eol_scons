@@ -2,11 +2,13 @@
 import os
 import eol_scons
 import string
+from SCons.Options import PathOption
 
 options = None
 
 def generate(env):
 
+  env.Require(['doxygen'])
   global options
   if not options:
     options = env.GlobalOptions()
@@ -30,10 +32,10 @@ def generate(env):
     env.AppendUnique(RPATH=[libpath]) 
     env['ACE_ROOT'] = ace_root
     env['ENV']['ACE_ROOT'] = ace_root
-    env.Union(CPPDEFINES=
-      string.split( """POSIX_THREADS POSIX_THREAD_SAFE_FUNCTIONS REENTRANT AC 
-      ACE_HAS_AIO_CALLS ACE_HAS_EXCEPTIONS ACE_HAS_QT
-      ACE_LACKS_PRAGMA_ONCE""") )  
+    env.AppendUnique(CPPDEFINES = 
+      string.split("""POSIX_THREADS POSIX_THREAD_SAFE_FUNCTIONS REENTRANT AC 
+                      ACE_HAS_AIO_CALLS ACE_HAS_EXCEPTIONS ACE_HAS_QT
+                      ACE_LACKS_PRAGMA_ONCE"""))  
     env.Append(CPPDEFINES=['ACE_NTRACE=${ACE_NTRACE}'])
     env.AppendDoxref("ace:%s/html/ace" % (ace_root))
     env['HAS_PKG_ACE'] = 1
