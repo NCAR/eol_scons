@@ -36,7 +36,7 @@ def generate(env):
       string.split("""POSIX_THREADS POSIX_THREAD_SAFE_FUNCTIONS REENTRANT AC 
                       ACE_HAS_AIO_CALLS ACE_HAS_EXCEPTIONS ACE_HAS_QT
                       ACE_LACKS_PRAGMA_ONCE"""))  
-    env.Append(CPPDEFINES=['ACE_NTRACE=${ACE_NTRACE}'])
+#    env.Append(CPPDEFINES=['ACE_NTRACE=${ACE_NTRACE}'])
     env.AppendDoxref("ace:%s/html/ace" % (ace_root))
     env['HAS_PKG_ACE'] = 1
   env.Append(LIBS=['ACE',])
