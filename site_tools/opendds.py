@@ -30,7 +30,7 @@ def generate(env):
 
   if not env.has_key('HAS_PKG_DDS'):
     libpath=os.path.join(dds_root, 'lib')
-    env.Append(LIBPATH=[libpath,])
+    env.Append(LIBPATH=[libpath, ])
     env.AppendUnique(RPATH=[libpath])
     env['DDS_ROOT'] = dds_root
     env['ENV']['DDS_ROOT'] = dds_root
@@ -65,82 +65,76 @@ def exists(env):
 # @param idlFile The idl file defining the DDS for a particular type
 # #param env 
 def DdsLibrary(idlFile, env):
-	# get our current relative directory, needed
-	# for some later comands which must be executed here.
-	curDir = env.Dir('.').get_path(env.Dir('#'))
-	#
-	#
-	# Fetch the ACE, TAO and DDS locations from
-	# the environment
-	#
-	TAO_ROOT = os.environ['TAO_ROOT']
-	ACE_ROOT = os.environ['ACE_ROOT']
-	DDS_ROOT = os.environ['DDS_ROOT']
-	#
-	# ------------------------------------------
-	# Add include specifications for ACE, TAO and DDS.
-	#
-	env.Append(CPPFLAGS=' -I' + ACE_ROOT)
-	env.Append(CPPFLAGS=' -I' + TAO_ROOT)
-	env.Append(CPPFLAGS=' -I' + DDS_ROOT)
-	#
-	# ------------------------------------------
-	#
-	# get a list of files produced by the tao_idl processing of
-	# the main idl. There will be three sublists:
-	#[[*.cpp], [*.h], [*.inl]]
-	target1 = taoIdlFiles(idlFile)
-	#
-	# Now process the main idl file with tao_idl.
-	env.Command(target1, idlFile,
-                    env['TAO_IDL'] + ' -o $SOURCE.dir -Gdcps $SOURCE')
-	#
-	# ------------------------------------------
-	#
-	# get a list of the types defined in the main idlFile
-	ddsTypes = ddsTypeScanner(idlFile, env)
-	#
-	# get a list of files produced by the dcps_ts processing of
-	# the type support idl files. There will be three sublists:
-	#[[*.cpp], [*.h], [*.idl]]  (Note the idl output)
-	target2 = dcpsTsFiles(ddsTypes)
-	#
-	# Process the main idl file with dcps_ts.pl
-	# Execute the dcp_tl.pl command in the current directory,
-	# since dcps_ts.pl will only put its output in the current directory.
-        cmd = os.path.join(DDS_ROOT, 'bin', 'dcps_ts.pl')
-	dcpsCmd = ChdirActions(env, [cmd + " $SOURCE.file"], curDir)
-	env.Command(target2, idlFile, dcpsCmd)
-	#
-	# save the names of the generated type support idl files
-	typeSupportIdlFiles= target2[2]
-	#
-	# ------------------------------------------
-	#
-	# Process the generated type support idl files with
-	# tao_idl
-        cmd = os.path.join(ACE_ROOT, 'bin', 'tao_idl')
-	tao_cmd = ChdirActions(env, [env['TAO_IDL'] + ' -I ' + DDS_ROOT +
-				     ' $SOURCE.file'], curDir)
-	target4 = []
-	for ddsType in ddsTypes:
-		typeSupportSource = ddsType+'TypeSupport.idl'
-		target3 = taoIdlFiles(typeSupportSource)
-		# while we are at it, save the generated .cpp files
-		target4.append(target3[0])
-		# Send each type support idl file through tao_idl
-		env.Command(target3, typeSupportSource, tao_cmd)
-	#
-	# ------------------------------------------
-	#
-	# Collect all of the cpp files, which will be compiled for the
-	# library
-	sources = target1[0] + target2[0] + target4
-	# library name is the same as the IDL file base name, with the
-	# .idl extension removed
-	libName = os.path.splitext(os.path.basename(idlFile))[0]
+    # get our current relative directory, needed
+    # for some later comands which must be executed here.
+    curDir = env.Dir('.').get_path(env.Dir('#'))
 
-	return env.Library(libName, sources)
+    #
+    # ------------------------------------------
+    #
+    # get a list of files produced by the tao_idl processing of
+    # the main idl. There will be three sublists:
+    #[[*.cpp], [*.h], [*.inl]]
+    target1 = taoIdlFiles(idlFile)
+
+    #
+    # Now process the main idl file with tao_idl.
+    env.Command(target1, idlFile, 
+                env['TAO_IDL'] + ' -o $SOURCE.dir -Gdcps $SOURCE')
+    #
+    # ------------------------------------------
+    #
+    # get a list of the types defined in the main idlFile
+    ddsTypes = ddsTypeScanner(idlFile, env)
+    #
+    # get a list of files produced by the dcps_ts processing of
+    # the type support idl files. There will be three sublists:
+    #[[*.cpp], [*.h], [*.idl]]  (Note the idl output)
+    target2 = dcpsTsFiles(ddsTypes)
+
+    #
+    # Process the main idl file with dcps_ts.pl
+    # Execute the dcp_tl.pl command in the current directory,
+    # since dcps_ts.pl will only put its output in the current directory.
+    cmd = os.path.join(env['DDS_ROOT'], 'bin', 'dcps_ts.pl')
+    dcpsCmd = ChdirActions(env, [cmd + " $SOURCE.file"], curDir)
+    env.Command(target2, idlFile, dcpsCmd)
+    #
+    # save the names of the generated type support idl files
+    typeSupportIdlFiles= target2[2]
+    #
+    # ------------------------------------------
+    #
+    # Process the generated type support idl files with
+    # tao_idl
+    cmd = os.path.join(env['ACE_ROOT'], 'bin', 'tao_idl')
+    tao_cmd = ChdirActions(env, [env['TAO_IDL'] + ' -I ' + env['DDS_ROOT'] +
+                                 ' $SOURCE.file'], curDir)
+    target4 = []
+    headers = []
+    for ddsType in ddsTypes:
+        typeSupportSource = ddsType+'TypeSupport.idl'
+        target3 = taoIdlFiles(typeSupportSource)
+        # while we are at it, save the generated .cpp and .h files
+        target4.append(target3[0])
+        headers.append(target3[1])
+        # Send each type support idl file through tao_idl
+        env.Command(target3, typeSupportSource, tao_cmd)
+    #
+    # ------------------------------------------
+    #
+    # Collect all of the source files, which will be compiled for the
+    # library
+    sources = target1[0] + target2[0] + target4
+    headers.append(target1[1] + target2[1])
+    
+    # library name is the same as the IDL file base name, with the
+    # .idl extension removed
+    libName = os.path.splitext(os.path.basename(idlFile))[0]
+
+    # Return the library itself, and also a list of source and header files
+    # used to generate it (for documentation purposes)
+    return [env.Library(libName, sources), sources, headers]
 
 # -------- DDS support functions -----------
 #
@@ -161,24 +155,24 @@ def DdsLibrary(idlFile, env):
 # files. The second slice contains a list of .h files. The third slice
 # contains a list of .inl files.
 def taoIdlFiles(idlFile):
-	root = idlFile.split('.')[0]
-	cppFiles = [root+'C.cpp', root+'S.cpp']
-	hFiles   = [root+'C.h', root+'S.h']
-	inlFiles = [root+'C.inl', root+'S.inl']
-	return [cppFiles, hFiles, inlFiles]
+    root = idlFile.split('.')[0]
+    cppFiles = [root+'C.cpp', root+'S.cpp']
+    hFiles   = [root+'C.h', root+'S.h']
+    inlFiles = [root+'C.inl', root+'S.inl']
+    return [cppFiles, hFiles, inlFiles]
 
 # Create the type support filenames that are produced for a given DDS data
 # type definition within a DDS idl file.
 def dcpsTsFiles(ddsTypes):
-	cppFiles = []
-	hFiles = []
-	idlFiles = []
-	for ddsType in ddsTypes:
-		root = ddsType + 'TypeSupport'
-		cppFiles.append(root+'Impl.cpp')
-		hFiles.append(root+'Impl.h')
-		idlFiles.append(root+'.idl')
-	return [cppFiles, hFiles, idlFiles]
+    cppFiles = []
+    hFiles = []
+    idlFiles = []
+    for ddsType in ddsTypes:
+        root = ddsType + 'TypeSupport'
+        cppFiles.append(root+'Impl.cpp')
+        hFiles.append(root+'Impl.h')
+        idlFiles.append(root+'.idl')
+    return [cppFiles, hFiles, idlFiles]
 
 # -------------------------------------------
 #
@@ -200,11 +194,11 @@ def ddsTypeScanner(fileName, env):
 # regular expressions. It returns a tuple containing the modules name and
 # the type name.  We just return the unqualified type names, i.e. the
 # second slice of the tuple.
-	dcps_re = re.compile(r'#pragma\s+DCPS_DATA_TYPE\s+"(\S+)::(\S+)*"',re.M)
-	node = env.FindFile(fileName, '.')
-	contents = node.get_contents()
-	dcps_types = dcps_re.findall(contents)
-	retVal = []
-	for x in dcps_types:
-		retVal.append(x[1])
-	return retVal
+    dcps_re = re.compile(r'#pragma\s+DCPS_DATA_TYPE\s+"(\S+)::(\S+)*"', re.M)
+    node = env.FindFile(fileName, '.')
+    contents = node.get_contents()
+    dcps_types = dcps_re.findall(contents)
+    retVal = []
+    for x in dcps_types:
+        retVal.append(x[1])
+    return retVal
