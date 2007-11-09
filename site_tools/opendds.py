@@ -10,6 +10,7 @@ from eol_scons.chdir import ChdirActions
 from SCons.Options import PathOption
 
 options = None
+mykey = "HAS_PKG_OPENDDS"
 
 def generate(env):
 
@@ -24,19 +25,21 @@ def generate(env):
   # what need only be applied once and what must be applied every time this
   # tool is Require()d by another package.  Basically that means the library
   # must always be appended; everything else happens once.
-  dds_root = env['DDS_ROOT']
-  env['ENV']['DDS_ROOT'] = dds_root
-  env.AppendUnique(CPPPATH=[dds_root])
 
-  if not env.has_key('HAS_PKG_DDS'):
+  if not env.has_key(mykey):
+    env.Require(['tao', 'ace', 'doxygen'])
+    
+    dds_root = env['DDS_ROOT']
+    env['ENV']['DDS_ROOT'] = dds_root
+    
+    env.AppendUnique(CPPPATH=[dds_root])
+    
     libpath=os.path.join(dds_root, 'lib')
     env.Append(LIBPATH=[libpath, ])
     env.AppendUnique(RPATH=[libpath])
-    env['DDS_ROOT'] = dds_root
-    env['ENV']['DDS_ROOT'] = dds_root
-    env.Require(['tao', 'ace', 'doxygen'])
+
     env.AppendDoxref("dds:%s/html/dds" % (dds_root))
-    env['HAS_PKG_DDS'] = 1
+    env[mykey] = 1
 
   env.DdsLibrary = DdsLibrary
 
