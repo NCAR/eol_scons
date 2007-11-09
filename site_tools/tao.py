@@ -1,5 +1,9 @@
 import os
 import SCons
+from SCons.Options import PathOption
+
+options = None
+mykey="HAS_PKG_TAO"
 
 def tao_idl_emitter(target, source, env):
     if len(source) == 0:
@@ -43,31 +47,42 @@ def tao_idl_generate(env):
 
     # env['BUILDERS']['TaoIDL'] = tao_idl_builder
     createBuilder(env)
-    env['TAO_IDL'] = os.path.join("$TAO_ROOT","TAO_IDL","tao_idl")
+
+    tao_idl_path = os.path.join(env['TAO_ROOT'], "TAO_IDL", "tao_idl")
+    env['TAO_IDL'] = tao_idl_path
     env['TAO_IDL_FLAGS'] = '-si S_i.h -st S_T_i.h -ci C_i.h -o $SOURCE.dir'
     env['TAO_IDL_COM'] = '$TAO_IDL $TAO_IDL_FLAGS $SOURCE'
-    env.AppendENVPath ('LD_LIBRARY_PATH',
-                       os.path.join(env['ACE_ROOT'], 'lib'))
-    #env.AppendENVPath ('LD_LIBRARY_PATH',
-    #                   os.path.join(os.environ['QTDIR'], 'lib'))
-
-mykey="HAS_PKG_TAO"
+    # tao_idl requires LD_LIBRARY_PATH allow for finding ACE/TAO libraries
+    env.AppendENVPath('LD_LIBRARY_PATH', os.path.join(env['ACE_ROOT'], 'lib'))
 
 def generate(env):
-    env.Require(['ace', 'doxygen'])
+
+    global options
+    if not options:
+        options = env.GlobalOptions() 
+        tao_root = env.FindPackagePath('TAO_ROOT', '$ACE_ROOT/TAO', '/usr')
+        options.AddOptions(PathOption('TAO_ROOT', 'TAO_ROOT directory.', 
+                                      tao_root))
+    options.Update(env)
+
+  # Use the existence of a key in the env to separate the TAO tool into
+  # what need only be applied once and what must be applied every time this
+  # tool is Require()d by another package.  Basically that means the library
+  # must always be appended; everything else happens once.
     if not env.has_key(mykey):
-        tao_root=os.path.join(env['ACE_ROOT'],'TAO')
-        env['TAO_ROOT'] = tao_root
+        env.Require(['ace', 'doxygen'])
+    
+        tao_root = env['TAO_ROOT']
         # TAO tools (like tao_idl) need TAO_ROOT set in their environment too
         env['ENV']['TAO_ROOT'] = tao_root
-        env.Append(CPPPATH=[ tao_root, os.path.join(tao_root,"orbsvcs") ])
+        # add TAO_ROOT and TAO_ROOT/orbsvcs to the include path
+        env.Append(CPPPATH=[tao_root, os.path.join(tao_root, "orbsvcs")])
         env.AppendDoxref("tao:%s/html/tao" % (env['ACE_ROOT']))
         tao_idl_generate(env)
+        env[mykey] = 1
 
     env.Append(LIBS=['TAO',])
-    env[mykey] = 1
 
 
 def exists(env):
     return True
-
