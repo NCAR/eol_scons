@@ -46,6 +46,7 @@ import re
 import glob
 import fnmatch
 from fnmatch import fnmatch
+import traceback
 
 import SCons
 import SCons.Tool
@@ -492,38 +493,72 @@ def _Tool(env, tool, toolpath=None, **kw):
         name = env.subst(tool)
         tool = None
 
-        # Map all PKG_ names to the new name without the prefix, so
-        # that both forms will refer to the same tool.
-        new_name = name.strip().replace("PKG_","",1).lower()
-        pkg_name = "PKG_"+new_name.upper()
-
-        # If we have to load the tool from a file, then use the
-        # new convention for tool filenames.  Likewise we want to
-        # use the new name as the dictionary key.
-        name = new_name
-
+        # Is the tool already in our tool dictionary?
         if tool_dict.has_key(name):
-            Debug("Found tool already loaded: %s" % name)
+            Debug("Found tool %s already loaded" % name)
             tool = tool_dict[name]
 
         # Check if this tool is actually an exported tool function,
-        # in which case convert to the function.  Otherwise leave it as
-        # a string and let scons look it up.  It may use the older PKG_
-        # convention, so check for the requested name also.
+        # in which case return the exported function.  First check for the tool
+        # under the given name.  For historical reasons, we look also look 
+        # for the tool with:
+        #    o given name stripped of leading PKG_ (if any) and converted 
+        #      to lower case
+        #    o given name converted to upper case, with PKG_ prepended
+        #      if not already there
         if not tool:
-            if global_exports.has_key(new_name):
-                tool = global_exports[new_name]
-            elif global_exports.has_key(pkg_name):
-                tool = global_exports[pkg_name]
-            if tool:
-                Debug("Found tool in global exports: %s" % name)
+            lc_name = name.strip().replace("PKG_","",1).lower()
+            pkg_name = "PKG_" +  lc_name.upper()
+            for pname in [name, lc_name, pkg_name]:
+                if global_exports.has_key(pname):
+                    tool = global_exports[pname]
+                    break
 
+            if tool:
+                Debug("Found tool %s in global_exports (as %s)" % (name, pname))
+
+        # See if there's a file named "tool_<tool>.py" somewhere under the
+        # top directory.  If we find one, load it as a SCons script which 
+        # should define and export the tool.
+        if not tool:
+            # Get a list of all files named "tool_<tool>.py" under the
+            # top directory.
+            toolFileName = "tool_" + name + ".py"
+            def addMatches(matchList, dirname, contents):
+                if (toolFileName in contents):
+                    matchList.append(os.path.join(dirname, toolFileName))
+            matchList = []
+            os.path.walk(env.Dir('#').get_abspath(), addMatches, matchList)
+
+            # If we got a match, load it
+            if (len(matchList) > 0):
+                # If we got more than one match, complain...
+                if (len(matchList) > 1):
+                    print("Warning: multiple tool files for " + name + ": " + 
+                          str(matchList) + ", using the first one")
+                # Load the first match
+                toolScript = matchList[0]
+                env.SConscript(toolScript)
+                # After loading the script, make sure the tool appeared 
+                # in the global exports list.
+                if global_exports.has_key(name):
+                    tool = global_exports[name]
+                else:
+                    raise SCons.Errors.StopError, "Tool error: " + \
+                        toolScript + " does not export symbol '" + name + "'"
+
+        # Still nothing? Go back to default SCons tool behavior...
         if not tool:
             Debug("Loading tool: %s" % name)
             if toolpath is None:
                 toolpath = env.get('toolpath', [])
             toolpath = map(env._find_toolpath_dir, toolpath)
-            tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
+            try:
+                tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
+            except:
+                raise SCons.Errors.StopError, "Cannot find required tool: " + \
+                    name + "\n" + ''.join(traceback.format_stack())
+
 
     tool_dict[name] = tool
     tool(env)
