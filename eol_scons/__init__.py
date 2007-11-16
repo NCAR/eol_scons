@@ -492,6 +492,10 @@ def _Tool(env, tool, toolpath=None, **kw):
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
         tool = None
+        
+        # The canonical name we use for a tool is all lower case, with
+        # any leading PKG_ stripped off...
+        name = name.strip().replace("PKG_", "", 1).lower()
 
         # Is the tool already in our tool dictionary?
         if tool_dict.has_key(name):
@@ -502,20 +506,18 @@ def _Tool(env, tool, toolpath=None, **kw):
         # in which case return the exported function.  First check for the tool
         # under the given name.  For historical reasons, we look also look 
         # for the tool with:
-        #    o given name stripped of leading PKG_ (if any) and converted 
-        #      to lower case
-        #    o given name converted to upper case, with PKG_ prepended
+        #    o the canonical name
+        #    o canonical name converted to upper case, with PKG_ prepended
         #      if not already there
         if not tool:
-            lc_name = name.strip().replace("PKG_","",1).lower()
-            pkg_name = "PKG_" +  lc_name.upper()
-            for pname in [name, lc_name, pkg_name]:
-                if global_exports.has_key(pname):
-                    tool = global_exports[pname]
+            pkgName = "PKG_" +  name.upper()
+            for tname in [name, pkgName]:
+                if global_exports.has_key(tname):
+                    tool = global_exports[tname]
                     break
 
             if tool:
-                Debug("Found tool %s in global_exports (as %s)" % (name, pname))
+                Debug("Found tool %s in global_exports (as %s)" % (name, tname))
 
         # See if there's a file named "tool_<tool>.py" somewhere under the
         # top directory.  If we find one, load it as a SCons script which 
