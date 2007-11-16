@@ -68,9 +68,9 @@ def exists(env):
 # @param idlFile The idl file defining the DDS for a particular type
 # #param env 
 def DdsLibrary(idlFile, env):
-    # get our current relative directory, needed
+    # get our current absolute directory, needed
     # for some later comands which must be executed here.
-    curDir = env.Dir('.').get_path(env.Dir('#'))
+    curDir = env.Dir('.').get_abspath()
 
     #
     # ------------------------------------------
