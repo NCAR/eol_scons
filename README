@@ -70,17 +70,14 @@ dependencies are built or installed.  For example, the tool for a library
 like netcdf, whether installed on the system or built within the source
 tree, defines a function for configuring the build environment.  Sometimes
 the tools are loaded from a tool file from the common site_scons/site_tools
-directory, other times the tool is a function defined within the SConscript
+directory, sometimes via a Python script named `tool_<toolname>.py`, and 
+other times the tool is a function defined within the SConscript
 file which builds the library or dependency.  Either way, the tools are
 genuine scons tools, so they can be applied to an Environment using the
 usual means.  In particular, they can be applied with the Tool() method or
 passed in the tools list when the Environment is constructed.
 
-eol_scons extends the SCons.Environment class with convenience methods like
-Packages() and Require() for loading and applying a list of tools.  The
-definitions for the tools are either functions within a SConscript file in
-the source tree, or they are in standard tool files whose directory gets
-added to the scons default tool path.
+@subsection externaltools External Tools
 
 Below is an example of a very simple tool from eol_scons for building
 against the fftw library.  The `fftw` tool is a tool file in the
@@ -105,63 +102,75 @@ a SConscript Environment file like so:
 env = Environment(tools = ['default', 'fftw'])
 @endcode
 
-On the other hand, below is an example of a tool function defined in the
-`aeros/datastore/SConscript` file.
+@subsection internaltools Internal Tools
+
+Tools can also be defined locally, to extend beyond the tools which are
+defined in `site_scons/site_tools`.  This is as simple as `def`-ing and
+`Export`-ing a SCons function, the name of which is the name of the tool.
+This can happen in a SConscript file, in which case the tool will be defined
+as soon as the SConscript file is loaded.  However, the preferred method is to
+create a file named `tool_<toolname>.py` in the directory containing the
+tool's components.  The `eol_scons` package will try to find and load such a 
+tool definition from within the local heirarchy when a tool is requested, 
+so there's no need to explicitly load a specific `SConscript` file before 
+requesting the tool.  Here's an example tool definition from the ELDORA tree, 
+where a tool named `ddslib` is defined in file `ddslib/tool_ddslib.py`:
 
 @code
-def datastore(env):
-    env.AppendSharedLibrary('datastore')
-    env.AppendDoxref('datastore')
-    env.Apply(tools)
-
-Export('datastore')
-@endcode
-
-The tool function is exported using the standard SCons Export() function.
-Then other components which depend on the datastore library can refer
-simply to the 'datastore' tool.  Here's how it looks in the
-`plotlib/SConscript`:
-
-@code
-tools = Split("""datastore numeric qwt soqt qt gsl""")
+#
+# Rules to build ddslib and export it as a SCons tool
+#
+tools = ['opendds', 'doxygen']
 env = Environment(tools = ['default'] + tools)
 
-def plotlib(env):
-    env.AppendSharedLibrary('plotlib')
-    env.AppendDoxref('plotlib')
+def ddslib(env):
+    env.AppendLibrary('EldoraDds')
+    env.AppendDoxref('EldoraDds')
+    env.AppendUnique(CPPPATH = ['#/ddslib',])
     env.Require(tools)
 
-Export('plotlib')
+Export('ddslib')
+
+libEldoraDds, sources, headers = env.DdsLibrary('EldoraDds.idl', env)
+
+html = env.Apidocs(sources + headers, DOXYFILE_FILE = "#/Doxyfile")
+
+Default(libEldoraDds)
 @endcode
 
-The above SConscript excerpt creates an Environment which loads a tool
-called 'datastore', along with some others.  The 'datastore' tool is found
-in the global exports table and applied to the environment.  For backwards
-compatibility, a function exported with the old convention of PKG_DATASTORE
-would have been found also.  The 'plotlib' tool in turn modifies an
-environment to include the plotlib shared library as well as all the
-plotlib dependencies.  If the tool names 'datastore' or 'plotlib' had not
-been found in the global exports as 'datastore' or 'PKG_DATASTORE', then
-eol_scons would have passed the 'datastore' name to scons to load as a
-normal tool, meaning a tool named 'datastore' would need to be found on the
-tool path.
+Creation of a tool requires only that a function be `def`-ed and `Export`-ed.
+Everything else shown above is the details for actually building the library
+provided by the `ddslib` tool.
 
+Here's how a `SConscript` might show that show that it requires 'ddslib':
 
-Note that source modules which use the 'datastore' component do not need
-to know the dependencies of the datastore library.  If the datastore
-adds another external library as a dependency, then that dependency can
-be added in the datastore tool function.
+@code
+tools = ['ddslib', 'qt4']
+env = Environment(tools = ['default'] + tools)
+@endcode
 
-Here's an example from the 'logx' tool.  Since it's a tool file, the
+The above excerpt creates an Environment which loads a tool
+called 'ddslib' (along with 'qt4').  If the tool 'ddslib' had not been found 
+in the global exports as 'ddslib' or 'PKG_DDSLIB', then eol_scons would have 
+looked for a file named `tool_ddslib.py` in the local heirarchy and loaded 
+it to generate the tool, otherwise it would have continued to look via the 
+normal SCons tool mechanism.
+
+Note that modules which use the 'ddslib' component do not need
+to know the dependencies of the ELDORA DDS library.  If the library
+adds another external library as a dependency, then that dependency will
+be added in the `ddslib` tool definition.
+
+Here's an example from the 'logx' tool.  Since it's an external tool file, the
 function which modifies an environment is called 'generate'.
 
 @code
 def generate(env):
     env.AppendLibrary ("logx")
     if env.GetGlobalTarget("liblogx"):
-	env.AppendDoxref("logx")
+	      env.AppendDoxref("logx")
     else:
-	env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
+	      env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
     env.Tool ('log4cpp')
 @endcode
 
