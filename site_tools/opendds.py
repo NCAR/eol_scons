@@ -68,9 +68,10 @@ def exists(env):
 # @param idlFile The idl file defining the DDS for a particular type
 # #param env 
 def DdsLibrary(idlFile, env):
-    # get our current absolute directory, needed
+    # get our current directory relative to the top level, needed
     # for some later comands which must be executed here.
-    curDir = env.Dir('.').get_abspath()
+    curDir = env.Dir('.').get_path(env.Dir('#'))
+    execHerePrefix = "cd %s && " % curDir
 
     #
     # ------------------------------------------
@@ -110,7 +111,6 @@ def DdsLibrary(idlFile, env):
     #
     # Process the generated type support idl files with
     # tao_idl
-    cmd = os.path.join(env['ACE_ROOT'], 'bin', 'tao_idl')
     tao_cmd = ChdirActions(env, [env['TAO_IDL'] + ' -I ' + env['DDS_ROOT'] +
                                  ' $SOURCE.file'], curDir)
     target4 = []
