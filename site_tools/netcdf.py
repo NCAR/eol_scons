@@ -45,8 +45,14 @@ class NetcdfPackage(Package):
         "Need to add both c and c++ libraries to the environment."
         Package.checkBuild(self, env)
         prefix = env['OPT_PREFIX']
-        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include')])
-        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include','netcdf')])
+        # Look in the typical locations for the netcdf headers, and see
+        # that the location gets added to the CPP paths.
+        incpaths = [ os.path.join(prefix,'include'),
+                     os.path.join(prefix,'include','netcdf'),
+                     "/usr/include/netcdf-3" ]
+        header = env.FindFile("netcdf.h", incpaths)
+        if header:
+            env.AppendUnique(CPPPATH=header.get_dir().get_abspath())
         if self.building:
             env.Append(LIBS=env.File(libs[0]))
             env.Append(LIBS=env.File(libs[1]))
