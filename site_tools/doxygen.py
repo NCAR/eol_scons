@@ -48,6 +48,8 @@ def Doxyfile_Emitter (target, source, env):
     except KeyError:
         pass
     outputdir = str(target[0].get_dir())
+    if ddebug(env):
+        print ("DOXREF=", env['DOXREF'])
     for tag in env['DOXREF']:
         i = string.find(tag,':')
         if i > 0:
@@ -358,11 +360,12 @@ def AppendDoxref(env, ref):
         env['DOXREF'] = [ref]
     else:
         env['DOXREF'].append(ref)
+    if ddebug(env):
+        print ("Appended",ref,"; DOXREF=", env['DOXREF'])
 
 
 def SetDoxref(env, name, tagfile, url):
     env[name] = env.File(env.subst(tagfile)).get_abspath() + ":" + url
-
 
 
 def generate(env):
@@ -370,13 +373,14 @@ def generate(env):
     # print "doxygen.generate(%s)" % env.Dir('.').get_path(env.Dir("#"))
     env['BUILDERS']['Doxyfile'] = doxyfile_builder
     env['BUILDERS']['Doxygen'] = doxygen_builder
-    env['DOXREF'] = []
-    env['DOXYFILE_TEXT'] = ""
-    env['DOXYFILE_DICT'] = {}
-    env['DOXYGEN'] = 'doxygen'
-    env['DOXYGEN_FLAGS'] = ''
-    env['DOXYGEN_COM'] = '$DOXYGEN $DOXYGEN_FLAGS $SOURCE'
-    env['APIDOCSDIR'] = '#apidocs'
+    dict = env.Dictionary()
+    dict.setdefault('DOXREF',[])
+    dict.setdefault('DOXYFILE_TEXT', "")
+    dict.setdefault('DOXYFILE_DICT', {})
+    dict.setdefault('DOXYGEN', 'doxygen')
+    dict.setdefault('DOXYGEN_FLAGS', '')
+    dict.setdefault('DOXYGEN_COM', '$DOXYGEN $DOXYGEN_FLAGS $SOURCE')
+    dict.setdefault('APIDOCSDIR', '#apidocs')
     # Add convenience wrappers
     Environment.Apidocs = Apidocs
     Environment.ApidocsIndex = ApidocsIndex
