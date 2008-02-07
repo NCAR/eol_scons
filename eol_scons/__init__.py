@@ -469,7 +469,7 @@ tool_matches = None
 
 def _findToolFile(env, name):
     global tool_matches
-    if not tool_matches:
+    if tool_matches == None:
         # Get a list of all files named "tool_<tool>.py" under the
         # top directory.
         toolpattern = re.compile("^tool_.*\.py")
@@ -481,7 +481,6 @@ def _findToolFile(env, name):
                 contents.remove('.svn')
         tool_matches = []
         os.path.walk(env.Dir('#').get_abspath(), addMatches, tool_matches)
-        print "tool files found: ", tool_matches
 
     toolFileName = "tool_" + name + ".py"
     return filter(lambda f: f == toolFileName, tool_matches)
