@@ -44,8 +44,6 @@ private.
 import os
 import re
 import glob
-import fnmatch
-from fnmatch import fnmatch
 import traceback
 
 import SCons
@@ -458,24 +456,6 @@ def _Create (env,
     return Environment (platform, tools, toolpath, options, **kw)
 
 
-def _CheckMissingHeaders(env, doxfiles, ignores):
-
-    found = []
-    for root, dirs, files in os.walk(env.Dir('.').get_path()):
-        # root = root.lstrip('./')
-        files = filter(lambda f: not fnmatch(f, "moc_*") and
-                       not fnmatch(f, "*.ui*") and not fnmatch(f, "uic_*") and 
-                       fnmatch(f, "*.h"), files)
-        found += [os.path.normpath(os.path.join(root, f)) for f in files]
-
-    known = [ os.path.normpath(p) for p in doxfiles+ignores ]
-    missing = [ f for f in found if f not in known ]
-    missing.sort()
-    if len(missing) > 0:
-        print "Header files missing in ", env.Dir('.').get_abspath(), ":"
-        print "\n".join(missing)
-
-
 def _LogDebug(env, msg):
     Debug(msg)
 
@@ -484,6 +464,28 @@ def _GlobalOptions(env):
 
 def _GlobalTools(env):
     return GlobalTools()
+
+tool_matches = None
+
+def _findToolFile(env, name):
+    global tool_matches
+    if not tool_matches:
+        # Get a list of all files named "tool_<tool>.py" under the
+        # top directory.
+        toolpattern = re.compile("^tool_.*\.py")
+        def addMatches(matchList, dirname, contents):
+            matchList.extend([os.path.join(dirname, file) 
+                              for file in
+                              filter(toolpattern.match, contents)])
+            if '.svn' in contents:
+                contents.remove('.svn')
+        tool_matches = []
+        os.path.walk(env.Dir('#').get_abspath(), addMatches, tool_matches)
+        print "tool files found: ", tool_matches
+
+    toolFileName = "tool_" + name + ".py"
+    return filter(lambda f: f == toolFileName, tool_matches)
+
 
 tool_dict = {}
 
@@ -502,10 +504,10 @@ def _Tool(env, tool, toolpath=None, **kw):
             Debug("Found tool %s already loaded" % name)
             tool = tool_dict[name]
 
-        # Check if this tool is actually an exported tool function,
-        # in which case return the exported function.  First check for the tool
-        # under the given name.  For historical reasons, we look also look 
-        # for the tool with:
+        # Check if this tool is actually an exported tool function, in
+        # which case return the exported function.  First check for the
+        # tool under the given name.  For historical reasons, we look also
+        # look for the tool with:
         #    o the canonical name
         #    o canonical name converted to upper case, with PKG_ prepended
         #      if not already there
@@ -523,15 +525,7 @@ def _Tool(env, tool, toolpath=None, **kw):
         # top directory.  If we find one, load it as a SCons script which 
         # should define and export the tool.
         if not tool:
-            # Get a list of all files named "tool_<tool>.py" under the
-            # top directory.
-            toolFileName = "tool_" + name + ".py"
-            def addMatches(matchList, dirname, contents):
-                if (toolFileName in contents):
-                    matchList.append(os.path.join(dirname, toolFileName))
-            matchList = []
-            os.path.walk(env.Dir('#').get_abspath(), addMatches, matchList)
-
+            matchList = _findToolFile(env, name)
             # If we got a match, load it
             if (len(matchList) > 0):
                 # If we got more than one match, complain...
@@ -558,7 +552,7 @@ def _Tool(env, tool, toolpath=None, **kw):
             try:
                 tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
             except:
-                raise SCons.Errors.StopError, "Cannot find required tool: " + \
+                raise SCons.Errors.StopError, "Cannot find required tool: "+ \
                     name + "\n" + ''.join(traceback.format_stack())
 
 
@@ -580,7 +574,6 @@ def _ExtendEnvironment(envclass):
     envclass.Install = _Install
     envclass.ChdirActions = _ChdirActions
     envclass.Test = _Test
-    envclass.CheckMissingHeaders = _CheckMissingHeaders
     envclass.LogDebug = _LogDebug
     envclass.FindPackagePath = _FindPackagePath
     envclass.GlobalOptions = _GlobalOptions

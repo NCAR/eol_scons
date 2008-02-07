@@ -1,3 +1,4 @@
+# -*- python -*-
 
 import os
 import string
@@ -5,6 +6,8 @@ import SCons
 import SCons.Node
 import SCons.Util
 from SCons.Node import FS
+import fnmatch
+from fnmatch import fnmatch
 
 def tagfile (node):
     """
@@ -29,6 +32,32 @@ def apidocsdir(env):
 
 def ddebug(env):
     return env.has_key('DOXYGEN_DEBUG')
+
+
+def CheckMissingHeaders(subdir, doxfiles, ignores):
+
+    found = []
+    # print "Subdir: ", subdir
+    # print "Files: ", doxfiles
+    # print "Ignores: ", ignores
+    for root, dirs, files in os.walk(subdir):
+        files = filter(lambda f: 
+                       not fnmatch(f, "moc_*") 
+                       and not fnmatch(f, "*.ui*") 
+                       and not fnmatch(f, "uic_*") 
+                       and fnmatch(f, "*.h"), files)
+        found += [os.path.normpath(os.path.join(root, f)) for f in files]
+        if '.svn' in dirs:
+            dirs.remove('.svn')
+
+    known = [ os.path.normpath(os.path.join(subdir, p))
+              for p in doxfiles+ignores ]
+    missing = [ f for f in found if f not in known ]
+    missing.sort()
+    if len(missing) > 0:
+        print "Header files missing in "+subdir+":"
+        print "  "+"\n  ".join(missing)
+    return missing
 
 
 def Doxyfile_Emitter (target, source, env):
@@ -107,6 +136,14 @@ def Doxyfile_Builder (target, source, env):
     overridden, such as to put output in unusual places, then those
     settings can be placed in DOXYFILE_TEXT or DOXYFILE_DICT.
 
+    DOXYFILE_IGNORES
+
+    If given, this is a list of header file names which have been
+    excluded explicitly from doxygen input.  The builder will check for
+    any header files which are not either in the builder source or in
+    the list of ignores.  Those header files will be reported as missing
+    and the build will fail.
+
     Here are examples of some of the Doxyfile configuration parameters
     which typically need to be set for each documentation target.  Unless
     set explicitly, they are given defaults in the Doxyfile.
@@ -119,6 +156,14 @@ def Doxyfile_Builder (target, source, env):
     topdir = target[0].Dir('#')
     subdir = source[0].get_dir()
     docsdir = str(target[0].get_dir())
+
+    if env.has_key('DOXYFILE_IGNORES'):
+        ignores = env['DOXYFILE_IGNORES']
+        if CheckMissingHeaders(subdir.get_path(env.Dir('#')),
+                               [s.get_path(subdir) for s in source], 
+                               ignores):
+            return -1
+
     doxyfile = None
     try:
         doxyfile = env.File (env['DOXYFILE_FILE'], subdir)
@@ -276,6 +321,7 @@ REFERENCES_RELATION = NO
         dfile.write ("%s = \"%s\"\n" % (k, str(v)))
 
     dfile.close()
+    return None
 
 
 def doxyfile_message (target, source, env):
