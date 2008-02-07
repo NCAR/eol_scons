@@ -70,7 +70,7 @@ dependencies are built or installed.  For example, the tool for a library
 like netcdf, whether installed on the system or built within the source
 tree, defines a function for configuring the build environment.  Sometimes
 the tools are loaded from a tool file from the common site_scons/site_tools
-directory, sometimes via a Python script named `tool_<toolname>.py`, and 
+directory, sometimes via a Python script named `tool_{toolname}.py`, and 
 other times the tool is a function defined within the SConscript
 file which builds the library or dependency.  Either way, the tools are
 genuine scons tools, so they can be applied to an Environment using the
@@ -109,7 +109,7 @@ defined in `site_scons/site_tools`.  This is as simple as `def`-ing and
 `Export`-ing a SCons function, the name of which is the name of the tool.
 This can happen in a SConscript file, in which case the tool will be defined
 as soon as the SConscript file is loaded.  However, the preferred method is to
-create a file named `tool_<toolname>.py` in the directory containing the
+create a file named `tool_{toolname}.py` in the directory containing the
 tool's components.  The `eol_scons` package will try to find and load such a 
 tool definition from within the local heirarchy when a tool is requested, 
 so there's no need to explicitly load a specific `SConscript` file before 
