@@ -483,7 +483,7 @@ def _findToolFile(env, name):
         os.path.walk(env.Dir('#').get_abspath(), addMatches, tool_matches)
 
     toolFileName = "tool_" + name + ".py"
-    return filter(lambda f: f == toolFileName, tool_matches)
+    return filter(lambda f: toolFileName == os.path.basename(f), tool_matches)
 
 
 tool_dict = {}
