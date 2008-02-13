@@ -34,7 +34,6 @@ paths relative to the top directory.""",
                     "Disable with NIDAS_PATH=''")
             else:
                 nidas_paths.append(np)
-    print 'nidas_paths=', nidas_paths
     if env.EnableNIDAS():
         env.Append(CPPPATH=[os.path.join(p,'x86','include') 
                             for p in nidas_paths])
