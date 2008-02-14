@@ -38,7 +38,14 @@ paths relative to the top directory.""",
         env.Append(CPPPATH=[os.path.join(p,'x86','include') 
                             for p in nidas_paths])
         env.Append(LIBPATH=[os.path.join(p,'x86','lib') for p in nidas_paths])
-        env.Append(LIBS=['nidas','nidas_dynld','nidas_util','XmlRpc'])
+        # At least in aeros, linking nidas_util explicitly has caused some
+        # static constructors to run multiple times (and subsequently
+        # multiple deletes).  Instead, rely on linking libnidas to link in
+        # nidas_util automatically.  There are more robust options, but this
+        # works for the moment.
+        #
+        #env.Append(LIBS=['nidas','nidas_dynld','nidas_util','XmlRpc'])
+        env.Append(LIBS=['nidas','nidas_dynld','XmlRpc'])
         env.AppendUnique(RPATH=[os.path.join(p,'x86','lib') 
                                 for p in nidas_paths])
         env.Tool("xercesc")
