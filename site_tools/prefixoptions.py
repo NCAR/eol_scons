@@ -67,7 +67,7 @@ def generate(env):
     # Generate installation paths according to options and defaults
     options.Update(env)
     OptPrefixSetup(env)
-    env['INSTALL_LIBDIR'] = "$INSTALL_PREFIX/include"
+    env['INSTALL_LIBDIR'] = "$INSTALL_PREFIX/lib"
     env['INSTALL_BINDIR'] = "$INSTALL_PREFIX/bin"
     env['INSTALL_INCDIR'] = "$INSTALL_INCDIR/include"
     # Here we install the install convenience methods, since they do not
