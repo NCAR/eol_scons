@@ -4,13 +4,12 @@ import eol_scons
 from SCons.Options import PathOption
 
 options = eol_scons.Pkg_Options()
-options.AddOptions (PathOption('VXDIR', 'VxWorks root directory.', '/vx'))
+options.AddOptions(PathOption('VXCONFIGDIR', 'VxWorks configuration dir.', 
+                              '/net/vx/config/eldora.tp41'))
 
 def generate(env):
   options.Update(env)
-  #env.Append(CPPPATH = ["$VXDIR/h"])
-  #env.Append(CPPPATH = ["$VXDIR/h", "$VXDIR/config/tp41"])
-
+  env.Append(CPPPATH = ["$VXCONFIGDIR"])
 
 def exists(env):
     return True
