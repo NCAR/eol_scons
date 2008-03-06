@@ -11,6 +11,7 @@ def generate(env):
     env['AS'] = 'm68k-wrs-vxworks-as'
     env['AR'] = 'm68k-wrs-vxworks-ar'
     env['CXX'] = 'm68k-wrs-vxworks-g++'
+    env['RANLIB'] = 'm68k-wrs-vxworks-ranlib'
     #env['CCFLAGS'] = ["-fno-builtin", "-nostdinc", "-w"]
     env['CCFLAGS'] = ["-fno-builtin", "-w"]
     bindir=gccdir+"/bin"
