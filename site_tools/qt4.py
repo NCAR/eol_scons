@@ -7,7 +7,7 @@ import SCons.Tool
 import SCons.Util
 from SCons.Options import PathOption
 
-options = None
+_options = None
 USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT4"
 
@@ -191,11 +191,11 @@ def generate(env):
         return testenv.WhereIs(whichCmd) 
 
 
-    global options
-    if not options:
-        options = env.GlobalOptions()
-        options.AddOptions(PathOption('QT4DIR', 'Qt4 installation root.', None))
-    options.Update(env)
+    global _options
+    if not _options:
+        _options = env.GlobalOptions()
+        _options.AddOptions(PathOption('QT4DIR','Qt4 installation root.',None))
+    _options.Update(env)
 
     #
     # See if pkg-config knows about Qt4 on this system

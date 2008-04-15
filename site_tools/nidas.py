@@ -6,13 +6,13 @@ import SCons.Warnings
 class NidasPathNotDirectory(SCons.Warnings.Warning):
     pass
 
-options = None
+_options = None
 
 def generate(env):
-    global options
-    if not options:
-        options = env.GlobalOptions()
-        options.Add('NIDAS_PATH',
+    global _options
+    if not _options:
+        _options = env.GlobalOptions()
+        _options.Add('NIDAS_PATH',
 """Set the NIDAS prefix paths, and enable builds of components
 which use NIDAS. Setting it to empty disables NIDAS components.
 This can be a comma-separated list of paths, for example to build
@@ -20,7 +20,7 @@ against a NIDAS installation whose other dependencies are installed
 under another prefix.  Relative paths will be converted to absolute
 paths relative to the top directory.""",
                     "/opt/local/nidas")
-    options.Update(env)
+    _options.Update(env)
     env.EnableNIDAS = (lambda: 0)
     nidas_paths = []
     if env.has_key('NIDAS_PATH') and env['NIDAS_PATH']:

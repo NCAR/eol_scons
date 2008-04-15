@@ -4,20 +4,20 @@ import eol_scons
 import SCons
 import new
 
-options = None
+_options = None
 
 
 def SetupOptions(env):
-    global options
-    options = env.GlobalOptions()
+    global _options
+    _options = env.GlobalOptions()
     default_opt = '$DEFAULT_OPT_PREFIX'
     default_install = '$DEFAULT_INSTALL_PREFIX'
-    options.Add ('OPT_PREFIX',
-                 "The common prefix for external tools and libraries.",
-                 default_opt)
-    options.Add ('INSTALL_PREFIX',
-                 "The root installation directory for bin, lib, and include.",
-                 default_install)
+    _options.Add ('OPT_PREFIX',
+                  "The common prefix for external tools and libraries.",
+                  default_opt)
+    _options.Add ('INSTALL_PREFIX',
+                  "The root installation directory for bin, lib, and include.",
+                  default_install)
 
 
 def OptPrefixSetup(env):
@@ -61,11 +61,11 @@ def generate(env):
     Use the given paths as defaults for the opt and install prefix
     directories, else base the default on the OS release.
     """
-    global options
-    if not options:
+    global _options
+    if not _options:
         SetupOptions(env)
     # Generate installation paths according to options and defaults
-    options.Update(env)
+    _options.Update(env)
     OptPrefixSetup(env)
     env['INSTALL_LIBDIR'] = "$INSTALL_PREFIX/lib"
     env['INSTALL_BINDIR'] = "$INSTALL_PREFIX/bin"

@@ -4,19 +4,19 @@ import eol_scons
 import string
 from SCons.Options import PathOption
 
-options = None
+_options = None
 
 mykey = "HAS_PKG_ACE"
 
 def generate(env):
     
-  global options
-  if not options:
-    options = env.GlobalOptions()
+  global _options
+  if not _options:
+    _options = env.GlobalOptions()
     ace_root = env.FindPackagePath('ACE_ROOT', '$OPT_PREFIX/ACE*', '/opt/ACE')
-    options.AddOptions(PathOption('ACE_ROOT', 'ACE_ROOT directory.', ace_root))
-    options.Add('ACE_NTRACE', 'Definition of ACE_NTRACE CPP macro, 0 or 1.', 0)
-  options.Update(env)
+    _options.AddOptions(PathOption('ACE_ROOT', 'ACE_ROOT directory.', ace_root))
+    _options.Add('ACE_NTRACE', 'Definition of ACE_NTRACE CPP macro, 0 or 1.', 0)
+  _options.Update(env)
   
   # Use the existence of a key in the env to separate the ACE tool into
   # what need only be applied once and what must be applied every time this

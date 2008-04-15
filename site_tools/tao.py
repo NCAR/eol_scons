@@ -2,7 +2,7 @@ import os
 import SCons
 from SCons.Options import PathOption
 
-options = None
+_options = None
 mykey="HAS_PKG_TAO"
 
 def tao_idl_emitter(target, source, env):
@@ -57,13 +57,13 @@ def tao_idl_generate(env):
 
 def generate(env):
 
-    global options
-    if not options:
-        options = env.GlobalOptions() 
+    global _options
+    if not _options:
+        _options = env.GlobalOptions() 
         tao_root = env.FindPackagePath('TAO_ROOT', '$ACE_ROOT/TAO', '/usr')
-        options.AddOptions(PathOption('TAO_ROOT', 'TAO_ROOT directory.', 
-                                      tao_root))
-    options.Update(env)
+        _options.AddOptions(PathOption('TAO_ROOT', 'TAO_ROOT directory.', 
+                                       tao_root))
+    _options.Update(env)
 
   # Use the existence of a key in the env to separate the TAO tool into
   # what need only be applied once and what must be applied every time this

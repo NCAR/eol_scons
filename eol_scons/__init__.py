@@ -69,7 +69,7 @@ import eol_scons.chdir
 # The public interface for the eol_scons package.
 # ================================================================
 
-options = None
+global_options = None
 
 # We have to use a 'hardcoded' path to the config file rather than using
 # the DefaultEnvironment() to create a path.  Otherwise creating the
@@ -80,18 +80,18 @@ cfile = os.path.abspath(os.path.join(__path__[0],"../../config.py"))
 
 def GlobalOptions():
     """Return the eol_scons global options."""
-    global options
-    if not options:
+    global global_options
+    if not global_options:
         global cfile
         #cfile = DefaultEnvironment().File('#config.py').abspath
         #cfile = "#config.py"
-        options = Options (cfile)
-        options.AddOptions(
+        global_options = Options (cfile)
+        global_options.AddOptions(
             BoolOption('eolsconsdebug',
                        'Enable debug messages from eol_scons.',
                        debug))
         print "Config file: %s" % cfile
-    return options
+    return global_options
 
 def Pkg_Options(env = None):
     """This function is deprecated in favor of GlobalOptions()."""
@@ -282,6 +282,7 @@ def _PassEnv(env, regexp):
 
 
 def _Require(env, tools):
+    Debug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]))
     applied = []
     if not isinstance(tools,type([])):
         tools = [ tools ]
@@ -489,6 +490,7 @@ def _findToolFile(env, name):
 tool_dict = {}
 
 def _Tool(env, tool, toolpath=None, **kw):
+    Debug("eol_scons.Tool(%s,%s)" % (env.Dir('.'), tool))
     name = str(tool)
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
@@ -553,6 +555,7 @@ def _Tool(env, tool, toolpath=None, **kw):
             except:
                 raise SCons.Errors.StopError, "Cannot find required tool: "+ \
                     name + "\n" + ''.join(traceback.format_stack())
+            Debug("Tool loaded: %s" % name)
 
 
     tool_dict[name] = tool

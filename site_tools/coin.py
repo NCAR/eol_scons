@@ -1,7 +1,7 @@
 import os
 from eol_scons import parseconfig
 
-options = None
+_options = None
 
 def getPrefix(env):
     matchdir = env.FindPackagePath('COIN_DIR','$OPT_PREFIX/Coin*')
@@ -10,15 +10,15 @@ def getPrefix(env):
 
 
 def generate(env):
-    global options
-    if not options:
-        options = env.GlobalOptions()
-        options.Add('COIN_DIR', """Set the Coin directory.
+    global _options
+    if not _options:
+        _options = env.GlobalOptions()
+        _options.Add('COIN_DIR', """Set the Coin directory.
 If not set, look for a directory matching Coin* under $OPT_PREFIX.
 Use the first coin-config found in this list of paths:
  $COIN_DIR/bin, $OPT_PREFIX/bin, and /usr/bin.""", getPrefix(env))
         
-    options.Update(env)
+    _options.Update(env)
     prefix = getPrefix(env)
     if env['PLATFORM'] == 'win32':
         env.Append(CPPDEFINES="COIN_DLL")

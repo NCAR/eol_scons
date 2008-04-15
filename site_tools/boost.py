@@ -2,7 +2,7 @@
 import os
 import SCons.Util
 
-options = None
+_options = None
 
 liblibs = [ 'boost_unit_test_framework',
             'boost_prg_exec_monitor',
@@ -25,16 +25,16 @@ def boost_libflags(env):
   return result
 
 def generate(env):
-  global options
-  if not options:
-    options = env.GlobalOptions()
-    options.Add('BOOST_DIR',
+  global _options
+  if not _options:
+    _options = env.GlobalOptions()
+    _options.Add('BOOST_DIR',
 """Set the BOOST installation directory.  Otherwise the default
  is to use the system location.  Specify BOOST_DIR=/usr to force
  the system installation even when a boost directory is found in
  OPT_PREFIX.""",
     env.FindPackagePath('BOOST_DIR', '$OPT_PREFIX/boost*'))
-  options.Update(env)
+  _options.Update(env)
   env.Append(DEPLOY_SHARED_LIBS='boost_date_time')
   env.Append(DEPLOY_SHARED_LIBS='boost_serialization')
   if not env.has_key('BOOST_LIBRARY_SUFFIX'):

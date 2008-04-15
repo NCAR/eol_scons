@@ -8,18 +8,18 @@ from SCons.Options import PathOption
 # variable is set, then that value is the default.  Otherwise, look for a
 # qt directory in /usr/lib.
 
-options = None
+_options = None
 
 def generate(env):
-  global options
-  if not options:
-    options = env.GlobalOptions()
+  global _options
+  if not _options:
+    _options = env.GlobalOptions()
     qt_root = parseconfig.PkgConfigPrefix(env, 'qt-mt', None)
     # Resort to the past method if pkg-config not available:
     if not qt_root:
       qt_root = env.FindPackagePath('QTDIR','/usr/lib/qt-*','/usr/lib/qt-3.3')
-    options.AddOptions (PathOption('QTDIR', 'Qt prefix directory.', qt_root))
-  options.Update(env)
+    _options.AddOptions (PathOption('QTDIR', 'Qt prefix directory.', qt_root))
+  _options.Update(env)
 
 def exists(env):
   return True

@@ -2,7 +2,7 @@ import os
 import string
 from eol_scons import parseconfig
 
-options = None
+_options = None
 
 def getPrefix(env):
     matchdir = env.FindPackagePath('SOQT_DIR','$OPT_PREFIX/SoQt*')
@@ -12,15 +12,15 @@ def getPrefix(env):
 
 
 def generate(env):
-    global options
-    if not options:
-        options = env.GlobalOptions() 
-        options.Add('SOQT_DIR', """Set the SoQt directory.
+    global _options
+    if not _options:
+        _options = env.GlobalOptions() 
+        _options.Add('SOQT_DIR', """Set the SoQt directory.
 If not set, look for a directory matching SoQt* under $OPT_PREFIX.
 Use the first soqt-config found in this list of paths:
  $SOQT_DIR/bin, $COIN_DIR/bin, $OPT_PREFIX/bin, and finally /usr/bin.""",
                     getPrefix(env))
-    options.Update(env)
+    _options.Update(env)
     prefix = getPrefix(env)
 
     if not env.has_key('SOQT_DOXDIR'):

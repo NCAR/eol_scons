@@ -7,8 +7,8 @@ import string
 from chdir import ChdirActions
 import eol_scons
 
-options = eol_scons.Pkg_Options()
-options.AddOptions(
+_options = eol_scons.Pkg_Options()
+_options.AddOptions(
     EnumOption('packagebuilds',
                'Control automatic package building.',
                'disable',
@@ -87,8 +87,8 @@ class Package:
 
     def setupBuild(self, env):
         print "Setting up to build %s package..." % (self.name)
-        global options
-        options.Update(env)
+        global _options
+        _options.Update(env)
         self.building = 1
         builder = self.generate(env)
         pkgsource = self.unpackPackage(env)
@@ -103,8 +103,8 @@ class Package:
         package, including possibly adding the targets to build the package
         itself.
         """
-        global options
-        options.Update(env)
+        global _options
+        _options.Update(env)
         # If not checked yet, see if all of the install targets already
         # exist or not.
         if self.checked:

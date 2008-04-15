@@ -12,16 +12,16 @@ from SCons.Action import Action
 class ValgrindWarning(SCons.Warnings.Warning):
     pass
 
-options = None
+_options = None
 
 def findValgrind(env):
-    global options
-    if not options:
-        options = env.GlobalOptions()
-        options.Add('VALGRIND_PATH',
-                    'Path to valgrind, or else "valgrind" if unset.')
+    global _options
+    if not _options:
+        _options = env.GlobalOptions()
+        _options.Add('VALGRIND_PATH',
+                     'Path to valgrind, or else "valgrind" if unset.')
 
-    options.Update(env)
+    _options.Update(env)
 
     # Short circuit the test if VALGRIND_PATH is already set in the
     # run environment.

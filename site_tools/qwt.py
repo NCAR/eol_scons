@@ -6,7 +6,7 @@ import eol_scons.chdir
 from eol_scons.package import Package
 import string
 
-options = None
+_options = None
 myKey = 'HAS_PACKAGE_QWT'
 USE_PKG_CONFIG = 'Using pkg-config'
 
@@ -95,12 +95,12 @@ class QwtPackage(Package):
 qwt_package = QwtPackage()
 
 def generate(env):
-    global options
-    if not options:
-        options = env.GlobalOptions()
-        options.AddOptions(PathOption('QWTDIR', 'Qwt installation root.', None))
+    global _options
+    if not _options:
+        _options = env.GlobalOptions()
+        _options.AddOptions(PathOption('QWTDIR','Qwt installation root.',None))
 
-    options.Update(env)
+    _options.Update(env)
     #
     # See if pkg-config knows about Qwt on this system
     #

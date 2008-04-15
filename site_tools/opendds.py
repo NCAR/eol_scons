@@ -9,17 +9,17 @@ import re
 from eol_scons.chdir import ChdirActions
 from SCons.Options import PathOption
 
-options = None
+_options = None
 mykey = "HAS_PKG_OPENDDS"
 
 def generate(env):
 
-  global options
-  if not options:
-    options = env.GlobalOptions()
+  global _options
+  if not _options:
+    _options = env.GlobalOptions()
     dds_root = env.FindPackagePath('DDS_ROOT', '$OPT_PREFIX/OpenDDS*')
-    options.AddOptions(PathOption('DDS_ROOT', 'DDS_ROOT directory.', dds_root))
-  options.Update(env)
+    _options.AddOptions(PathOption('DDS_ROOT', 'DDS_ROOT directory.', dds_root))
+  _options.Update(env)
   
   # Use the existence of a key in the env to separate the DDS tool into
   # what need only be applied once and what must be applied every time this
