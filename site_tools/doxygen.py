@@ -14,7 +14,7 @@ def tagfile (node):
     Construct the name of the tag file for the source directory
     in the given node.
     """
-    top = node.Dir('#')
+    top = node.get_dir().Dir('#')
     if node.get_dir() == top:
         subdir = 'root'
     else:
