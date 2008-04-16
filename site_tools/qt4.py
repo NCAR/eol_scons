@@ -171,7 +171,7 @@ def generate(env):
     
     def locateQt4Command(env, command) :
         commandQt4 = command + "-qt4"
-        testenv = env.Copy()
+        testenv = env.Clone()
         qt4BinDir = None
         #
         # If env['QT4DIR'] is defined, make sure we try its bin directory first
