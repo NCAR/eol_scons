@@ -1,8 +1,12 @@
 import os,os.path
 import SCons
-from SCons.Options.EnumOption import EnumOption
 from SCons.Builder import Builder
 import string
+
+try:
+    from SCons.Options import EnumOption
+except:
+    from SCons.Options.EnumOption import EnumOption
 
 from chdir import ChdirActions
 import eol_scons
