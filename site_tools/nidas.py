@@ -8,6 +8,8 @@ class NidasPathNotDirectory(SCons.Warnings.Warning):
 
 _options = None
 
+_warned_paths = {}
+
 def generate(env):
     global _options
     if not _options:
@@ -25,15 +27,19 @@ paths relative to the top directory.""",
     nidas_paths = []
     if env.has_key('NIDAS_PATH') and env['NIDAS_PATH']:
         paths=env['NIDAS_PATH'].split(",")
-        env.EnableNIDAS = (lambda: 1)
         for p in paths:
             np = env.Dir("#").Dir(env.subst(p)).get_abspath()
             if not os.path.isdir(np):
-                raise NidasPathNotDirectory(
-                    "Non-empty NIDAS_PATH is not a directory: %s; " % np +
-                    "Disable with NIDAS_PATH=''")
+                if not _warned_paths.has_key(np):
+                    print "NIDAS path is not a directory: " + np
+                _warned_paths[np] = 1
             else:
                 nidas_paths.append(np)
+        if len(nidas_paths) == 0:
+            raise NidasPathNotDirectory(
+                "No directories found in NIDAS_PATH: %s; " % \
+                    env['NIDAS_PATH'] + "disable NIDAS with NIDAS_PATH=''")
+        env.EnableNIDAS = (lambda: 1)
     if env.EnableNIDAS():
         env.Append(CPPPATH=[os.path.join(p,'x86','include') 
                             for p in nidas_paths])
