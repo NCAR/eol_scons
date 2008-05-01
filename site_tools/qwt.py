@@ -142,7 +142,8 @@ def generate(env):
         # The -l<> stuff we do later every time this tool is loaded
         #   
         if (env['QWTDIR'] is USE_PKG_CONFIG):
-            env.ParseConfig('pkg-config --cflags Qwt')
+            # Don't try here to make things unique in CFLAGS; just do an append
+            env.ParseConfig('pkg-config --cflags Qwt', unique = False)
         else:
             qwt_package.require(env)
             
@@ -151,7 +152,8 @@ def generate(env):
     # Add -lqwt each time this tool is requested
     #
     if (env['QWTDIR'] is USE_PKG_CONFIG):
-        env.ParseConfig('pkg-config --libs Qwt')
+        # Don't try here to make things unique in LIBS; just do an append
+        env.ParseConfig('pkg-config --libs Qwt', unique = False)
     else:
         env.Append(LIBS = ['qwt'])        
 

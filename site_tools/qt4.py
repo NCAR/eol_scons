@@ -334,8 +334,7 @@ def generate(env):
                      LIBEMITTER  =[AutomocStatic])
     
     import new
-    method = new.instancemethod(enable_modules, env, SCons.Environment)
-    env.EnableQt4Modules = method
+    env.EnableQt4Modules = new.instancemethod(enable_modules, env, type(env))
     env[myKey] = True
 
 no_pkgconfig_warned = []
@@ -351,7 +350,10 @@ def enable_modules(self, modules, debug=False) :
                 hdir = hdir.strip()
                 
                 if (os.system('pkg-config --exists ' + module) == 0):
-                    self.ParseConfig('pkg-config --libs --cflags ' + module)
+                    # Don't try here to make things unique in LIBS and
+                    # CFLAGS; just do a simple append
+                    self.ParseConfig('pkg-config --libs --cflags ' + module, 
+                                     unique = False)
                 else:
                     # warn if we haven't already
                     if not (module in no_pkgconfig_warned):
@@ -382,35 +384,6 @@ def enable_modules(self, modules, debug=False) :
             if module == "QtDesigner":
                 self.AppendUnique(QT4_MOCFROMHFLAGS =
                                   ['-I', os.path.join(hdir, module)])
-#        for module in modules:
-#            if (self['QT4DIR'] is USE_PKG_CONFIG):
-#                if (os.system('pkg-config --exists ' + module) == 0):
-#                    self.ParseConfig('pkg-config --libs --cflags ' + module)
-#                else:
-#                    # warn if we haven't already
-#                    if not (module in no_pkgconfig_warned):
-#                        print("Warning: No pkgconfig for Qt4/" + module + 
-#                              ", doing what I can...")
-#                        no_pkgconfig_warned.append(module)
-#                    # Add -l<module>
-#                    self.AppendUnique(LIBS = [module])
-#                    # Add -I<Qt4HeaderDir>/<module>
-#                    hdir = os.popen('pkg-config --variable=headerdir Qt').read()
-#                    hdir = hdir.strip()
-#                    self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
-#                    # Make sure moc gets the extra header path as well (This is 
-#                    # necessary for QtDesigner, at least as of Fedora 7)
-#                    self.AppendUnique(QT4_MOCFROMHFLAGS =
-#                                      ['-I', os.path.join(hdir, module)])
-#            else:
-#                self.AppendUnique(LIBPATH = [os.path.join(self['QT4DIR'], 'lib',
-#                                                          module)])
-#                self.AppendUnique(CPPPATH=[os.path.join(self['QT4DIR'],
-#                                                        'include')])
-#                self.AppendUnique(CPPPATH=[os.path.join(self['QT4DIR'], 
-#                                                        'include', module)])
-#                self.Append(LIBS = [module])
-
         return
     if sys.platform == "win32" :
         if debug : debugSuffix = 'd'
