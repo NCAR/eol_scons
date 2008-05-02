@@ -32,7 +32,7 @@ class Log4cppPackage(Package):
             env.Append(LIBS=env.File(install_targets[0]))
         else:
             env.Append(LIBS=["log4cpp"])
-            env.Append(LIBPATH=[prefix])
+            env.Append(LIBPATH=[os.path.join(prefix,"lib")])
 
         env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
         env.AppendUnique(CPPDEFINES=["LOG4CPP_FIX_ERROR_COLLISION", ])
