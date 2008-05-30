@@ -16,7 +16,7 @@ def generate(env):
     # The ld "Build global constructor/destructor tables" flag (-Ur) is 
     # absolutely required for VxWorks. The -S and -X flags to ld just give us
     # a smaller final product by removing some unnecessary symbols.
-    env.AppendUnique(LINKFLAGS = ['-Wl,-Ur', '-Wl,-S', '-Wl,-X'])
+    env.AppendUnique(LINKFLAGS = ['-Wl,-Ur,-S,-X'])
     libgcc = os.popen(env.subst('$GCCDIR/bin/$CXX -print-file-name=libgcc.a')).read()
     libcxx = os.popen(env.subst('$GCCDIR/bin/$CXX -print-file-name=libstdc++.a')).read()
     env['LIBGCC'] = libgcc.strip()
