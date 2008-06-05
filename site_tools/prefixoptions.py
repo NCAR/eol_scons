@@ -46,14 +46,24 @@ def _InstallLibrary (self, source):
     """Convenience method to install a library into INSTALL_LIBDIR."""
     return self.Install (self['INSTALL_LIBDIR'], source)
 
+def _InstallPythonLibrary (self, source):
+    """Convenience method to install a python library into INSTALL_PYTHON_LIBDIR."""
+    return self.Install (self['INSTALL_PYTHON_LIBDIR'], source)
+
 
 def _InstallProgram (self, source):
-    return self.Install (self['INSTALL_BINDIR'], source)
+    inst= self.Install (self['INSTALL_BINDIR'], source)
+    return inst
+
+def _InstallConfig (self, source):
+    inst= self.Install (self['INSTALL_CONFIGDIR'], source)
+    return inst
 
 
 def _InstallHeaders (self, subdir, source):
     incdir = os.path.join(self['INSTALL_INCDIR'],subdir)
     return self.Install (incdir, source)
+
 
 
 def generate(env):
@@ -69,12 +79,19 @@ def generate(env):
     OptPrefixSetup(env)
     env['INSTALL_LIBDIR'] = "$INSTALL_PREFIX/lib"
     env['INSTALL_BINDIR'] = "$INSTALL_PREFIX/bin"
-    env['INSTALL_INCDIR'] = "$INSTALL_INCDIR/include"
+    env['INSTALL_INCDIR'] = "$INSTALL_PREFIX/include"
+    env['INSTALL_CONFIGDIR'] = "$INSTALL_PREFIX/conf"
+    env['INSTALL_PYTHON_LIBDIR'] = "$INSTALL_PREFIX/lib/python"
     # Here we install the install convenience methods, since they do not
     # work unless the install prefix variables have been set.
+    env.InstallConfig = new.instancemethod(_InstallConfig, env, env.__class__)
     env.InstallLibrary = new.instancemethod(_InstallLibrary, env, env.__class__)
     env.InstallProgram = new.instancemethod(_InstallProgram, env, env.__class__)
     env.InstallHeaders = new.instancemethod(_InstallHeaders, env, env.__class__)
+    env.InstallPythonLibrary = new.instancemethod(_InstallPythonLibrary, env, env.__class__)
+
+    # support the user invoking "scons -u install"
+    env.Alias('install',env['INSTALL_PREFIX'])
 
 
 def exists(env):
