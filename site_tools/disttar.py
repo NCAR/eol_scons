@@ -98,7 +98,7 @@ def DistTar(target, source, env):
       if prefix and item.find(prefix) == 0:
          arcname = item[len(prefix)+1:]
       else:
-         arcname = '%s/%s' % (dir_name, item)
+         arcname = '%s' % item
            
       print "Adding to TAR file: %s" % arcname
       tar.add(item,arcname)
