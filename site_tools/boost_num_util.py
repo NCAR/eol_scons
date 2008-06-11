@@ -3,7 +3,10 @@ import os,os.path
 import string
 
 def generate(env):
-  numUtilDir = os.path.join(env['OPT_PREFIX'],'perp_depend','boost__deps', 'num_util')
+  numUtilDir = os.path.abspath(os.path.join(env['OPT_PREFIX'],
+                                            'perp_depend',
+                                            'boost__deps', 
+                                            'num_util'))
   env.Append(CPPPATH=[ numUtilDir, ])
   env.Append(LIBPATH=[ numUtilDir, ])
   env.Append(LIBS=['num_util',])
