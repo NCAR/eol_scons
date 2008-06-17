@@ -1,5 +1,13 @@
+#! /bin/sh
 
 rm -f TAGS
-find . -name "*.hh" -o -name "*.h" -o -name "*.cc" -o \
-       -name "*.cpp" -o -name "*.c" | egrep -v 'moc_' | egrep -v '\.#' | \
-  xargs etags -a
+
+print0='-print0'
+xargs='xargs -0 etags -a'
+if [ "$1" = list ]; then
+    print0=''
+    xargs='cat'
+fi
+find . \( -name "*.hh" -o -name "*.h" -o -name "*.cc" -o \
+       -name "*.cpp" -o -name "*.c" \) \
+       -a ! -name "moc_*" -a ! -name '.#*' $print0 | $xargs
