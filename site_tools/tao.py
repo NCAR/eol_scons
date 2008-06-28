@@ -50,7 +50,7 @@ def tao_idl_generate(env):
 
     tao_idl_path = os.path.join(env['TAO_ROOT'], "TAO_IDL", "tao_idl")
     env['TAO_IDL'] = tao_idl_path
-    env['TAO_IDL_FLAGS'] = '-si S_i.h -st S_T_i.h -ci C_i.h -o $SOURCE.dir'
+    env['TAO_IDL_FLAGS'] = '-si S_i.h -sT S_T_i.h -ci C_i.h -o $SOURCE.dir'
     env['TAO_IDL_COM'] = '$TAO_IDL $TAO_IDL_FLAGS $SOURCE'
     # tao_idl requires LD_LIBRARY_PATH allow for finding ACE/TAO libraries
     env.AppendENVPath('LD_LIBRARY_PATH', os.path.join(env['ACE_ROOT'], 'lib'))
