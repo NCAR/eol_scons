@@ -8,9 +8,9 @@ def generate(env):
     #env.Append(LIBS=['logx',])
     env.AppendLibrary ("logx")
     if env.GetGlobalTarget("liblogx"):
-	env.AppendDoxref("logx")
+        env.AppendDoxref("logx")
     else:
-	env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
+        env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
     # env.ExtraSources("liblogx")
     env.Tool ('log4cpp')
 
