@@ -59,6 +59,10 @@ def _InstallConfig (self, source):
     inst= self.Install (self['INSTALL_CONFIGDIR'], source)
     return inst
 
+def _InstallEtc (self, source):
+    inst= self.Install (self['INSTALL_ETCDIR'], source)
+    return inst
+
 
 def _InstallHeaders (self, subdir, source):
     incdir = os.path.join(self['INSTALL_INCDIR'],subdir)
@@ -81,9 +85,11 @@ def generate(env):
     env['INSTALL_BINDIR'] = "$INSTALL_PREFIX/bin"
     env['INSTALL_INCDIR'] = "$INSTALL_PREFIX/include"
     env['INSTALL_CONFIGDIR'] = "$INSTALL_PREFIX/conf"
+    env['INSTALL_ETCDIR'] = "$INSTALL_PREFIX/etc"
     env['INSTALL_PYTHON_LIBDIR'] = "$INSTALL_PREFIX/lib/python"
     # Here we install the install convenience methods, since they do not
     # work unless the install prefix variables have been set.
+    env.InstallEtc = new.instancemethod(_InstallEtc, env, env.__class__)
     env.InstallConfig = new.instancemethod(_InstallConfig, env, env.__class__)
     env.InstallLibrary = new.instancemethod(_InstallLibrary, env, env.__class__)
     env.InstallProgram = new.instancemethod(_InstallProgram, env, env.__class__)
