@@ -9,7 +9,7 @@ def getPrefix(env, apply_config = False):
     prefixes = [ env.get('SOQT_DIR'), matchdir, env.get('COIN_DIR'),
                  env.get('OPT_PREFIX'), "/usr" ]
     return parseconfig.ParseConfigPrefix(env, 'soqt-config', prefixes,
-                                         apply_config)
+                                         apply_config = apply_config)
 
 
 def generate(env):
