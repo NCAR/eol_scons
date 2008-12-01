@@ -7,7 +7,7 @@ def getPrefix(env, apply_config = False):
     matchdir = env.FindPackagePath('COIN_DIR','$OPT_PREFIX/Coin*')
     prefixes = [ env.get('COIN_DIR'), matchdir, env.get('OPT_PREFIX'), "/usr"]
     return parseconfig.ParseConfigPrefix(env, 'coin-config', prefixes,
-                                         apply_config)
+                                         apply_config = apply_config)
 
 
 def generate(env):
