@@ -11,8 +11,9 @@ def ParseConfigPrefix(env, config_script, search_prefixes,
                      (config_script, ",".join(search_paths)))
         config = env.WhereIs(config_script, search_paths)
         env.LogDebug("Found: %s" % config)
-        prefix = os.popen(config + ' --prefix').read().strip()
-        if apply_config:
+        if config:
+            prefix = os.popen(config + ' --prefix').read().strip()
+        if config and apply_config:
             env.ParseConfig(config + ' --cppflags --ldflags --libs')
             ldflags = os.popen(config + ' --ldflags').read().split()
             for flag in ldflags:
@@ -32,8 +33,9 @@ def PkgConfigPrefix(env, pkg_name, default_prefix = "$OPT_PREFIX"):
     prefix = None
     if env['PLATFORM'] != 'win32':    
         config = env.WhereIs('pkg-config', search_paths)
-        prefix = os.popen(config + ' --variable=prefix ' +
-                          pkg_name).read().strip()
+        if config:
+            prefix = os.popen(config + ' --variable=prefix ' +
+                              pkg_name).read().strip()
     if not prefix:
         prefix = default_prefix
     return prefix
