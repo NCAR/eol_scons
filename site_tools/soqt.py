@@ -4,11 +4,12 @@ from eol_scons import parseconfig
 
 _options = None
 
-def getPrefix(env):
+def getPrefix(env, apply_config = False):
     matchdir = env.FindPackagePath('SOQT_DIR','$OPT_PREFIX/SoQt*')
     prefixes = [ env.get('SOQT_DIR'), matchdir, env.get('COIN_DIR'),
                  env.get('OPT_PREFIX'), "/usr" ]
-    return parseconfig.ParseConfigPrefix(env, 'soqt-config', prefixes)
+    return parseconfig.ParseConfigPrefix(env, 'soqt-config', prefixes,
+                                         apply_config)
 
 
 def generate(env):
@@ -21,7 +22,7 @@ Use the first soqt-config found in this list of paths:
  $SOQT_DIR/bin, $COIN_DIR/bin, $OPT_PREFIX/bin, and finally /usr/bin.""",
                     getPrefix(env))
     _options.Update(env)
-    prefix = getPrefix(env)
+    prefix = getPrefix(env, apply_config = True)
 
     if not env.has_key('SOQT_DOXDIR'):
         # When installed into the system as the SoQt-devel package,

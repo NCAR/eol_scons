@@ -559,7 +559,11 @@ def _Tool(env, tool, toolpath=None, **kw):
 
 
     tool_dict[name] = tool
+    Debug("CPPPATH before applying %s: %s" % 
+          (name, ",".join(env.get('CPPPATH', []))))
     tool(env)
+    Debug("CPPPATH after applying %s: %s" %
+          (name, ",".join(env.get('CPPPATH', []))))
     return tool
 
 

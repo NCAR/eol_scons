@@ -3,10 +3,11 @@ from eol_scons import parseconfig
 
 _options = None
 
-def getPrefix(env):
+def getPrefix(env, apply_config = False):
     matchdir = env.FindPackagePath('COIN_DIR','$OPT_PREFIX/Coin*')
     prefixes = [ env.get('COIN_DIR'), matchdir, env.get('OPT_PREFIX'), "/usr"]
-    return parseconfig.ParseConfigPrefix(env, 'coin-config', prefixes)
+    return parseconfig.ParseConfigPrefix(env, 'coin-config', prefixes,
+                                         apply_config)
 
 
 def generate(env):
@@ -19,7 +20,7 @@ Use the first coin-config found in this list of paths:
  $COIN_DIR/bin, $OPT_PREFIX/bin, and /usr/bin.""", getPrefix(env))
         
     _options.Update(env)
-    prefix = getPrefix(env)
+    prefix = getPrefix(env, apply_config = True)
     if env['PLATFORM'] == 'win32':
         env.Append(CPPDEFINES="COIN_DLL")
         env.AppendUnique(CPPPATH="$COIN_DIR/include")
