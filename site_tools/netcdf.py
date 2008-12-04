@@ -49,7 +49,8 @@ class NetcdfPackage(Package):
         # that the location gets added to the CPP paths.
         incpaths = [ os.path.join(prefix,'include'),
                      os.path.join(prefix,'include','netcdf'),
-                     "/usr/include/netcdf-3" ]
+                     "/usr/include/netcdf-3",
+                     "/usr/include/netcdf" ]
         header = env.FindFile("netcdf.h", incpaths)
         if header:
             env.AppendUnique(CPPPATH=header.get_dir().get_abspath())
