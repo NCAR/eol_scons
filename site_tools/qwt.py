@@ -94,13 +94,8 @@ class QwtPackage(Package):
 
 qwt_package = QwtPackage()
 
-def generate(env):
-    global _options
-    if not _options:
-        _options = env.GlobalOptions()
-        _options.AddOptions(PathOption('QWTDIR','Qwt installation root.',None))
-
-    _options.Update(env)
+def find_qwtdir(env):
+    qwtdir = None
     #
     # See if pkg-config knows about Qwt on this system
     #
@@ -108,6 +103,31 @@ def generate(env):
         pkgConfigKnowsQwt = (os.system('pkg-config --exists Qwt') == 0)
     except:
         pkgConfigKnowsQwt = 0
+    # 
+    # Try to find the Qwt installation location, trying in order:
+    #    o command line QWTDIR option (or otherwise set in the environment)
+    #    o OS environment QWTDIR
+    #    o installation defined via pkg-config (this is the preferred method)
+    #    o lastly see if lib/libqwt.so exists under OPT_PREFIX
+    #
+    if (env.has_key('QWTDIR')):
+        qwtdir = env['QWTDIR']
+    elif (os.environ.has_key('QWTDIR')):
+        qwtdir = os.environ['QWTDIR']
+    elif pkgConfigKnowsQwt:
+        qwtdir = USE_PKG_CONFIG
+    elif env.has_key('OPT_PREFIX') and os.path.exists(os.path.join(env['OPT_PREFIX'],'lib','libqwt.so')):
+        qwtdir = env['OPT_PREFIX']
+    return qwtdir
+
+
+def generate(env):
+    global _options
+    if not _options:
+        _options = env.GlobalOptions()
+        _options.AddOptions(PathOption('QWTDIR','Qwt installation root.',
+                                       find_qwtdir(env)))
+    _options.Update(env)
 
     #
     # One-time stuff if this tool hasn't been loaded yet
@@ -119,24 +139,10 @@ def generate(env):
         #env.Require(['qt', 'doxygen'])
 	env.Require(['doxygen'])
         
-        # 
-        # Try to find the Qwt installation location, trying in order:
-        #    o command line QWTDIR option
-        #    o OS environment QWTDIR
-        #    o installation defined via pkg-config (this is the preferred method)
-        # At the end of checking, either env['QWTDIR'] will contain the path
-        # to the top of the installation, or it will be set to USE_PKG_CONFIG, 
-        # or we will raise an exception.
-        #
-        if (env.has_key('QWTDIR')):
-            pass
-        elif (os.environ.has_key('QWTDIR')):
-            env['QWTDIR'] = os.environ['QWTDIR']
-        elif pkgConfigKnowsQwt:
-            env['QWTDIR'] = USE_PKG_CONFIG
-        else:
+        qwtdir = find_qwtdir(env)
+        if not qwtdir:
             raise SCons.Errors.StopError, "Qwt not found"
-        
+        env['QWTDIR'] = qwtdir
         #
         # First-time-only stuff here: -I<>, -D<>, and -L<> options
         # The -l<> stuff we do later every time this tool is loaded
