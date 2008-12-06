@@ -42,9 +42,10 @@ def CheckMissingHeaders(subdir, doxfiles, ignores):
     # print "Ignores: ", ignores
     for root, dirs, files in os.walk(subdir):
         files = filter(lambda f: 
-                       not fnmatch(f, "moc_*") 
-                       and not fnmatch(f, "*.ui*") 
-                       and not fnmatch(f, "uic_*") 
+                       not fnmatch(f, "moc_*")
+                       and not fnmatch(f, "ui_*")
+                       and not fnmatch(f, "*.ui*")
+                       and not fnmatch(f, "uic_*")
                        and fnmatch(f, "*.h"), files)
         found += [os.path.normpath(os.path.join(root, f)) for f in files]
         if '.svn' in dirs:
