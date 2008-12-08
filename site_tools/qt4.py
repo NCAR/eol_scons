@@ -373,6 +373,13 @@ def enable_modules(self, modules, debug=False) :
                 if os.path.isdir(longpath):
                     libpath = longpath
                 self.AppendUnique(LIBPATH = [libpath])
+		# if this does not look like a system path, add it to
+		# RPATH.  This is helpful when different components have
+		# been built against differents versions of Qt, but the one
+		# specified by this tool is the one that should take
+		# precedence.
+                if not libpath.startswith('/usr/lib'):
+                    self.AppendUnique(RPATH = [libpath])
 
                 hdir = os.path.join(self['QT4DIR'], 'include')
                 self.AppendUnique(CPPPATH = [hdir])
