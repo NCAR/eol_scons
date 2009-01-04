@@ -36,7 +36,7 @@ class Log4cppPackage(Package):
 
         env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
         env.AppendUnique(CPPDEFINES=["LOG4CPP_FIX_ERROR_COLLISION", ])
-        env.Append(DEPLOY_SHARED_LIBS='log4cpp')
+        env.Append(DEPLOY_SHARED_LIBS=['log4cpp'])
         if not env.has_key('LOG4CPP_DOXDIR'):
             env['LOG4CPP_DOXDIR'] = "%s/doc/log4cpp-%s/api" % \
                                         (prefix, version)

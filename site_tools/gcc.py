@@ -3,23 +3,23 @@ import SCons.Tool
 import SCons.Tool.gcc
 
 def Debug(env):
-    env.Append(CCFLAGS='-g')
+    env.Append(CCFLAGS=['-g'])
     return env
 
 def Warnings(env):
-    env.Append(CCFLAGS='-Wall')
+    env.Append(CCFLAGS=['-Wall'])
     if env.has_key('NOUNUSED'):
         env.Append (CCFLAGS=['-Wno-unused'])
     return env
 
 def Optimize(env):
-    env.Append(CCFLAGS='-O2')
+    env.Append(CCFLAGS=['-O2'])
     return env
 
 def Profile(env):
-    env.Append(CCFLAGS='-pg')
-    env.Append(LINKFLAGS='-pg')
-    env.Append(SHLINKFLAGS='-pg')
+    env.Append(CCFLAGS=['-pg'])
+    env.Append(LINKFLAGS=['-pg'])
+    env.Append(SHLINKFLAGS=['-pg'])
     return env
 
 def generate(env):

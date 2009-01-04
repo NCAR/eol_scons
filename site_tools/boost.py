@@ -35,8 +35,8 @@ def generate(env):
  OPT_PREFIX.""",
     env.FindPackagePath('BOOST_DIR', '$OPT_PREFIX/boost*'))
   _options.Update(env)
-  env.Append(DEPLOY_SHARED_LIBS='boost_date_time')
-  env.Append(DEPLOY_SHARED_LIBS='boost_serialization')
+  env.Append(DEPLOY_SHARED_LIBS=['boost_date_time'])
+  env.Append(DEPLOY_SHARED_LIBS=['boost_serialization'])
   if not env.has_key('BOOST_LIBRARY_SUFFIX'):
     if env['PLATFORM'] == 'win32':
       env['BOOST_LIBRARY_SUFFIX'] = '-vc71-mt-gd-1_33_1'
@@ -45,11 +45,11 @@ def generate(env):
   if env.has_key('BOOST_DIR'):
     bdir=env['BOOST_DIR']
     if bdir and bdir != "/usr" and bdir != "":
-      env.Append(CPPPATH=os.path.join(bdir,"include"));
+      env.Append(CPPPATH=[os.path.join(bdir,"include")])
       # Windows installs don't have a separate include directory.
-      env.Append(CPPPATH=os.path.join(bdir));
-      env.AppendUnique(LIBPATH=os.path.join(bdir,"lib"));
-      env.AppendUnique(RPATH=[os.path.join(bdir,"lib")]);
+      env.Append(CPPPATH=[os.path.join(bdir)]);
+      env.AppendUnique(LIBPATH=[os.path.join(bdir,"lib")])
+      env.AppendUnique(RPATH=[os.path.join(bdir,"lib")])
   # Override the _LIBFLAGS variable so we can append the suffix for
   # boost libraries.
   if not env.has_key('_boost_save_libflags'):

@@ -17,13 +17,13 @@ class UdunitsPackage(Package):
                          default_package_file = 'udunits-1.12.4.tar.Z')
 
     def require(self, env):
-        env.AppendUnique(CPPPATH=os.path.join(env['OPT_PREFIX'],'include'))
+        env.AppendUnique(CPPPATH=[os.path.join(env['OPT_PREFIX'],'include')])
         targets = self.checkBuild(env)
         if self.building:
-            env.Append(LIBS=targets[0])
+            env.Append(LIBS=[targets[0]])
         else:
-            env.Append(LIBS='udunits')
-            env.Append(LIBPATH=os.path.join(env['OPT_PREFIX'],'lib'))
+            env.Append(LIBS=['udunits'])
+            env.Append(LIBPATH=[os.path.join(env['OPT_PREFIX'],'lib')])
 
 udunits = UdunitsPackage()
 

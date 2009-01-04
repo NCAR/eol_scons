@@ -3,18 +3,18 @@ import SCons.Tool
 import SCons.Tool.msvc
 
 def Debug(env):
-    env.Append(CCFLAGS='/Zi')
+    env.Append(CCFLAGS=['/Zi'])
     return env
 
 def Warnings(env):
     # env.Append(CCFLAGS='/Wall')
-    env.Append(CCFLAGS='/W2')
+    env.Append(CCFLAGS=['/W2'])
     if env.has_key('NOUNUSED'):
         pass
     return env
 
 def Optimize(env):
-    env.Append(CCFLAGS='/O2')
+    env.Append(CCFLAGS=['/O2'])
     return env
 
 def Profile(env):

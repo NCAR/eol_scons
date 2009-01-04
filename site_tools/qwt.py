@@ -86,7 +86,7 @@ class QwtPackage(Package):
         plugindir='$QWTDIR/designer/plugins/designer'
         env.Append(QT_UICIMPLFLAGS=['-L',plugindir])
         env.Append(QT_UICDECLFLAGS=['-L',plugindir])
-        env.Append(DEPLOY_SHARED_LIBS='qwt')
+        env.Append(DEPLOY_SHARED_LIBS=['qwt'])
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')
         if not env.has_key('QWT_DOXREF'):
             env['QWT_DOXREF'] = 'qwt:' + qwt_docdir

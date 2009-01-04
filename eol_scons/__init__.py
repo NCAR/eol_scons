@@ -402,7 +402,7 @@ def _GetGlobalTarget(env, name):
 
 def _AppendLibrary (env, name, path = None):
     "Add this library either as a local target or a link option."
-    env.Append(DEPLOY_SHARED_LIBS=name)
+    env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
     if target:
         Debug("appending library node: %s" % str(target))
@@ -414,7 +414,7 @@ def _AppendLibrary (env, name, path = None):
 
 def _AppendSharedLibrary (env, name, path=None):
     "Add this shared library either as a local target or a link option."
-    env.Append(DEPLOY_SHARED_LIBS=name)
+    env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
     Debug("appending shared library node: %s" % str(target))
     if target and not path:
@@ -561,9 +561,13 @@ def _Tool(env, tool, toolpath=None, **kw):
     tool_dict[name] = tool
     Debug("CPPPATH before applying %s: %s" % 
           (name, ",".join(env.get('CPPPATH', []))))
+    Debug("CCFLAGS before applying %s: %s" % 
+          (name, ",".join(env.get('CCFLAGS', []))))
     tool(env)
     Debug("CPPPATH after applying %s: %s" %
           (name, ",".join(env.get('CPPPATH', []))))
+    Debug("CCFLAGS before applying %s: %s" % 
+          (name, ",".join(env.get('CCFLAGS', []))))
     return tool
 
 

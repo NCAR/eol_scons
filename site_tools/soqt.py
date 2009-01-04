@@ -56,7 +56,7 @@ Use the first soqt-config found in this list of paths:
         removed += remove_path(env['LIBPATH'], "/usr/lib/qt4")
     global _removed_already_warned
     if removed > 0 and not _removed_already_warned:
-        print("Removed %d extraneous qt4 paths from soqt-config." % removed)
+        print("soqt: removed %d extraneous qt4 paths from soqt-config." % removed)
         _removed_already_warned = True
 
     if not env.has_key('SOQT_DOXDIR'):
@@ -69,9 +69,9 @@ Use the first soqt-config found in this list of paths:
     if not env.has_key('SOQT_DOXREF'):
         env['SOQT_DOXREF'] = 'soqt:%s' % env['SOQT_DOXDIR']
     env.AppendDoxref(env['SOQT_DOXREF'])
-    env.Append(DEPLOY_SHARED_LIBS='SoQt')
+    env.Append(DEPLOY_SHARED_LIBS=['SoQt'])
     if env['PLATFORM'] != 'win32':
-        env.Append(LIBS='Xi')
+        env.Append(LIBS=['Xi'])
     # This is needed especially to get the doxygen reference.
     env.Require(['PKG_COIN'])
 
