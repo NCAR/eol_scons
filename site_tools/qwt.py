@@ -116,7 +116,8 @@ def find_qwtdir(env):
         qwtdir = os.environ['QWTDIR']
     elif pkgConfigKnowsQwt:
         qwtdir = USE_PKG_CONFIG
-    elif env.has_key('OPT_PREFIX') and os.path.exists(os.path.join(env['OPT_PREFIX'],'lib','libqwt.so')):
+    elif (env.has_key('OPT_PREFIX') and 
+          os.path.exists(os.path.join(env['OPT_PREFIX'], 'lib', 'libqwt.so'))):
         qwtdir = env['OPT_PREFIX']
     return qwtdir
 
@@ -125,8 +126,7 @@ def generate(env):
     global _options
     if not _options:
         _options = env.GlobalOptions()
-        _options.AddOptions(PathOption('QWTDIR','Qwt installation root.',
-                                       find_qwtdir(env)))
+        _options.AddOptions(PathOption('QWTDIR', 'Qwt installation root.', None))
     _options.Update(env)
 
     #
@@ -139,21 +139,21 @@ def generate(env):
         #env.Require(['qt', 'doxygen'])
 	env.Require(['doxygen'])
         
-        qwtdir = find_qwtdir(env)
-        if not qwtdir:
-            raise SCons.Errors.StopError, "Qwt not found"
-        env['QWTDIR'] = qwtdir
-        #
-        # First-time-only stuff here: -I<>, -D<>, and -L<> options
-        # The -l<> stuff we do later every time this tool is loaded
-        #   
-        if (env['QWTDIR'] is USE_PKG_CONFIG):
-            # Don't try here to make things unique in CFLAGS; just do an append
-            env.ParseConfig('pkg-config --cflags Qwt', unique = False)
-        else:
-            qwt_package.require(env)
-            
-        env[myKey] = True
+    qwtdir = find_qwtdir(env)
+    if not qwtdir:
+        raise SCons.Errors.StopError, "Qwt not found"
+    env['QWTDIR'] = qwtdir
+    #
+    # First-time-only stuff here: -I<>, -D<>, and -L<> options
+    # The -l<> stuff we do later every time this tool is loaded
+    #   
+    if (env['QWTDIR'] is USE_PKG_CONFIG):
+        # Don't try here to make things unique in CFLAGS; just do an append
+        env.ParseConfig('pkg-config --cflags Qwt', unique = False)
+    else:
+        qwt_package.require(env)
+        
+    env[myKey] = True
     #
     # Add -lqwt each time this tool is requested
     #
