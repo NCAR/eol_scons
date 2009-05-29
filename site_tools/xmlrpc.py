@@ -1,13 +1,22 @@
 import os
 
 def generate(env):
-    # If the EOL xmlrpc++ RPM is installed, then headers are under 
-    # /usr/include/xmlrpc++, and we assume they are included explicitly
-    # with the xmlrpc++ directory: "#include <xmlrpc++/XmlRpc.h>".  
-    # Hence, no -I is needed in CFLAGS.  The library is in 
-    # /usr/lib/libxmlrpc++.a (or .so).
+    # See if the EOL xmlrpc++ RPM is installed.  If so, then up to 0.7-3:
+    #    o headers are under /usr/include/xmlrpc++
+    #    o library is /usr/lib/libxmlrpc++.so
+    # For 0.7-4 and later:
+    #    o headers are under /usr/include/xmlrpcpp
+    #    o library is /usr/lib/libxmlrpcpp.so
+    # The change was necessary because the new (and common) xmlrpc-c package
+    # contains a /usr/lib/libxmlrpc++.so that supports a different API than
+    # the xmlrpc++ package.
     if (os.system('rpm -V --quiet xmlrpc++') == 0):
-        env.Append(LIBS=['xmlrpc++'])
+        if (os.path.exists("/usr/lib/libxmlrpcpp.so")):
+            env.Append(LIBS=['xmlrpcpp'])
+            env.AppendUnique(CPPPATH = ['/usr/include/xmlrpcpp'])
+        else:
+            env.Append(LIBS=['xmlrpc++'])
+            env.AppendUnique(CPPPATH = ['/usr/include/xmlrpc++'])
                          
     # If no RPM, then assume headers are under OPT_PREFIX/include, and
     # the library is in OPT_PREFIX/lib/libXmlRpc.a.
