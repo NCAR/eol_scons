@@ -27,7 +27,7 @@ def boost_libflags(env):
 def generate(env):
   global _options
   if not _options:
-    _options = env.GlobalOptions()
+    _options = env.GlobalVariables()
     _options.Add('BOOST_DIR',
 """Set the BOOST installation directory.  Otherwise the default
  is to use the system location.  Specify BOOST_DIR=/usr to force

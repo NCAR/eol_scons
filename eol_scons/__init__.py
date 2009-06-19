@@ -14,7 +14,7 @@ Lastly, this module itself provides an interface of a few functions, for
 configuring and controlling the eol_scons framework outside of the
 Environment methods.  These are the public functions:
 
-GlobalOptions(): for accessing the global list of options maintained by this
+GlobalVariables(): for accessing the global list of options maintained by this
 package.
 
 GlobalTools(): for accessing the global tools list.  Each tool in the
@@ -50,13 +50,12 @@ import SCons
 import SCons.Tool
 
 
-from SCons.Script import Options
+from SCons.Script import Variables
 from SCons.Script import Environment
 from SCons.Script import DefaultEnvironment
-from SCons.Script import Options
-from SCons.Script import PackageOption
-from SCons.Script import EnumOption
-from SCons.Script import BoolOption
+from SCons.Script import PackageVariable
+from SCons.Script import EnumVariable
+from SCons.Script import BoolVariable
 
 from SCons.Util import NodeList
 from SCons.Script.SConscript import global_exports
@@ -69,7 +68,7 @@ import eol_scons.chdir
 # The public interface for the eol_scons package.
 # ================================================================
 
-global_options = None
+global_variables = None
 
 # We have to use a 'hardcoded' path to the config file rather than using
 # the DefaultEnvironment() to create a path.  Otherwise creating the
@@ -78,25 +77,23 @@ global_options = None
 
 cfile = os.path.abspath(os.path.join(__path__[0],"../../config.py"))
 
-def GlobalOptions():
+def GlobalVariables():
     """Return the eol_scons global options."""
-    global global_options
-    if not global_options:
+    global global_variables
+    if not global_variables:
         global cfile
         #cfile = DefaultEnvironment().File('#config.py').abspath
         #cfile = "#config.py"
-        global_options = Options (cfile)
-        global_options.AddOptions(
-            BoolOption('eolsconsdebug',
-                       'Enable debug messages from eol_scons.',
-                       debug))
+        global_variables = Variables (cfile)
+        global_variables.AddVariables(
+            BoolVariable('eolsconsdebug',
+                         'Enable debug messages from eol_scons.',
+                         debug))
         print "Config file: %s" % cfile
-    return global_options
+    return global_variables
 
-def Pkg_Options(env = None):
-    """This function is deprecated in favor of GlobalOptions()."""
-    return GlobalOptions()
-
+# Alias for temporary backwards compatibility
+GlobalOptions = GlobalVariables
 
 debug = False
 
@@ -222,7 +219,7 @@ def _generate (env):
     environment, especially applying the scons built-in default tool
     and the eol_scons global tools."""
 
-    Pkg_Options().Update (env)
+    GlobalVariables().Update (env)
     if env.has_key('eolsconsdebug') and env['eolsconsdebug']:
         eol_scons.debug = True
     name = env.Dir('.').get_path(env.Dir('#'))
@@ -427,7 +424,7 @@ def _AppendSharedLibrary (env, name, path=None):
 
 def _FindPackagePath(env, optvar, globspec, defaultpath = None):
     """Check for a package installation path matching globspec."""
-    options = GlobalOptions()
+    options = GlobalVariables()
     dir=defaultpath
     try:
         dir=os.environ[optvar]
@@ -460,8 +457,8 @@ def _Create (env,
 def _LogDebug(env, msg):
     Debug(msg)
 
-def _GlobalOptions(env):
-    return GlobalOptions()
+def _GlobalVariables(env):
+    return GlobalVariables()
 
 def _GlobalTools(env):
     return GlobalTools()
@@ -586,7 +583,9 @@ def _ExtendEnvironment(envclass):
     envclass.Test = _Test
     envclass.LogDebug = _LogDebug
     envclass.FindPackagePath = _FindPackagePath
-    envclass.GlobalOptions = _GlobalOptions
+    envclass.GlobalVariables = _GlobalVariables
+    # Alias for temporary backwards compatibility
+    envclass.GlobalOptions = _GlobalVariables
     envclass.GlobalTools = _GlobalTools
     envclass.Tool = _Tool
 

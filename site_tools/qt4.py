@@ -5,7 +5,7 @@ import SCons.Defaults
 import SCons.Node
 import SCons.Tool
 import SCons.Util
-from SCons.Options import PathOption
+from SCons.Variables import PathVariable
 
 _options = None
 USE_PKG_CONFIG = "Using pkg-config"
@@ -193,8 +193,8 @@ def generate(env):
 
     global _options
     if not _options:
-        _options = env.GlobalOptions()
-        _options.AddOptions(PathOption('QT4DIR','Qt4 installation root.',None))
+        _options = env.GlobalVariables()
+        _options.AddVariables(PathVariable('QT4DIR','Qt4 installation root.',None))
     _options.Update(env)
 
     #

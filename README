@@ -226,7 +226,7 @@ Lastly, this module itself provides an interface of a few functions, for
 configuring and controlling the eol_scons framework outside of the
 Environment methods.  These are the public functions:
 
-<b>GlobalOptions()</b>: for accessing the global list of options maintained
+<b>GlobalVariables()</b>: for accessing the global list of options maintained
 by this package.
 
 <b>GlobalTools()</b>: for accessing the global tools list.  Each tool in
@@ -434,9 +434,9 @@ OPT_PREFIX and INSTALL_PREFIX options same as before.  I think using the
 construction variables to set the defaults is more consistent with standard
 SCons than supplying a special function.
 
-The Pkg_Options() function is deprecated in favor of GlobalOptions(), which
+The Pkg_Options() function has been replaced by GlobalVariables(), which
 can be called either through the eol_scons package or as an Environment
-method.  Pkg_Options() still exists, though, for a little while.
+method.
 
 The FindPackagePath is now only available as an Environment method.  The
 tools which use it now defer their option creation until the first
@@ -486,18 +486,18 @@ The @p INSTALL_PREFIX defaults to the value of @p OPT_PREFIX.
 
 It is also possible for any package script or SConscript to add more
 configuration options to the build framework.  The eol_scons package
-creates a single instance of the SCons Options class, and that is the
+creates a single instance of the SCons Variables class, and that is the
 instance to which the @p OPT_PREFIX and @p INSTALL_PREFIX options are
-added.  The eol_scons function GlobalOptions() returns a reference to the
-global Options instance, so further options can be added at any time by
+added.  The eol_scons function GlobalVariables() returns a reference to the
+global Variables instance, so further options can be added at any time by
 adding them to that instance.
 
 For example, the spol package script adds an option SPOL_PREFIX:
 
 @code
 print "Adding SPOL_PREFIX to options."
-eol_scons.GlobalOptions().AddOptions (
-	PathOption('SPOL_PREFIX', 'Installation prefix for SPOL software.',
+eol_scons.GlobalVariables().AddVariables (
+	PathVariable('SPOL_PREFIX', 'Installation prefix for SPOL software.',
 		   '/opt/spol'))
 @endcode
 
@@ -507,16 +507,16 @@ target environment to make sure the spol configuration options are setup in
 that environment.
 
 @code
-	eol_scons.GlobalOptions().Update(env)
+	eol_scons.GlobalVariables().Update(env)
 @endcode
 
 Finally, the end of the top-level SConstruct file should contain a call to
-the SCons Help() function using the help text from the GlobalOptions()
+the SCons Help() function using the help text from the GlobalVariables()
 instance.  This ensures that any options added by any of the modules in the
 build tree will appear in the output of 'scons -h'.
 
 @code
-options = env.GlobalOptions()
+options = env.GlobalVariables()
 options.Update(env)
 Help(options.GenerateHelpText(env))
 @endcode

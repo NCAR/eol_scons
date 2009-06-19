@@ -4,7 +4,7 @@ _options = None
 def generate(env):
     global _options
     if not _options:
-        _options = env.GlobalOptions()
+        _options = env.GlobalVariables()
         _options.Add('POSTGRES_DIR',
 """Set the POSTGRES installation directory.
 If set, the pq library and headers will be expected in POSTGRES_DIR/lib and

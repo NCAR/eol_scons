@@ -1,5 +1,5 @@
 
-from SCons.Script import ListOption
+from SCons.Script import ListVariable
 
 import eol_scons
 
@@ -8,11 +8,11 @@ _options = None
 def generate(env):
     global _options
     if not _options:
-        _options = env.GlobalOptions()
+        _options = env.GlobalVariables()
         defaultmodes = ['debug', 'warnings', 'optimize']
         modes = defaultmodes + ['profile']
-        _options.AddOptions(
-            ListOption('buildmode', """\
+        _options.AddVariables(
+            ListVariable('buildmode', """\
 Select basic building modes such as debugging and optimization.
 By default, all three of debugging, warnings, and optimization are enabled
 if the compiler supports it.  The modes can be selected and combined using

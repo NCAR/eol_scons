@@ -7,9 +7,9 @@ import new
 _options = None
 
 
-def SetupOptions(env):
+def SetupVariables(env):
     global _options
-    _options = env.GlobalOptions()
+    _options = env.GlobalVariables()
     default_opt = '$DEFAULT_OPT_PREFIX'
     default_install = '$DEFAULT_INSTALL_PREFIX'
     _options.Add ('OPT_PREFIX',
@@ -119,7 +119,7 @@ def generate(env):
     """
     global _options
     if not _options:
-        SetupOptions(env)
+        SetupVariables(env)
     # Generate installation paths according to options and defaults
     _options.Update(env)
     OptPrefixSetup(env)

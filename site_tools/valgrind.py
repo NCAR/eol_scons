@@ -17,7 +17,7 @@ _options = None
 def findValgrind(env):
     global _options
     if not _options:
-        _options = env.GlobalOptions()
+        _options = env.GlobalVariables()
         _options.Add('VALGRIND_PATH',
                      'Path to valgrind, or else "valgrind" if unset.')
 

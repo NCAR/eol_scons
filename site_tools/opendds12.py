@@ -35,7 +35,7 @@ import os
 import string
 import re
 from eol_scons.chdir import ChdirActions
-from SCons.Options import PathOption
+from SCons.Variables import PathVariable
 
 _options = None
 mykey = "HAS_PKG_OPENDDS"
@@ -44,9 +44,9 @@ def generate(env):
 
   global _options
   if not _options:
-    _options = env.GlobalOptions()
+    _options = env.GlobalVariables()
     dds_root = env.FindPackagePath('DDS_ROOT', '$OPT_PREFIX/OpenDDS*')
-    _options.AddOptions(PathOption('DDS_ROOT', 'DDS_ROOT directory.', dds_root))
+    _options.AddVariables(PathVariable('DDS_ROOT', 'DDS_ROOT directory.', dds_root))
   _options.Update(env)
   
   # Use the existence of a key in the env to separate the DDS tool into

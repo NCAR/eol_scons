@@ -4,19 +4,19 @@ from SCons.Builder import Builder
 import string
 
 try:
-    from SCons.Options import EnumOption
+    from SCons.Variables import EnumVariable
 except:
-    from SCons.Options.EnumOption import EnumOption
+    from SCons.Variables.EnumVariable import EnumVariable
 
 from chdir import ChdirActions
 import eol_scons
 
-_options = eol_scons.Pkg_Options()
-_options.AddOptions(
-    EnumOption('packagebuilds',
-               'Control automatic package building.',
-               'disable',
-               allowed_values=('disable', 'enable', 'force')))
+_options = eol_scons.GlobalVariables()
+_options.AddVariables(
+    EnumVariable('packagebuilds',
+                 'Control automatic package building.',
+                 'disable',
+                 allowed_values=('disable', 'enable', 'force')))
 
 DEBUG = 0
 

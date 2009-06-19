@@ -2,7 +2,7 @@
 import os
 import eol_scons
 import string
-from SCons.Options import PathOption
+from SCons.Variables import PathVariable
 
 _options = None
 
@@ -12,9 +12,9 @@ def generate(env):
     
   global _options
   if not _options:
-    _options = env.GlobalOptions()
+    _options = env.GlobalVariables()
     ace_root = env.FindPackagePath('ACE_ROOT', '$OPT_PREFIX/ACE*', '/opt/ACE')
-    _options.AddOptions(PathOption('ACE_ROOT', 'ACE_ROOT directory.', ace_root))
+    _options.AddVariables(PathVariable('ACE_ROOT', 'ACE_ROOT directory.', ace_root))
     _options.Add('ACE_NTRACE', 'Definition of ACE_NTRACE CPP macro, 0 or 1.', 0)
   _options.Update(env)
   

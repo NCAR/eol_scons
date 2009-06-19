@@ -1,6 +1,6 @@
 import os
 import eol_scons
-from SCons.Options import EnumOption
+from SCons.Variables import EnumVariable
 import SCons.Warnings
 
 class NidasPathNotDirectory(SCons.Warnings.Warning):
@@ -13,7 +13,7 @@ _warned_paths = {}
 def generate(env):
     global _options
     if not _options:
-        _options = env.GlobalOptions()
+        _options = env.GlobalVariables()
         _options.Add('NIDAS_PATH',
 """Set the NIDAS prefix paths, and enable builds of components
 which use NIDAS. Setting it to empty disables NIDAS components.

@@ -1,6 +1,6 @@
 import os
 import SCons
-from SCons.Options import PathOption
+from SCons.Variables import PathVariable
 
 _options = None
 mykey="HAS_PKG_TAO"
@@ -58,9 +58,9 @@ def generate(env):
 
     global _options
     if not _options:
-        _options = env.GlobalOptions() 
+        _options = env.GlobalVariables() 
         tao_root = env.FindPackagePath('TAO_ROOT', '$ACE_ROOT/TAO', '/usr')
-        _options.AddOptions(PathOption('TAO_ROOT', 'TAO_ROOT directory.', 
+        _options.AddVariables(PathVariable('TAO_ROOT', 'TAO_ROOT directory.', 
                                        tao_root))
     _options.Update(env)
 

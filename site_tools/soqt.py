@@ -17,7 +17,7 @@ def getPrefix(env, apply_config = False):
 def generate(env):
     global _options
     if not _options:
-        _options = env.GlobalOptions() 
+        _options = env.GlobalVariables() 
         _options.Add('SOQT_DIR', """Set the SoQt directory.
 If not set, look for a directory matching SoQt* under $OPT_PREFIX.
 Use the first soqt-config found in this list of paths:

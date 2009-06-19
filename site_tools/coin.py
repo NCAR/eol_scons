@@ -13,7 +13,7 @@ def getPrefix(env, apply_config = False):
 def generate(env):
     global _options
     if not _options:
-        _options = env.GlobalOptions()
+        _options = env.GlobalVariables()
         _options.Add('COIN_DIR', """Set the Coin directory.
 If not set, look for a directory matching Coin* under $OPT_PREFIX.
 Use the first coin-config found in this list of paths:

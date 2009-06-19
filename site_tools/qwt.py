@@ -1,7 +1,7 @@
 
 import os
 import SCons
-from SCons.Options import PathOption
+from SCons.Variables import PathVariable
 import eol_scons.chdir
 from eol_scons.package import Package
 import string
@@ -125,8 +125,8 @@ def find_qwtdir(env):
 def generate(env):
     global _options
     if not _options:
-        _options = env.GlobalOptions()
-        _options.AddOptions(PathOption('QWTDIR', 'Qwt installation root.', None))
+        _options = env.GlobalVariables()
+        _options.AddVariables(PathVariable('QWTDIR', 'Qwt installation root.', None))
     _options.Update(env)
 
     #

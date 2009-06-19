@@ -1,7 +1,7 @@
 # -*- python -*-
 
 from eol_scons import parseconfig
-from SCons.Options import PathOption
+from SCons.Variables import PathVariable
 
 # Set a default for the QTDIR option one time and apply the option value to
 # each environment which requires this module.  If the QTDIR environment
@@ -13,12 +13,12 @@ _options = None
 def generate(env):
   global _options
   if not _options:
-    _options = env.GlobalOptions()
+    _options = env.GlobalVariables()
     qt_root = parseconfig.PkgConfigPrefix(env, 'qt-mt', None)
     # Resort to the past method if pkg-config not available:
     if not qt_root:
       qt_root = env.FindPackagePath('QTDIR','/usr/lib/qt-*','/usr/lib/qt-3.3')
-    _options.AddOptions (PathOption('QTDIR', 'Qt prefix directory.', qt_root))
+    _options.AddVariables (PathVariable('QTDIR', 'Qt prefix directory.', qt_root))
   _options.Update(env)
 
 def exists(env):
