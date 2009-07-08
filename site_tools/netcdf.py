@@ -1,6 +1,34 @@
 import os,os.path
-from eol_scons.package import Package
-from eol_scons.chdir import MkdirIfMissing
+# Try for eol_scons.package.Package, which will allow us to build netCDF
+# from source if necessary.  If we don't find it, do stuff to disable 
+# build-from-source.
+try:
+    from eol_scons.package import Package
+    from eol_scons.chdir import MkdirIfMissing
+    # Actions if we need to build netCDF from source
+    netcdf_actions = [
+        "./configure --prefix=$OPT_PREFIX FC= CC=gcc CXX=g++",
+        "make",
+        "make install",
+        MkdirIfMissing("$OPT_PREFIX/include/netcdf") ] + [
+        SCons.Script.Copy("$OPT_PREFIX/include/netcdf", h) for h in
+        [ os.path.join("$OPT_PREFIX","include",h2) for h2 in netcdf_headers ]
+        ]
+except ImportError:
+    # No build-from-source actions for netCDF if we didn't find the 
+    # eol_scons stuff    
+
+    # define a placeholder Package class
+    class Package:
+        def __init__(self, name, archive_targets, build_actions, 
+                     install_targets, default_package_file = None):
+            self.building = False
+        
+        def checkBuild(self, env):
+            pass
+    # empty command set since we won't build from source
+    netcdf_actions = None
+
 import string
 import SCons
 
@@ -25,15 +53,6 @@ $OPT_PREFIX/lib/libnetcdf.a
 $OPT_PREFIX/lib/libnetcdf_c++.a
 """)
 
-netcdf_actions = [
-    "./configure --prefix=$OPT_PREFIX FC= CC=gcc CXX=g++",
-    "make",
-    "make install",
-    MkdirIfMissing("$OPT_PREFIX/include/netcdf") ] + [
-    SCons.Script.Copy("$OPT_PREFIX/include/netcdf", h) for h in
-    [ os.path.join("$OPT_PREFIX","include",h2) for h2 in netcdf_headers ]
-    ]
-
 class NetcdfPackage(Package):
 
     def __init__(self):
@@ -44,7 +63,10 @@ class NetcdfPackage(Package):
     def require(self, env):
         "Need to add both c and c++ libraries to the environment."
         Package.checkBuild(self, env)
-        prefix = env['OPT_PREFIX']
+        if env.has_key('OPT_PREFIX'):
+            prefix = env['OPT_PREFIX']
+        else:
+            prefix = '/usr/local'
         # Look in the typical locations for the netcdf headers, and see
         # that the location gets added to the CPP paths.
         incpaths = [ os.path.join(prefix,'include'),
