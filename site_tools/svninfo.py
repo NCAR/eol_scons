@@ -10,7 +10,6 @@ from subprocess import *
 def svninfo_emitter(target, source, env):
     """Given an argument for svn info in the first source, replace that
     source with a Value() node with the svn info contents."""
-    
     svndict = { "Revision":None, "Last Changed Date":None, "URL":None }
     workdir = source[0].get_abspath()
     if FS.default_fs.isfile(workdir):
@@ -70,7 +69,7 @@ def generate(env):
     env['SVNVERSION'] = "svnversion"
     # Use the default location for the subversion Windows installer.
     if env['PLATFORM'] == 'win32':
-        svnbin=r'\Program Files\Subversion\bin'
+        svnbin=r'c:\Program Files\Svn'
         env['SVN'] = os.path.join(svnbin, "svn")
         env['SVNVERSION'] = os.path.join(svnbin, "svnversion")
 
