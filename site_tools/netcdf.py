@@ -1,7 +1,32 @@
-import os,os.path
+
+import os, os.path
+import string
+import SCons
+
+netcdf_headers = string.split("""
+ncvalues.h netcdf.h netcdf.hh netcdfcpp.h
+""")
+
+headers = [ os.path.join("$OPT_PREFIX","include",f)
+            for f in netcdf_headers ]
+
+# We extend the standard netcdf installation slightly by also copying
+# the headers into a netcdf subdirectory, so headers can be qualified
+# with a netcdf/ path when included.  Aeros does that, for example.
+
+headers.extend ([ os.path.join("$OPT_PREFIX","include","netcdf",f)
+                  for f in netcdf_headers ])
+libs = string.split("""
+$OPT_PREFIX/lib/libnetcdf.a
+$OPT_PREFIX/lib/libnetcdf_c++.a
+""")
+
 # Try for eol_scons.package.Package, which will allow us to build netCDF
 # from source if necessary.  If we don't find it, do stuff to disable 
 # build-from-source.
+
+netcdf_actions = None
+
 try:
     from eol_scons.package import Package
     from eol_scons.chdir import MkdirIfMissing
@@ -27,31 +52,9 @@ except ImportError:
         def checkBuild(self, env):
             pass
     # empty command set since we won't build from source
-    netcdf_actions = None
-
-import string
-import SCons
 
 # Note that netcdf.inc has been left out of this list, since this
 # current setup does not install it.
-
-netcdf_headers = string.split("""
-ncvalues.h netcdf.h netcdf.hh netcdfcpp.h
-""")
-
-headers = [ os.path.join("$OPT_PREFIX","include",f)
-            for f in netcdf_headers ]
-
-# We extend the standard netcdf installation slightly by also copying
-# the headers into a netcdf subdirectory, so headers can be qualified
-# with a netcdf/ path when included.  Aeros does that, for example.
-
-headers.extend ([ os.path.join("$OPT_PREFIX","include","netcdf",f)
-                  for f in netcdf_headers ])
-libs = string.split("""
-$OPT_PREFIX/lib/libnetcdf.a
-$OPT_PREFIX/lib/libnetcdf_c++.a
-""")
 
 class NetcdfPackage(Package):
 
