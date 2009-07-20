@@ -75,15 +75,21 @@ global_variables = None
 # DefaultEnvironment causes this module to be called again setting up all
 # kinds of weird and hard-to-diagnose behaviors.
 
-cfile = os.path.abspath(os.path.join(__path__[0],"../../config.py"))
+default_cfile = "config.py"
 
-def GlobalVariables():
+def GlobalVariables(cfile = None):
     """Return the eol_scons global options."""
     global global_variables
     if not global_variables:
-        global cfile
-        #cfile = DefaultEnvironment().File('#config.py').abspath
-        #cfile = "#config.py"
+        global default_cfile
+        if not cfile:
+            cfile = default_cfile
+        if not cfile.startswith("/"):
+            # Turn relative config file path to absolute, relative
+            # to top directory.
+            cfile = os.path.abspath(os.path.join(__path__[0], 
+                                                 "../..", cfile))
+        default_cfile = cfile
         global_variables = Variables (cfile)
         global_variables.AddVariables(
             BoolVariable('eolsconsdebug',
@@ -243,8 +249,8 @@ def _generate (env):
     env.PrependUnique (CPPPATH=['.','#'])
 
     # Builder wrappers
-    Pkg_Program(env)
-    Pkg_Library(env)
+    WrapProgram(env)
+    WrapLibrary(env)
 
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
@@ -290,33 +296,51 @@ def _Require(env, tools):
     return applied
 
 
-class Pkg_Program:
+# The following classes create a call chain with an existing builder,
+# replacing that builder's call method with the one from the wrapper
+# instance.  All other attributes of the existing builder need to be
+# preserved, thus these don't replace the existing builder, only the
+# builder's __call__ method.
+
+class WrapProgram:
+    """\
+    Wrap the Library builder to add the target as a named construction
+    varible, by which other parts of the build can refer to them.
+    """
 
     def __init__(self, env):
         self.programBuilder = env.get_builder('Program')
-        env['BUILDERS']['Program'] = self
+        # env['BUILDERS']['Program'] = self
+        self.call_method = self.programBuilder.__call__
+        self.programBuilder.__call__ = self.__call__
         if not env.has_key('EXTRA_SOURCES'):
             env['EXTRA_SOURCES'] = []
 
     def __call__(self, env, target = None, source = _null, **overrides):
         es = env['EXTRA_SOURCES']
         if source == _null and len(es) == 0:
-            return self.programBuilder(env, target, source, **overrides)
+            return self.call_method(env, target, source, **overrides)
         else:
             if type(source) != type([]):
                 source = [source]
-            return self.programBuilder(env, target, source + es, **overrides)
+            return self.call_method(env, target, source + es, **overrides)
 
 
-class Pkg_Library:
+class WrapLibrary:
+    """\
+    Wrap the Library builder to add the target as a named construction
+    varible, by which other parts of the build can refer to them.
+    """
 
     def __init__(self, env):
         self.libraryBuilder = env['BUILDERS']['Library']
-        env['BUILDERS']['Library'] = self
+        # env['BUILDERS']['Library'] = self
+        self.call_method = self.libraryBuilder.__call__
+        self.libraryBuilder.__call__ = self.__call__
 
     def __call__(self, env, target = None, source = _null, **overrides):
         "Add the library to the list of global targets."
-        ret = self.libraryBuilder(env, target, source, **overrides)
+        ret = self.call_method(env, target, source, **overrides)
         if target:
             env.AddLibraryTarget(target, ret)
         return ret
