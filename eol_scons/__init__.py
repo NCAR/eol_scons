@@ -421,7 +421,7 @@ def _AddGlobalTarget(env, name, target):
                "not changed to %s.") % (name, _global_targets[name], node))
     if not env.has_key(name):
         Debug("local target: " + name + "=" + str(node))
-        env[name] = node
+        #env[name] = node
     else:
         Debug(("%s local target already set to %s, " +
                "not changed to %s.") % (name, env[name], node))
