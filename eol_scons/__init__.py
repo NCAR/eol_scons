@@ -250,7 +250,9 @@ def _generate (env):
 
     # Builder wrappers
     WrapProgram(env)
-    WrapLibrary(env)
+    WrapLibrary("StaticLibrary", env)
+    WrapLibrary("SharedLibrary", env)
+    WrapLibrary("Library", env)
 
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
@@ -304,7 +306,7 @@ def _Require(env, tools):
 
 class WrapProgram:
     """\
-    Wrap the Library builder to add the target as a named construction
+    Wrap the Program builder to add the targets as a named construction
     varible, by which other parts of the build can refer to them.
     """
 
@@ -332,8 +334,8 @@ class WrapLibrary:
     varible, by which other parts of the build can refer to them.
     """
 
-    def __init__(self, env):
-        self.libraryBuilder = env['BUILDERS']['Library']
+    def __init__(self, name, env):
+        self.libraryBuilder = env['BUILDERS'][name]
         # env['BUILDERS']['Library'] = self
         self.call_method = self.libraryBuilder.__call__
         self.libraryBuilder.__call__ = self.__call__
@@ -405,12 +407,26 @@ def _AddGlobalTarget(env, name, target):
     # Make sure we register a node and not a list, just because that has
     # been the convention, started before scons changed all targets to
     # lists.
+    # If the target already exists, then do not change it, so the first
+    # setting always takes precedence.
     try:
         node = target[0]
     except (TypeError, AttributeError):
         node = target
-    Debug(["AddGlobalTarget:"] + [name] + [node])
-    _global_targets[name] = node
+    if not _global_targets.has_key(name):
+        Debug("AddGlobalTarget: " + name + "=" + str(node))
+        _global_targets[name] = node
+    else:
+        Debug(("%s global target already set to %s, " +
+               "not changed to %s.") % (name, _global_targets[name], node))
+    if not env.has_key(name):
+        Debug("local target: " + name + "=" + str(node))
+        env[name] = node
+    else:
+        Debug(("%s local target already set to %s, " +
+               "not changed to %s.") % (name, env[name], node))
+
+
     return node
 
 def _GetGlobalTarget(env, name):
