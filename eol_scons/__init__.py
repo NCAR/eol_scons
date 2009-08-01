@@ -419,23 +419,36 @@ def _AddGlobalTarget(env, name, target):
     else:
         Debug(("%s global target already set to %s, " +
                "not changed to %s.") % (name, _global_targets[name], node))
-    if not env.has_key(name):
+    # The "local" targets is a dictionary of target strings mapped to their
+    # node.  The dictionary is assigned to a construction variable.  That
+    # way anything can be used as a key, while environment construction
+    # keys have restrictions on what they can contain.
+    if not env.has_key("LOCAL_TARGETS"):
+        env["LOCAL_TARGETS"] = {}
+    locals = env["LOCAL_TARGETS"]
+    if not locals.has_key(name):
         Debug("local target: " + name + "=" + str(node))
-        #env[name] = node
+        locals[name] = node
     else:
         Debug(("%s local target already set to %s, " +
-               "not changed to %s.") % (name, env[name], node))
-
-
+               "not changed to %s.") % (name, locals[name], node))
     return node
+
 
 def _GetGlobalTarget(env, name):
     "Look up a global target node by this name and return it."
+    # If the target exists in the local environment targets, use that one,
+    # otherwise resort to the global dictionary.
     try:
-        target = _global_targets[name]
-        return target
+        return env["LOCAL_TARGETS"][name]
     except KeyError:
-        return None
+        pass
+    try:
+        return _global_targets[name]
+    except KeyError:
+        pass
+    return None
+
 
 def _AppendLibrary (env, name, path = None):
     "Add this library either as a local target or a link option."
