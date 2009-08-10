@@ -246,7 +246,7 @@ def _generate (env):
     # and may someday again) re-ordered later on the command-line, putting
     # local includes first, but apparently that is not soon enough to
     # affect the scons scan.
-    env.PrependUnique (CPPPATH=['.','#'])
+    env.PrependUnique (CPPPATH=['#'])
 
     # Builder wrappers
     WrapProgram(env)
