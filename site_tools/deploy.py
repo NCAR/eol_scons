@@ -5,6 +5,8 @@ from SCons.Builder import Builder
 from SCons.Action import Action
 import shutil
 
+from SCons.Defaults import Mkdir, Copy
+
 def makedirs(dir):
     try:
         print "mkdir ", dir
@@ -46,33 +48,37 @@ def deploy_program_emitter(target, source, env):
     return dest, source
 
 
-def deploy_program(target, source, env):
+def deploy_program_generator(source, target, env, for_signature):
 
     """Copy a program target into a deploy tree along with all of its
     dynamic dependencies."""
     bindir = os.path.join(env['DEPLOY_DIRECTORY'],"bin")
     libdir = os.path.join(env['DEPLOY_DIRECTORY'],"lib")
-    makedirs(bindir)
-    makedirs(libdir)
+    actions = [ Mkdir(bindir), Mkdir(libdir) ]
     progdest = os.path.join(bindir,source[0].name)
     libraries = ldd(source[0], env)
-    shutil.copy(str(source[0]), progdest)
+    actions.append (Copy(progdest, source[0]))
     for k in libraries:
         file = libraries[k]
         libdest = os.path.join(libdir, file.name)
-        print "copy (%s,%s)" % (str(file), libdest)
-        shutil.copy(str(file), libdest)
+        actions.append (Copy(libdest, file))
+    return actions
 
+# 2009-09-25 GJG: The parameters for creating a global Action seem to have
+# changed.  Instead of taking a list of variables, the variables are passed
+# as parameters.  Instead of risking that the new form would break users of
+# older scons version, don't pass the variables variables.
+#
+# Actually, it seems better to generate the list of Mkdir and Copy, so
+# scons can execute them and use the default messages and signatures.
+# Ultimately, DeployProgram probably should be a wrapper which creates
+# individual builders for copying all the shared libraries and the program.
+# That way all the copied files would be targets which would be erased by a
+# scons clean, and they would be copied over if the system library source
+# changed.  Oh well, this works for now.
+# 
 
-def deploy_program_message(target, source, env):
-    return "Deploying %s into %s." % (source[0], env['DEPLOY_DIRECTORY'])
-
-
-variables = ['DEPLOY_DIRECTORY', 'DEPLOY_SHARED_LIBS']
-
-deploy_program_builder = Builder(action = Action(deploy_program,
-                                                 deploy_program_message,
-                                                 variables),
+deploy_program_builder = Builder(generator = deploy_program_generator,
                                  emitter = deploy_program_emitter)
 
 
