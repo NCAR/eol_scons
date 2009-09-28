@@ -5,7 +5,13 @@ from SCons.Builder import Builder
 from SCons.Action import Action
 import shutil
 
-from SCons.Defaults import Mkdir, Copy
+from SCons.Defaults import Copy
+
+# As of scons 1.2 the Mkdir action works even if the directory exists.
+# Until everyone is using that, we need to use our own action.
+# from SCons.Defaults import Mkdir
+from eol_scons.chdir import MkdirIfMissing
+Mkdir = MkdirIfMissing
 
 def makedirs(dir):
     try:
