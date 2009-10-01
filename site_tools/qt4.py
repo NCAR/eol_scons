@@ -174,12 +174,28 @@ def generate(env):
         testenv = env.Clone()
         qt4BinDir = None
         #
-        # If env['QT4DIR'] is defined, make sure we try its bin directory first
+        # If env['QT4DIR'] is defined, add the associated bin directory to our
+        # search path for the commands
         #
         if (env.has_key('QT4DIR')):
-            qt4BinDir = os.path.join(env['QT4DIR'], 'bin')
+            # If we're using pkg-config, assume all Qt4 binaries live in 
+            # <prefix_from_pkgconfig>/bin.  This is slightly dangerous,
+            # but seems to match all installation schemes I've seen so far,
+            # and the "prefix" variable appears to always be available (again,
+            # so far...).
+            if (env['QT4DIR'] == USE_PKG_CONFIG):
+                qt4Prefix = os.popen('pkg-config --variable=prefix QtCore').read().strip()
+                qt4BinDir = os.path.join(qt4Prefix, 'bin')
+            # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
+            else:
+                testenv.PrependENVPath('PATH', qt4BinDir)
+                qt4BinDir = os.path.join(env['QT4DIR'], 'bin')
+                
             testenv.PrependENVPath('PATH', qt4BinDir)
-            
+
+        # The actual binary may be named <command>-qt4 or just <command>, e.g.,
+        # either moc-qt4 or moc.  Allow either one, with preference for the
+        # one with -qt4 appended.
         whichCmd = testenv.Detect([commandQt4, command])
         if (not whichCmd):
             msg = "Qt4 command " + commandQt4 + " (" + command + ")"
@@ -201,7 +217,7 @@ def generate(env):
     # See if pkg-config knows about Qt4 on this system
     #
     try:
-        pkgConfigKnowsQt4 = (os.system('pkg-config --exists Qt') == 0)
+        pkgConfigKnowsQt4 = (os.system('pkg-config --exists QtCore') == 0)
     except:
         pkgConfigKnowsQt4 = 0
     # 
