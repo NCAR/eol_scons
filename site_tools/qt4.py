@@ -188,7 +188,6 @@ def generate(env):
                 qt4BinDir = os.path.join(qt4Prefix, 'bin')
             # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
             else:
-                testenv.PrependENVPath('PATH', qt4BinDir)
                 qt4BinDir = os.path.join(env['QT4DIR'], 'bin')
                 
             testenv.PrependENVPath('PATH', qt4BinDir)
