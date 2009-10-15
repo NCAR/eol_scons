@@ -48,7 +48,7 @@ paths relative to the top directory.""",
         # and nidas_dynld libraries need to be linked.  Linking nidas_util
         # causes static constructors to run multiple times (and
         # subsequently multiple deletes).
-        nidas_libs = ['nidas_dynld']
+        nidas_libs = ['nidas','nidas_dynld','nidas_util']
         env.Append(LIBS=nidas_libs)
         env.AppendUnique(DEPLOY_SHARED_LIBS=nidas_libs)
         env.AppendUnique(RPATH=[os.path.join(p,'x86','lib') 
