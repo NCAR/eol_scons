@@ -107,6 +107,13 @@ def InstallConfig (self, source):
 def InstallEtc (self, source):
     return self.Install (self['INSTALL_ETCDIR'], source)
 
+def InstallShare (self, subdir, source):
+    """
+    Install <source> at INSTALL_DIR/share/<subdir>/<source>
+    """
+    dir = os.path.join(self['INSTALL_SHAREDIR'], subdir)
+    return self.Install (dir, source)
+
 def InstallHeaders (self, subdir, source):
     incdir = os.path.join(self['INSTALL_INCDIR'],subdir)
     return self.Install (incdir, source)
@@ -129,6 +136,7 @@ def generate(env):
     env['INSTALL_CONFIGDIR'] = "$INSTALL_PREFIX/conf"
     env['INSTALL_ETCDIR'] = "$INSTALL_PREFIX/etc"
     env['INSTALL_PYTHON_LIBDIR'] = "$INSTALL_PREFIX/lib/python"
+    env['INSTALL_SHAREDIR'] = "$INSTALL_PREFIX/share"
     # Here we install the install convenience methods, since they do not
     # work unless the install prefix variables have been set.  These
     # must be set only once, else infinite recursion ensues.
@@ -147,6 +155,7 @@ def generate(env):
     env.AddMethod(InstallProgram)
     env.AddMethod(InstallHeaders)
     env.AddMethod(InstallPythonLibrary)
+    env.AddMethod(InstallShare)
 
 def exists(env):
     return True
