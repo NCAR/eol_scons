@@ -5,6 +5,7 @@ from SCons.Variables import PathVariable
 import eol_scons.chdir
 from eol_scons.package import Package
 import string
+import platform
 
 _options = None
 myKey = 'HAS_PACKAGE_QWT'
@@ -37,11 +38,20 @@ qwt_actions = [
     "QTDIR=$QTDIR make"
     ]
 
+def is_64bit():
+  """ is this a 64-bit system? """
+  return platform.machine()[-2:] == '64'
+
+if is_64bit():
+    lib_= 'lib64'
+else:
+    lib_= 'lib'
+
 class QwtPackage(Package):
 
     def __init__(self):
         headers = [os.path.join("include",f) for f in qwt_headers]
-        libs = ["$QWTDIR/lib/libqwt.so"]
+        libs = ["$QWTDIR/"+lib_+"/libqwt.so"]
         Package.__init__(self, "QWT", ["qwt.pro"]+headers,
                          qwt_actions, libs,
                          default_package_file = "qwt-4.2.0.zip")
@@ -50,7 +60,7 @@ class QwtPackage(Package):
         if env['PLATFORM'] == 'win32':
             return
         qwt_dir = env['QWTDIR']
-        libqwt = os.path.join(qwt_dir, 'lib', 'libqwt.so')
+        libqwt = os.path.join(qwt_dir, lib_, 'libqwt.so')
         if not os.access(libqwt, os.R_OK):
             # Not installed in the given QWTDIR, so try internal path
             qwt_dir = self.getPackagePath(env)
@@ -69,7 +79,7 @@ class QwtPackage(Package):
         env.Tool('unpack')
         Package.checkBuild(self, env)
         qwt_dir = env['QWTDIR']
-        qwt_libdir = os.path.join(qwt_dir, 'lib')
+        qwt_libdir = os.path.join(qwt_dir, lib_)
         libqwt = os.path.join(qwt_libdir, 'libqwt.so')
         #
         # Unless we're building, only generate stuff for -I<>, -R<>,
@@ -108,7 +118,7 @@ def find_qwtdir(env):
     #    o command line QWTDIR option (or otherwise set in the environment)
     #    o OS environment QWTDIR
     #    o installation defined via pkg-config (this is the preferred method)
-    #    o lastly see if lib/libqwt.so exists under OPT_PREFIX
+    #    o lastly see if lib_/libqwt.so exists under OPT_PREFIX
     #
     if (env.has_key('QWTDIR')):
         qwtdir = env['QWTDIR']
@@ -117,7 +127,7 @@ def find_qwtdir(env):
     elif pkgConfigKnowsQwt:
         qwtdir = USE_PKG_CONFIG
     elif (env.has_key('OPT_PREFIX') and 
-          os.path.exists(os.path.join(env['OPT_PREFIX'], 'lib', 'libqwt.so'))):
+          os.path.exists(os.path.join(env['OPT_PREFIX'], lib_, 'libqwt.so'))):
         qwtdir = env['OPT_PREFIX']
     return qwtdir
 
