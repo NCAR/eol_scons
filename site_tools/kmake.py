@@ -23,4 +23,4 @@ def generate(env):
     env.Append(BUILDERS = {'Kmake':k})
 
 def exists(env):
-    return true
+    return True
