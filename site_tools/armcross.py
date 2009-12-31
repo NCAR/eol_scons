@@ -10,12 +10,11 @@ import kmake
 import localutils
 import SCons.Tool
 
-def generate(env):
+def generate(env,**kw):
     """
     Add Builders and construction variables for C compilers to an Environment.
     """
 
-    env.Tool('kmake')
     env.Replace(AR	= 'arm-linux-ar')
     env.Replace(AS	= 'arm-linux-as')
     env.Replace(CC	= 'arm-linux-gcc')
@@ -24,6 +23,19 @@ def generate(env):
     env.Replace(LINK	= 'arm-linux-g++')
     env.Replace(RANLIB	= 'arm-linux-ranlib')
     env.Replace(LEX	= 'arm-linux-flex')
+
+    env['KERNELDIR'] = kw.get('KERNELDIR','')
+
+    # If KERNELDIR doesn't exist, issue a warning here and
+    # let it fail later.
+    if env['KERNELDIR'] != '':
+        if os.path.exists(env['KERNELDIR']):
+            print 'KERNELDIR=' + env['KERNELDIR'] + ' found'
+        else:
+            print 'Error: KERNELDIR=' + env['KERNELDIR'] + ' not found. Suggestion: install the kernel-devel or kernel-PAE-devel package, and use KERNELDIR=\'*\'.'
+
+    env['KINCLUDE'] = env.Dir("#").get_abspath()
+    env['KMAKE'] = "make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE ARCH=arm CROSS_COMPILE=arm-linux-"
 
     # temporary hack.  RTLinux vipers have GLIBC_2.3.1
     # and something in nibnidas needs GLIBC_2.3.2

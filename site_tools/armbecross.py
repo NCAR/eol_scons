@@ -8,12 +8,11 @@ import kmake
 import localutils
 import SCons.Tool
 
-def generate(env):
+def generate(env,**kw):
     """
     Add Builders and construction variables for C compilers to an Environment.
     """
 
-    env.Tool('kmake')
     env.Replace(AR	= 'armbe-linux-ar')
     env.Replace(AS	= 'armbe-linux-as')
     env.Replace(CC	= 'armbe-linux-gcc')
@@ -22,6 +21,19 @@ def generate(env):
     env.Replace(LINK	= 'armbe-linux-g++')
     env.Replace(RANLIB	= 'armbe-linux-ranlib')
     env.Replace(LEX	= 'armbe-linux-flex')
+
+    env['KERNELDIR'] = kw.get('KERNELDIR','')
+
+    # If KERNELDIR doesn't exist, issue a warning here and
+    # let it fail later.
+    if env['KERNELDIR'] != '':
+        if os.path.exists(env['KERNELDIR']):
+            print 'KERNELDIR=' + env['KERNELDIR'] + ' found'
+        else:
+            print 'Error: KERNELDIR=' + env['KERNELDIR'] + ' not found. Suggestion: install the kernel-devel or kernel-PAE-devel package, and use KERNELDIR=\'*\'.'
+
+    env['KINCLUDE'] = env.Dir("#").get_abspath()
+    env['KMAKE'] = "make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE ARCH=arm CROSS_COMPILE=armbe-linux-"
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if armbe-linux-gcc is
