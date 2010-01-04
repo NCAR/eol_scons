@@ -537,10 +537,44 @@ def _findToolFile(env, name):
     return filter(lambda f: toolFileName == os.path.basename(f), tool_matches)
 
 
+def _loadToolFile(env, name):
+    # See if there's a file named "tool_<tool>.py" somewhere under the
+    # top directory.  If we find one, load it as a SConscript which 
+    # should define and export the tool.
+    tool = None
+    matchList = _findToolFile(env, name)
+    # If we got a match, load it
+    if (len(matchList) > 0):
+        # If we got more than one match, complain...
+        if (len(matchList) > 1):
+            print("Warning: multiple tool files for " + name + ": " + 
+                  str(matchList) + ", using the first one")
+        # Load the first match
+        toolScript = matchList[0]
+        env.SConscript(toolScript)
+        # After loading the script, make sure the tool appeared 
+        # in the global exports list.
+        if global_exports.has_key(name):
+            tool = global_exports[name]
+        else:
+            raise SCons.Errors.StopError, "Tool error: " + \
+                toolScript + " does not export symbol '" + name + "'"
+    return tool
+
+
+# This serves as a cache for certain kinds of tools which only need to be
+# loaded and instantiated once.  The name is mapped to the resolved python
+# function.  For example, tool_<name>.py files only need to be loaded once
+# to define the tool function, likewise for other exported tool functions.
+# However, tool.py modules with keyword parameters need to be instantiated
+# every time, since the instances may be specialized by different keyword
+# dictionaries.  Most of the tools in eol_scons site_tools expect to be
+# loaded only once, and since those tools are not loaded with keywords,
+# they are still cached in the tool dictionary as before.
 tool_dict = {}
 
 def _Tool(env, tool, toolpath=None, **kw):
-    Debug("eol_scons.Tool(%s,%s)" % (env.Dir('.'), tool))
+    Debug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)))
     name = str(tool)
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
@@ -553,7 +587,10 @@ def _Tool(env, tool, toolpath=None, **kw):
         # Is the tool already in our tool dictionary?
         if tool_dict.has_key(name):
             Debug("Found tool %s already loaded" % name)
-            tool = tool_dict[name]
+            if not kw:
+                tool = tool_dict[name]
+            else:
+                Debug("Existing tool not used because keywords were given.")
 
         # Check if this tool is actually an exported tool function, in
         # which case return the exported function.  First check for the
@@ -572,52 +609,42 @@ def _Tool(env, tool, toolpath=None, **kw):
             if tool:
                 Debug("Found tool %s in global_exports (as %s)" % (name, tname))
 
-        # See if there's a file named "tool_<tool>.py" somewhere under the
-        # top directory.  If we find one, load it as a SCons script which 
-        # should define and export the tool.
+        # Try to find and load a tool file named "tool_<tool>.py".
         if not tool:
-            matchList = _findToolFile(env, name)
-            # If we got a match, load it
-            if (len(matchList) > 0):
-                # If we got more than one match, complain...
-                if (len(matchList) > 1):
-                    print("Warning: multiple tool files for " + name + ": " + 
-                          str(matchList) + ", using the first one")
-                # Load the first match
-                toolScript = matchList[0]
-                env.SConscript(toolScript)
-                # After loading the script, make sure the tool appeared 
-                # in the global exports list.
-                if global_exports.has_key(name):
-                    tool = global_exports[name]
-                else:
-                    raise SCons.Errors.StopError, "Tool error: " + \
-                        toolScript + " does not export symbol '" + name + "'"
+            tool = _loadToolFile(env, name)
 
-        # Still nothing? Go back to default SCons tool behavior...
+        # All tool functions found above can be stashed safely in the tool
+        # dictionary for future reference.  That's true even if keyword
+        # parameters were passed, because these tools are python functions
+        # and the keywords will not be used anywhere.
+        if tool:
+            tool_dict[name] = tool
+
+        # Still nothing?  Resort to the usual SCons tool behavior.  This
+        # section tries to duplicate the functionality in
+        # SCons.Environment.Environment.Tool(), except we don't want to
+        # actually apply the tool yet and we want to be able to return the
+        # tool, neither of which we can do by calling the default Tool()
+        # method.  If this last resort fails, then there should be an
+        # exception which will propagate up from here.  This tool instance
+        # is *not* stashed in the local tool dictionary if there are
+        # keyword parameters.
         if not tool:
             Debug("Loading tool: %s" % name)
             if toolpath is None:
                 toolpath = env.get('toolpath', [])
             toolpath = map(env._find_toolpath_dir, toolpath)
-            try:
-                tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
-            except:
-                raise SCons.Errors.StopError, "Cannot find required tool: "+ \
-                    name + "\n" + ''.join(traceback.format_stack())
+            tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
             Debug("Tool loaded: %s" % name)
+            # If the tool is not specialized with keywords, then we can 
+            # stash this particular instance and avoid reloading it.
+            if tool and not kw:
+                tool_dict[name] = tool
+            elif kw:
+                Debug("Tool %s not cached because it has keyword parameters."
+                      % (name))
 
-
-    tool_dict[name] = tool
-    Debug("CPPPATH before applying %s: %s" % 
-          (name, ",".join(env.get('CPPPATH', []))))
-    Debug("CCFLAGS before applying %s: %s" % 
-          (name, ",".join(env.get('CCFLAGS', []))))
     tool(env)
-    Debug("CPPPATH after applying %s: %s" %
-          (name, ",".join(env.get('CPPPATH', []))))
-    Debug("CCFLAGS before applying %s: %s" % 
-          (name, ",".join(env.get('CCFLAGS', []))))
     return tool
 
 
