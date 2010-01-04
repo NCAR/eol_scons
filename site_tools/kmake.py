@@ -4,6 +4,15 @@ import subprocess
 import SCons.Errors
 import SCons
 
+# This builder could be replaced with a wrapper for the Command builder:
+#
+#  env.Command(target, source, "${KMAKE}", chdir=True)
+#
+# Or, the env.Builder() method also takes the chdir=True parameter, making
+# the shell cd unnecessary.  I tested these out one day just to see if they
+# would work, but I didn't change anything just in case something would
+# break.
+
 def Kmake(env,target,source):
 
     if not env.has_key('KERNELDIR') or env['KERNELDIR'] == '':
@@ -13,9 +22,7 @@ def Kmake(env,target,source):
     # Have the shell subprocess do a cd to the source directory.
     # If scons/python does it, then the -j multithreaded option doesn't work.
     srcdir = os.path.dirname(source[0].abspath)
-    if env.Execute('cd ' + srcdir + '; ' + env['KMAKE']) != 0:
-          raise SCons.Errors.UserError, 'error in ' + env['KMAKE']
-    return None
+    return env.Execute('cd ' + srcdir + '; ' + env['KMAKE'])
 
 def generate(env):
     k = env.Builder(action=Kmake,
