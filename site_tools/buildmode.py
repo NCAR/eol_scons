@@ -23,22 +23,19 @@ from SCons.Script import ListVariable
 
 import eol_scons
 
-_options = None
-
 def generate(env):
-    global _options
-    if not _options:
-        _options = env.GlobalVariables()
+    options = env.GlobalVariables()
+    if 'buildmode' not in options.keys():
         defaultmodes = ['debug', 'warnings', 'optimize']
         modes = defaultmodes + ['profile']
-        _options.AddVariables(
+        options.AddVariables(
             ListVariable('buildmode', """\
 Select basic building modes such as debugging and optimization.
 By default, all three of debugging, warnings, and optimization are enabled
 if the compiler supports it.  The modes can be selected and combined using
 a comma-separated list.""",
                        defaultmodes, modes))
-    _options.Update(env)
+    options.Update(env)
     buildmodes = env.subst("${buildmode}").split(" ")
     for mode in buildmodes:
         if mode == 'all':
