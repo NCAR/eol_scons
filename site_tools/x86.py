@@ -1,6 +1,15 @@
-"""scons arm tool
-
-Customize an environment to use the GCC ARM cross-compiler tools.
+"""scons x86 tool
+Customize an environment for X86.
+Sets the value of KMAKE, KERNELDIR and KINCLUDE for the Kmake builder
+of Linux kernel modules. KERNELDIR and KINCLUDE are referenced in
+the Makefile(s) that are used to build modules.
+If passed a value of KERNELDIR="*" then this tool runs uname to
+determine the path to the config and headers of the current kernel on
+the localhost.  Packages kernel-devel and kernel-PAE-devel install
+the kernel headers and config to /usr/src/kernels. This tool
+should be able find them, but will need updating if the naming
+convention in the packages changes.
+If KERNELDIR is other than "*" then that value is used.
 """
 
 import os
@@ -62,5 +71,5 @@ def generate(env,**kw):
         env.Replace(CXXVERSION = cxxrev)
 
 def exists(env):
-    return env.Detect(['arm-linux-gcc','arm-linux-g++'])
+    return env.Detect(['gcc','g++'])
 
