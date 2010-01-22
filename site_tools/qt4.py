@@ -367,6 +367,11 @@ def enable_modules(self, modules, debug=False) :
                 hdir = os.popen('pkg-config --variable=headerdir Qt').read().strip()
                 if (hdir == ''):
                     prefix = os.popen('pkg-config --variable=prefix QtCore').read().strip()
+                    if (prefix == ''):
+                        print('Unable to build Qt header dir for adding module ' +
+                              module)
+                        print('Exiting!')
+                        sys.exit(1)
                     hdir = os.path.join(prefix, 'include')
                 
                 if (os.system('pkg-config --exists ' + module) == 0):
