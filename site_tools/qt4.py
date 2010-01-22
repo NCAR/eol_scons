@@ -360,9 +360,14 @@ def enable_modules(self, modules, debug=False) :
         if debug : modules = [module + "_debug" for module in modules]
         for module in modules:
             if (self['QT4DIR'] == USE_PKG_CONFIG):
-                # Starting directory for headers
-                hdir = os.popen('pkg-config --variable=headerdir Qt').read()
-                hdir = hdir.strip()
+                # Starting directory for headers.  First try 
+                # 'pkg-config --variable=headerdir Qt'. If that's empty 
+                # (this happens on CentOS 5 systems...), try 
+                # 'pkg-config --variable=prefix QtCore' and append '/include'.
+                hdir = os.popen('pkg-config --variable=headerdir Qt').read().strip()
+                if (hdir == ''):
+                    prefix = os.popen('pkg-config --variable=prefix QtCore').read().strip()
+                    hdir = os.path.join(prefix, 'include')
                 
                 if (os.system('pkg-config --exists ' + module) == 0):
                     # Don't try here to make things unique in LIBS and
