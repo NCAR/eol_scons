@@ -19,9 +19,9 @@ def tao_idl_emitter(target, source, env):
     targets.append ("%sC.h" % (name))
     targets.append ("%sS_i.h" % (name))
     targets.append ("%sC_i.h" % (name))
-    targets.append ("%sS_T.h" % (name))
-    env.SideEffect ("%sC.cpp" % (name), targets[0])
-    env.SideEffect ("%sS_T.cpp" % (name), targets[0])
+    # targets.append ("%sS_T.h" % (name))
+    targets.append ("%sC.cpp" % (name))
+    # env.SideEffect ("%sS_T.cpp" % (name), targets[0])
     # print "returning targets, source: ", targets, source[0]
     return targets, source
 
