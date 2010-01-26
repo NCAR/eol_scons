@@ -23,8 +23,6 @@ def generate(env):
   # tool is Require()d by another package.  Basically that means the library
   # must always be appended; everything else happens once.
   if not env.has_key(mykey):
-    env.Require(['doxygen'])
-    
     ace_root = env['ACE_ROOT']
     env['ENV']['ACE_ROOT'] = ace_root
     

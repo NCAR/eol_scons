@@ -408,16 +408,6 @@ GENERATE_HTML          = YES
 
 from SCons.Script import Environment
 
-
-def AppendDoxref(env, ref):
-    if not env.has_key('DOXREF'):
-        env['DOXREF'] = [ref]
-    else:
-        env['DOXREF'].append(ref)
-    if ddebug(env):
-        print ("Appended",ref,"; DOXREF=", env['DOXREF'])
-
-
 def SetDoxref(env, name, tagfile, url):
     env[name] = env.File(env.subst(tagfile)).get_abspath() + ":" + url
 
@@ -438,7 +428,6 @@ def generate(env):
     # Add convenience wrappers
     Environment.Apidocs = Apidocs
     Environment.ApidocsIndex = ApidocsIndex
-    Environment.AppendDoxref = AppendDoxref
     Environment.SetDoxref = SetDoxref
 
 

@@ -64,6 +64,10 @@ from SCons.Builder import _null
 import string
 import eol_scons.chdir
 
+_eolsconsdir = os.path.dirname(__file__)
+
+print("Loading eol_scons from %s." % (_eolsconsdir))
+
 # ================================================================
 # The public interface for the eol_scons package.
 # ================================================================
@@ -229,7 +233,8 @@ def _generate (env):
     if env.has_key('eolsconsdebug') and env['eolsconsdebug']:
         eol_scons.debug = True
     name = env.Dir('.').get_path(env.Dir('#'))
-    Debug("Generating eol defaults for Environment(%s)" % name)
+    Debug("Generating eol defaults for Environment(%s) @ %s" % 
+          (name, env.Dir('#').get_abspath()))
 
     # Apply the built-in default tool before applying the eol_scons
     # customizations and tools.
@@ -414,11 +419,12 @@ def _AddGlobalTarget(env, name, target):
     except (TypeError, AttributeError):
         node = target
     if not _global_targets.has_key(name):
-        Debug("AddGlobalTarget: " + name + "=" + str(node))
+        Debug("AddGlobalTarget: " + name + "=" + node.get_abspath())
         _global_targets[name] = node
     else:
         Debug(("%s global target already set to %s, " +
-               "not changed to %s.") % (name, _global_targets[name], node))
+               "not changed to %s.") % (name, _global_targets[name], 
+                                        node.get_abspath()))
     # The "local" targets is a dictionary of target strings mapped to their
     # node.  The dictionary is assigned to a construction variable.  That
     # way anything can be used as a key, while environment construction
@@ -551,6 +557,7 @@ def _loadToolFile(env, name):
                   str(matchList) + ", using the first one")
         # Load the first match
         toolScript = matchList[0]
+        Debug("Loading %s to get tool %s..." % (toolScript, name))
         env.SConscript(toolScript)
         # After loading the script, make sure the tool appeared 
         # in the global exports list.
@@ -644,8 +651,31 @@ def _Tool(env, tool, toolpath=None, **kw):
                 Debug("Tool %s not cached because it has keyword parameters."
                       % (name))
 
+    Debug("Applying tool %s" % name)
     tool(env)
     return tool
+
+
+def _Help(env, text):
+    """
+    Override the SConsEnvironment Help method to first erase any previous
+    help text.  This can help if multiple SConstruct files in a project
+    each try to generate the help text all at once.
+    """
+    import SCons.Script
+    SCons.Script.help_text = None
+    env._SConscript_Help(text)
+
+
+# Include this as a standard part of Environment, so that other tools can
+# conveniently add their doxref without requiring the doxygen tool.
+def _AppendDoxref(env, ref):
+    """Append to the DOXREF variable and force it to be a list."""
+    if not env.has_key('DOXREF'):
+        env['DOXREF'] = [ref]
+    else:
+        env['DOXREF'].append(ref)
+    Debug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])))
 
 
 def _ExtendEnvironment(envclass):
@@ -668,6 +698,13 @@ def _ExtendEnvironment(envclass):
     envclass.GlobalOptions = _GlobalVariables
     envclass.GlobalTools = _GlobalTools
     envclass.Tool = _Tool
+    envclass.AppendDoxref = _AppendDoxref
+
+    if False:
+        # So that only the last Help text setting takes effect, rather than
+        # duplicating info when SConstruct files are loaded from sub-projects.
+        envclass._SConscript_Help = envclass.Help
+        envclass.Help = _Help
 
     # For backwards compatibility:
     envclass.Create = _Create
