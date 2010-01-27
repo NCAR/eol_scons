@@ -31,7 +31,7 @@ class Log4cppPackage(Package):
         if self.building:
             env.Append(LIBS=env.File(install_targets[0]))
         else:
-            env.Append(LIBS=["log4cpp"])
+            env.Append(LIBS=["log4cpp", "pthread"])
             env.Append(LIBPATH=[os.path.join(prefix,"lib")])
 
         env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
@@ -48,6 +48,7 @@ class Log4cppPackage(Package):
 log4cpp = Log4cppPackage()
 
 def generate(env):
+    env.Tool('doxygen')
     log4cpp.require(env)
 
 def exists(env):
