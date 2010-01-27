@@ -758,7 +758,7 @@ def _Tool(env, tool, toolpath=None, **kw):
     return tool
 
 
-def _Help(env, text):
+def _SetHelp(env, text):
     """
     Override the SConsEnvironment Help method to first erase any previous
     help text.  This can help if multiple SConstruct files in a project
@@ -802,11 +802,10 @@ def _ExtendEnvironment(envclass):
     envclass.Tool = _Tool
     envclass.AppendDoxref = _AppendDoxref
 
-    if False:
-        # So that only the last Help text setting takes effect, rather than
-        # duplicating info when SConstruct files are loaded from sub-projects.
-        envclass._SConscript_Help = envclass.Help
-        envclass.Help = _Help
+    # So that only the last Help text setting takes effect, rather than
+    # duplicating info when SConstruct files are loaded from sub-projects.
+    envclass._SConscript_Help = envclass.Help
+    envclass.SetHelp = _SetHelp
 
     # For backwards compatibility:
     envclass.Create = _Create
