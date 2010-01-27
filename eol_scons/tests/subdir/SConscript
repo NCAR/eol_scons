@@ -1,0 +1,11 @@
+# -*- mode: python; -*-
+
+subenv = Environment(tools = ["default"], GLOBAL_TOOLS = ['netcdf'])
+subtools = subenv.GlobalTools()
+print("subtools = %s" % (subtools))
+
+hw = subenv.Program("helloworld.c")
+subenv.Default(hw)
+
+Return('subenv')
+

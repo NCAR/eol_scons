@@ -14,25 +14,82 @@ Lastly, this module itself provides an interface of a few functions, for
 configuring and controlling the eol_scons framework outside of the
 Environment methods.  These are the public functions:
 
-GlobalVariables(): for accessing the global list of options maintained by this
-package.
+GlobalVariables():
 
-GlobalTools(): for accessing the global tools list.  Each tool in the
-global tools list is applied to every Environment created.  Typically, the
-SConstruct file appends a global tool function and other tools to this
-list.  This is the hook by which the SConsctruct file can provide the basic
-configuration for an entire source tree.
+Returns the global set of variables (formerly known as options) available
+in this source tree.  Recent versions of SCons provide a global Variables
+singleton by default, but this method supplies a default config file path.
+The first Variables instance to be constructed with @p is_global=1 (the
+default) becomes the singleton instance, and only that constructor's
+settings (for config files and arguments) take effect.  All other
+Variables() constructors will return the singleton instance, and any
+constructor parameters will be ignored.  So if a particular source tree
+wants to set its own config file name, it can specify that path in a
+Variables() constructor in the top-level SConstruct, so that instance is
+created before the default created by eol_scons:
 
-  import eol_scons
-  eol_scons.GlobalTools().extend([Aeros, "doxygen"])
+SConstruct:
+{{{
+variables = Variables("my_settings.py")
+}}}
 
-The list of global tools can also be extended by passing the list in the
-GLOBAL_TOOLS construction variable when creating an Environment.
+If no singleton instance is created explicitly by in project SConsctruct
+file, then the default created by eol_scons will take effect.  The default
+eol_scons Variables() instance specifies a config file called 'config.py'
+in the top directory.
+
+Global Tools
+
+The eol_scons environment adds the notion of global tools, or tools which
+can be specified in upper-level environments which will be applied to all
+subdirectory Environments.  Originally their use was limited to the
+top-level SConstruct file.  It could create an environment which specified
+a set of tools that the project would apply to each Environment created.
+With the advent of nested projects, the global tools are now mapped by the
+particular directory of the SConscript or SConstruct file which created the
+Environment.  Each Environment can specify its own set of global tools.
+Those tools, plus the global tools of any Environments created in parent
+directories, will be applied to all Environments created in any
+subdirectories.  In other words, nested project trees can extend the global
+tools set with the tools needed by its subdirectories, but those tools will
+not be applied in other directories of the project.  One project can
+contain other source trees each with their own SConstruct file.  Those
+SConstruct files can be loaded with normal SConscript calls, but their
+global tools list will only affect the directories within the subproject.
+
+A typical SConstruct file appends a global tool function and other tools to
+its global tools.  Global tools are the hook by which the SConsctruct file
+can provide the basic configuration for an entire source tree if needed,
+without requiring a redundant set of tools to specified every time an
+Environment is created within a project.  Global tools are specific to the
+directory in which an Environment is created.  They can be modified in 
+one of two ways.
+
+The global tools can be extended by passing the list of tools in the
+GLOBAL_TOOLS construction variable when creating an Environment:
 
   env = Environment(tools = ['default'],
                     GLOBAL_TOOLS = ['svninfo', 'qtdir', 'doxygen', Aeros])
 
-Debug(msg): print a debug message if the global debugging flag is true.
+Or, for an environment has already been created, the global tool list can
+be modified like below:
+
+  env.GlobalTools().extend([Aeros, "doxygen"])
+
+However, in the above method, the new tools will *not* be applied to the
+Environment.  The tools *are* applied when passed in the GLOBAL_TOOLS
+keyword in an Environment constructor.
+
+Global tools are never applied retroactively to existing environments, only
+when environments are created.  Once an Environment has been created, tools
+must be applied using the Tool() or Require() methods.
+
+GlobalTools():
+
+In the older usage, there was only one global tools list for an entire
+scons tree, and this eol_scons function returned that list.  Now it returns
+a dictionary which maps absolute directory paths to a list of global tools
+to apply to Environments created under that directory.
 
 SetDebug(enable): set the global debugging flag to 'enable'.
 
@@ -66,7 +123,28 @@ import eol_scons.chdir
 
 _eolsconsdir = os.path.dirname(__file__)
 
-print("Loading eol_scons from %s." % (_eolsconsdir))
+from SCons.Script import ARGUMENTS
+
+debug = False
+
+def SetDebug(enable):
+    """Set the flag to enable or disable printing of debug messages."""
+    global debug
+    debug = enable
+
+def Debug(msg):
+    """Print a debug message if the global debugging flag is true."""
+    global debug
+    if debug:
+        print msg
+
+# I wish this would work, but apparently ARGUMENTS has not been populated
+# yet when eol_scons is loaded.
+#
+# print("ARGUMENTS=%s" % (ARGUMENTS))
+# SetDebug(ARGUMENTS.get('eolsconsdebug', 0))
+
+Debug("Loading eol_scons @ %s" % (_eolsconsdir))
 
 # ================================================================
 # The public interface for the eol_scons package.
@@ -99,30 +177,17 @@ def GlobalVariables(cfile = None):
             BoolVariable('eolsconsdebug',
                          'Enable debug messages from eol_scons.',
                          debug))
-        print "Config file: %s" % cfile
+        print "Config files: %s" % (global_variables.files)
     return global_variables
 
 # Alias for temporary backwards compatibility
 GlobalOptions = GlobalVariables
 
-debug = False
-
-def SetDebug(enable):
-    """Set the flag to enable or disable printing of debug messages."""
-    global debug
-    debug = enable
-
-def Debug(msg):
-    """Print a debug message if the global debugging flag is true."""
-    global debug
-    if debug:
-        print msg
-
-
-_global_tools = [ 'prefixoptions', 'buildmode' ]
+_global_tools = {}
+_default_global_tools = [ 'prefixoptions', 'buildmode' ]
 
 def GlobalTools():
-    """Return the global tools list."""
+    """Return the global tools dictionary."""
     global _global_tools
     return _global_tools
 
@@ -263,11 +328,41 @@ def _generate (env):
     # for automatic checkouts.
     env.PassEnv(r'CVS.*|SSH_.*')
 
+    # Initialize the root global tools with the default.
+    global _global_tools
+    if not _global_tools:
+        Debug("Setting default global tools...")
+        rootkey = env.Dir('#').get_abspath()
+        _global_tools[rootkey] = _default_global_tools[:]
+
+    # The global tools will be keyed by directory path, so they will only
+    # be applied to Environments contained within that path.  Make the path
+    # key absolute since sometimes sub-projects may be out of the current
+    # tree.  We also have to store the key in the environment, since later
+    # on we may need the key to resolve the global tools, but at that point
+    # there is no longer a way to retrieve the directory in which the
+    # environment was created.
+    gkey = env.Dir('.').get_abspath()
+    env['GLOBAL_TOOLS_KEY'] = gkey
+    if not _global_tools.has_key(gkey):
+        _global_tools[gkey] = []
+
     if env.has_key('GLOBAL_TOOLS'):
-        _global_tools.extend(env['GLOBAL_TOOLS'])
-    Debug("Applying global tools: %s" % \
-          ",".join([str(x) for x in _global_tools]))
-    env.Require(_global_tools)
+        newtools = env['GLOBAL_TOOLS']
+        Debug("Adding global tools @ %s: %s" % (gkey, str(newtools)))
+        _global_tools[gkey].extend(newtools)
+    # Now find every global tool list for parents of this directory.  Sort
+    # them so that parent directories will appear before subdirectories.
+    dirs = [ k for k in _global_tools.keys() if gkey.startswith(k) ]
+    dirs.sort()
+    gtools = []
+    for k in dirs:
+        for t in _global_tools[k]:
+            if t not in gtools:
+                gtools.append(t)
+    Debug("Applying all global tools @ %s: %s" %
+          (gkey, ",".join([str(x) for x in gtools])))
+    env.Require(gtools)
     return env
 
 
@@ -520,7 +615,14 @@ def _GlobalVariables(env):
     return GlobalVariables()
 
 def _GlobalTools(env):
-    return GlobalTools()
+    global _global_tools
+    gkey = env.get('GLOBAL_TOOLS_KEY')
+    gtools = None
+    if gkey and _global_tools.has_key(gkey):
+        gtools = _global_tools[gkey]
+    Debug("GlobalTools(%s) returns: %s" % (gkey, gtools))
+    return gtools
+
 
 tool_matches = None
 

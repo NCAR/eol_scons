@@ -1,0 +1,6 @@
+# -*- mode: python; -*-
+
+subenv = Environment(tools = ["default"])
+
+Return('subenv')
+

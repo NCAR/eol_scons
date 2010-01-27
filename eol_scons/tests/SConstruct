@@ -1,73 +1,114 @@
+# -*- mode: python; -*-
 
+# Test a few aspects of eol_scons.
+# Run this test script with 'scons --site-dir=../../../site_scons'
+
+import os
 import sys
 
-sys.path.insert(0, '../../site_tools')
-sys.path.insert(0, '../..')
+tooldir = '../../site_tools'
 
 import eol_scons
 
-import qwt
-import ace
-import ace_qt
-import bdb
-import boost_num_util
-import boost
-import boost_python
-import buildmode
-import coin
-import cppunit
-import ddu
-import debug
-import default
-import deploy
-import download
-import doxygen
-import efence
-import fftw
-import gcc68k
-import gcc
-import gl
-import gsl
-import inilib
-import linuxdist
-import log4cpp
-import logx
-import netcdf
-import nexrad
-import nidas
-import omniorb
-import optimize
-import postgres_pq
-import prefixoptions
-import profile
-import pyqt
-import python
-import qt4
-import qtdir
-import qt
-import qwt
-import solo
-import soqt
-import spol
-import svninfo
-import tao
-import tao_qt
-import tnt
-import udunits
-import unpack
-import valgrind
-import vxworks
-import warnings
-import xercesc
-import xmlrpc
+v = eol_scons.GlobalVariables(os.getcwd() + '/dummy-config.py')
 
-env = Environment()
+# Search the tools directory to find all the tools possible to load.
+import glob
+toolfiles = glob.glob(tooldir + "/*.py")
+toolnames = [ os.path.splitext(os.path.basename(f))[0] 
+              for f in toolfiles ]
+ignore_tools = [ 'default', 'gcc', 'msvc', 
+                 'gcc68k',
+                 'pyqt', # appears to be outdated
+                 'mex', # needs matlab installed
+                 'armcross',
+                 'armbecross',
+                 ]
+for it in ignore_tools:
+    toolnames.remove(it)
 
-boost.generate(env)
+env = Environment(tools = ['default'])
+envtools = env.GlobalTools()[:]
 
-env.Append(LIBS = [ "logx", "boost_date_time" ])
+env2 = Environment(tools = ['default'], GLOBAL_TOOLS = ['tnt'])
+env2tools = env2.GlobalTools()[:]
 
-print boost.boost_libflags(env)
+subenv = SConscript("subdir/SConscript")
+subtools = subenv.GlobalTools()
+print("subenv['TOOLS'] = %s" % (subenv['TOOLS']))
 
-print env.subst(env["_LIBFLAGS"])
+env3 = Environment(tools = ['default'])
+env3tools = env3.GlobalTools()[:]
+
+sub2 = SConscript("subdir/subdir/SConscript")
+
+# Dump the global tools map
+for k, v in eol_scons.GlobalTools().items():
+    print("%s = %s" % (k, str(v)))
+
+def allsettings(env):
+    pass
+
+# Load an environment with every known tool and see if works
+all = Environment(tools = ['default'] + [allsettings] + toolnames)
+
+import unittest
+
+class TestEOLScons(unittest.TestCase):
+
+    def test_1_default_global_tools(self):
+        gtools = envtools
+        print("env.GlobalTools() = %s" % (gtools))
+        self.assert_('prefixoptions' in gtools)
+        self.assert_('buildmode' in gtools)
+        self.assertEqual(len(gtools), 2)
+
+    def test_2_extend_root_tools(self):
+        gtools = env2tools
+        print("env2.GlobalTools() = %s" % (gtools))
+        self.assert_('prefixoptions' in gtools)
+        self.assert_('buildmode' in gtools)
+        self.assert_('tnt' in gtools)
+        self.assertEqual(len(gtools), 3)
+
+    def test_3_subdir_global_tools(self):
+        print("subenv GLOBAL_TOOLS = %s" % (subtools))
+        self.assert_('netcdf' in subtools)
+        self.assertEqual(len(subtools), 1)
+        # Make sure the parent tools were also applied.
+        tools = subenv['TOOLS']
+        self.assert_('netcdf' in tools)
+        self.assert_('prefixoptions' in tools)
+        self.assert_('buildmode' in tools)
+        self.assert_('tnt' in tools)
+        # Make sure a root environment does not have a global tool
+        # from a subdirectory, and the root global tools have
+        # not changed.
+        gtools = env3tools
+        self.assert_('netcdf' not in gtools)
+        self.assert_('prefixoptions' in gtools)
+        self.assert_('buildmode' in gtools)
+        self.assert_('tnt' in gtools)
+        self.assertEqual(len(gtools), 3)
+                         
+    def test_4_subdir_subdir_global_tools(self):
+        subtools = sub2.GlobalTools()
+        self.assert_(subtools == [])
+        self.assertEqual(len(subtools), 0)
+        # Make sure the parent tools were also applied.
+        tools = subenv['TOOLS']
+        self.assert_('netcdf' in tools)
+        self.assert_('prefixoptions' in tools)
+        self.assert_('buildmode' in tools)
+        self.assert_('tnt' in tools)
+
+suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)
+
+results = unittest.TextTestRunner(verbosity=2).run(suite)
+Exit(len(results.errors))
+
+# boost.generate(env)
+# env.Append(LIBS = [ "logx", "boost_date_time" ])
+# print boost.boost_libflags(env)
+# print env.subst(env["_LIBFLAGS"])
 
