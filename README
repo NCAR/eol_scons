@@ -8,6 +8,9 @@
 @li @ref implementation
 @li @ref configdirectory
 @li @ref eolsconspackage
+@li @ref globalvariables
+@li @ref globaltools
+@li @ref debugging
 @li @ref eolsconsdetails
 @li @ref migration
 @li @ref configuration
@@ -16,6 +19,10 @@
 @li @ref packagebuilds
 @li @ref history
 @li @ref comparison
+
+@code
+egrep '@section' README | awk '{ print "@li @ref " $2; }' 
+@endcode
 
 @section overview Overview
 
