@@ -27,7 +27,7 @@ ignore_tools = [ 'default', 'gcc', 'msvc',
 for it in ignore_tools:
     toolnames.remove(it)
 
-env = Environment(tools = ['default'])
+env = Environment(tools = ['default'], GLOBAL_TOOLS = ['prefixoptions'])
 envtools = env.GlobalTools()[:]
 
 env2 = Environment(tools = ['default'], GLOBAL_TOOLS = ['tnt'])
@@ -43,7 +43,7 @@ env3tools = env3.GlobalTools()[:]
 sub2 = SConscript("subdir/subdir/SConscript")
 
 # Dump the global tools map
-for k, v in eol_scons.GlobalTools().items():
+for k, v in eol_scons._global_tools.items():
     print("%s = %s" % (k, str(v)))
 
 def allsettings(env):
@@ -60,16 +60,14 @@ class TestEOLScons(unittest.TestCase):
         gtools = envtools
         print("env.GlobalTools() = %s" % (gtools))
         self.assert_('prefixoptions' in gtools)
-        self.assert_('buildmode' in gtools)
-        self.assertEqual(len(gtools), 2)
+        self.assertEqual(len(gtools), 1)
 
     def test_2_extend_root_tools(self):
         gtools = env2tools
         print("env2.GlobalTools() = %s" % (gtools))
         self.assert_('prefixoptions' in gtools)
-        self.assert_('buildmode' in gtools)
         self.assert_('tnt' in gtools)
-        self.assertEqual(len(gtools), 3)
+        self.assertEqual(len(gtools), 2)
 
     def test_3_subdir_global_tools(self):
         print("subenv GLOBAL_TOOLS = %s" % (subtools))
@@ -79,7 +77,6 @@ class TestEOLScons(unittest.TestCase):
         tools = subenv['TOOLS']
         self.assert_('netcdf' in tools)
         self.assert_('prefixoptions' in tools)
-        self.assert_('buildmode' in tools)
         self.assert_('tnt' in tools)
         # Make sure a root environment does not have a global tool
         # from a subdirectory, and the root global tools have
@@ -87,9 +84,8 @@ class TestEOLScons(unittest.TestCase):
         gtools = env3tools
         self.assert_('netcdf' not in gtools)
         self.assert_('prefixoptions' in gtools)
-        self.assert_('buildmode' in gtools)
         self.assert_('tnt' in gtools)
-        self.assertEqual(len(gtools), 3)
+        self.assertEqual(len(gtools), 2)
                          
     def test_4_subdir_subdir_global_tools(self):
         subtools = sub2.GlobalTools()
@@ -99,7 +95,6 @@ class TestEOLScons(unittest.TestCase):
         tools = subenv['TOOLS']
         self.assert_('netcdf' in tools)
         self.assert_('prefixoptions' in tools)
-        self.assert_('buildmode' in tools)
         self.assert_('tnt' in tools)
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)

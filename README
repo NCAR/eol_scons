@@ -69,11 +69,11 @@ the source tree can use to find dependencies, without knowing where those
 dependencies are built or installed.  For example, the tool for a library
 like netcdf, whether installed on the system or built within the source
 tree, defines a function for configuring the build environment.  Sometimes
-the tools are loaded from a tool file from the common site_scons/site_tools
+the tools are loaded from a tool file from the common `site_scons/site_tools`
 directory, sometimes via a Python script named `tool_{toolname}.py`, and 
 other times the tool is a function defined within the SConscript
 file which builds the library or dependency.  Either way, the tools are
-genuine scons tools, so they can be applied to an Environment using the
+genuine scons tools, so they can be applied to an Environment by the
 usual means.  In particular, they can be applied with the Tool() method or
 passed in the tools list when the Environment is constructed.
 
@@ -138,9 +138,25 @@ html = env.Apidocs(sources + headers, DOXYFILE_FILE = "#/Doxyfile")
 Default(libEldoraDds)
 @endcode
 
-Creation of a tool requires only that a function be `def`-ed and `Export`-ed.
-Everything else shown above is the details for actually building the library
-provided by the `ddslib` tool.
+Creation of a tool requires only that a function be `def`-ed and
+`Export`-ed.  Everything else shown above is the details for actually
+building the library provided by the `ddslib` tool.  Simpler tools would
+just use the normal SCons builder methods like `env.Program()` and
+`env.Library()`.
+
+The `ddslib` example shows how tools are not limited to affecting the
+library and include paths through the Envrionment's construction variables.
+Tools can also modify the methods available on an Environment to provide
+new conveniences or functionality.  For example, the 'doxygen' tool adds
+the 'Apidocs()' build wrapper to the Environment.
+
+Also note how the tool requirements are recursive.  When another
+environment requires tool 'ddslib', the `EldoraDDS` library is added to the
+library path.  In addition, all the requirements of the EldoraDDS library
+are added by the call to `env.Require(tools)`.  In particular, requiring
+the 'opendds' tool (which was required to build the EldoraDDS library) will
+add the OpenDDS libraries to the library path which EldoraDDS will need to
+link successfully.
 
 Here's how a `SConscript` might show that show that it requires 'ddslib':
 
@@ -161,8 +177,15 @@ to know the dependencies of the ELDORA DDS library.  If the library
 adds another external library as a dependency, then that dependency will
 be added in the `ddslib` tool definition.
 
-Here's an example from the 'logx' tool.  Since it's an external tool file, the
-function which modifies an environment is called 'generate'.
+Here's an example from the 'logx' tool.  This is an external tool file,
+meaning it is contained in the site_scons/site_tools on the normal scons
+tool path, rather than being located within a source directory in a
+`tool_*.py file`.  The tool_.py files are loaded like regular SConscript
+files with the SConscript() function, whereas tool modules are imported as
+python modules.  A tool module must define a function called 'generate' to
+modify an environment.  The generate() module function serves the same
+purpose as the python tool function defined in a `SConscript` or
+`tool_*.py` file.
 
 @code
 def generate(env):
@@ -208,7 +231,6 @@ directory, where the SConstruct file is located.  So the config directory
 is now called 'site_scons'.
 
 
-
 @section eolsconspackage The eol_scons Package
 
 The eol_scons package extends the standard SCons framework for EOL
@@ -219,12 +241,103 @@ adds methods for the SCons Environment class.  See the _ExtendEnvironment()
 function to see the full list.
 
 Second, this package adds a set of EOL tools to the SCons tool path.  Most
-of the tools for configuring and building against third-party software
+of the tools are for configuring and building against third-party software
 packages.
 
-Lastly, this module itself provides an interface of a few functions, for
-configuring and controlling the eol_scons framework outside of the
-Environment methods.  These are the public functions:
+Lastly, this module itself provides an interface for configuring and
+controlling the eol_scons framework outside of the Environment methods.
+The following sections cover the public functions.
+
+@section globalvariables GlobalVariables()
+
+The GlobalVariables() function returns the global set of variables
+(formerly known as options) available in this source tree.  Recent versions
+of SCons provide a global Variables singleton by default, but this method
+supplies a default config file path.  The first Variables instance to be
+constructed with @p is_global=1 (the default) becomes the singleton
+instance, and only that constructor's settings (for config files and
+arguments) take effect.  All other Variables() constructors will return the
+singleton instance, and any constructor parameters will be ignored.  So if
+a particular source tree wants to set its own config file name, it can
+specify that path in a Variables() constructor in the top-level SConstruct,
+so that instance is created before the default created by eol_scons:
+
+SConstruct:
+@code
+variables = Variables("my_settings.py")
+@endcode
+
+If no singleton instance is created explicitly by in project SConsctruct
+file, then the default created by eol_scons will take effect.  The default
+eol_scons Variables() instance specifies a config file called 'config.py'
+in the top directory.
+
+@section globaltools Global Tools
+
+The eol_scons environment adds the notion of global tools, or tools which
+can be specified in upper-level environments which will be applied to all
+subdirectory Environments.  Originally their use was limited to the
+top-level SConstruct file.  It could create an environment which specified
+a set of tools that the project would apply to each Environment created.
+With the advent of nested projects, the global tools are now mapped by the
+particular directory of the SConscript or SConstruct file which created the
+Environment.  Each Environment can specify its own set of global tools.
+Those tools, plus the global tools of any Environments created in parent
+directories, will be applied to all Environments created in any
+subdirectories.  In other words, nested project trees can extend the global
+tools set with the tools needed by its subdirectories, but those tools will
+not be applied in other directories of the project.  One project can
+contain other source trees each with their own SConstruct file.  Those
+SConstruct files can be loaded with normal SConscript calls, but their
+global tools list will only affect the directories within the subproject.
+
+A typical SConstruct file appends a global tool function and other tools to
+its global tools.  Global tools are the hook by which the SConsctruct file
+can provide the basic configuration for an entire source tree if needed,
+without requiring a redundant set of tools to specified every time an
+Environment is created within a project.  Global tools are specific to the
+directory in which an Environment is created.  They can be modified in 
+one of two ways.
+
+The global tools can be extended by passing the list of tools in the
+GLOBAL_TOOLS construction variable when creating an Environment:
+
+@code
+  env = Environment(tools = ['default'],
+                    GLOBAL_TOOLS = ['svninfo', 'qtdir', 'doxygen', Aeros])
+@endcode
+
+Or, for an environment has already been created, the global tool list can
+be modified like below:
+
+@code
+  env.GlobalTools().extend([Aeros, "doxygen"])
+@endcode
+
+However, in the above method, the new tools will *not* be applied to the
+Environment.  The tools *are* applied when passed in the GLOBAL_TOOLS
+keyword in an Environment constructor.
+
+Global tools are never applied retroactively to existing environments, only
+when environments are created.  Once an Environment has been created, tools
+must be applied using the Tool() or Require() methods.
+
+GlobalTools():
+
+In an older usage, there was only one global tools list for an entire scons
+tree, and this eol_scons function returned that list.  This method is now
+deprecated for the sake of encapsulation and to simplify the public
+interface.  There is no way to modify the global tools mapping except
+through an Environment, using either GLOBAL_TOOLS when constructing the
+environment or
+
+SetDebug(enable): set the global debugging flag to 'enable'.
+
+Nothing else in this module should be called from outside the package.  In
+particular, all the symbols starting with an underscore are meant to be
+private.
+
+
 
 <b>GlobalVariables()</b>: for accessing the global list of options maintained
 by this package.
@@ -240,7 +353,7 @@ import eol_scons
 eol_scons.GlobalTools().extend([Aeros, "doxygen"])
 @endcode
 
-The list of global tools can also be extended by passing the list in the
+The list of global tools can also be extended by passing the list in the @p
 GLOBAL_TOOLS construction variable when creating an Environment.
 
 @code
@@ -248,13 +361,15 @@ env = Environment(tools = ['default'],
                   GLOBAL_TOOLS = ['svninfo', 'qtdir', 'doxygen', Aeros])
 @endcode
 
-<b>Debug(msg)</b>: print a debug message if the global debugging flag is true.
+@section debugging Debugging
 
-<b>SetDebug(enable)</b>: set the global debugging flag to 'enable'.
+Debug(msg) prints a debug message if the global debugging flag is true.
 
-Nothing else in this module should be called from outside the package.  In
-particular, all the symbols starting with an underscore are meant to be
-private.
+SetDebug(enable) sets the global debugging flag to @p enable.
+
+The debugging flag in eol_scons can also be set using the SCons Variable
+eolsconsdebug, either passing eolsconsdebug=1 on the scons command line or
+setting it in the config.py file like any other variable.
 
 @section eolsconsdetails Technical Details on eol_scons
 
