@@ -57,3 +57,30 @@ Internal libraries should be added as files instead of the -l scheme, to be
 certain that we link with the internal file and not some library that may
 exist in other paths that get thrown on the command line.
 
+----------------------------------------------------------------
+On loading tools multiple times:
+
+Tools with **kw arguments expect to be instantiated more than once,
+even though each still points to the same module instance and to the
+same generate() and exists() and options() methods from that module.
+
+That seems to conflict with eol_scons assumption in several tools that they
+will only be instantiated once.
+
+If new tools are always instantiated each time Tool() is called, then
+buildmode breaks, and all the tool variables get added to the list multiple
+times.  why?  The assumption in the options() attribute to a Tool seems to
+be that every Environment will have only the options which apply to it,
+meaning for the tools which have been applied to it, except how does a
+toplevel Environment then print complete help information?
+
+For now, if kw is passed to Tool(), don't cache that tool, but instead
+instantiate a new one.
+
+Eventually, can we migrate to the options() and generate() mechanism for
+tools with options?  or detect whether a tool's variables have been added
+to the global variables or not?
+
+It seems scons actually rereads the tool module file each time, meaning
+we can't count on _options being None only once.
+
