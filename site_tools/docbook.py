@@ -47,7 +47,7 @@ def xmltohtml_emitter (target, source, env):
 db2pdf = Builder(action = 'HOME=$HOME $DOCBOOK2PDF $SOURCE',
                  suffix = '.pdf',
                  src_suffix = '.xml')
-xmltopdf = Builder(action = '$XMLTO pdf $SOURCE',
+xmltopdf = Builder(action = '$XMLTO pdf -o $TARGET.dir $SOURCE',
                    suffix = '.pdf',
                    src_suffix = '.xml')
 xmltohtml1 = Builder(action = '$XMLTO html-nochunks -o $TARGET.dir $SOURCE',
@@ -62,7 +62,7 @@ def publish_docbook(env, name, pubdir):
     html1 = env.xmltohtml1([name])
     html = env.xmltohtml([name])
     env.Clean(html, [env.Dir("html")])
-    pdf = env.xmltopdf([name, "print.xsl"])
+    pdf = env.xmltopdf([name])
     htmlinstall = env.Install(os.path.join(pubdir,"html"), html)
     env.AddPostAction(htmlinstall, "cp -r $SOURCE.dir/. $TARGET.dir")
     pdfinstall = env.Install(pubdir, pdf)
