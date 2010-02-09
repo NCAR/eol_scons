@@ -417,18 +417,16 @@ def generate(env):
     # print "doxygen.generate(%s)" % env.Dir('.').get_path(env.Dir("#"))
     env['BUILDERS']['Doxyfile'] = doxyfile_builder
     env['BUILDERS']['Doxygen'] = doxygen_builder
-    dict = env.Dictionary()
-    dict.setdefault('DOXREF',[])
-    dict.setdefault('DOXYFILE_TEXT', "")
-    dict.setdefault('DOXYFILE_DICT', {})
-    dict.setdefault('DOXYGEN', 'doxygen')
-    dict.setdefault('DOXYGEN_FLAGS', '')
-    dict.setdefault('DOXYGEN_COM', '$DOXYGEN $DOXYGEN_FLAGS $SOURCE')
-    dict.setdefault('APIDOCSDIR', '#apidocs')
-    # Add convenience wrappers
-    Environment.Apidocs = Apidocs
-    Environment.ApidocsIndex = ApidocsIndex
-    Environment.SetDoxref = SetDoxref
+    env.SetDefault(DOXREF=[])
+    env.SetDefault(DOXYFILE_TEXT="")
+    env.SetDefault(DOXYFILE_DICT={})
+    env.SetDefault(DOXYGEN='doxygen')
+    env.SetDefault(DOXYGEN_FLAGS='')
+    env.SetDefault(DOXYGEN_COM='$DOXYGEN $DOXYGEN_FLAGS $SOURCE')
+    env.SetDefault(APIDOCSDIR='#apidocs')
+    env.AddMethod(Apidocs, "Apidocs")
+    env.AddMethod(ApidocsIndex, "ApidocsIndex")
+    env.AddMethod(SetDoxref, "SetDoxref")
 
 
 def exists(env):
