@@ -47,22 +47,22 @@ def xmltohtml_emitter (target, source, env):
 db2pdf = Builder(action = 'HOME=$HOME $DOCBOOK2PDF $SOURCE',
                  suffix = '.pdf',
                  src_suffix = '.xml')
-xmltopdf = Builder(action = '$XMLTO pdf -o $TARGET.dir $SOURCE',
+xmltopdf = Builder(action = '$XMLTO pdf -o $TARGET.dir $XMLTOFLAGS $SOURCE',
                    suffix = '.pdf',
                    src_suffix = '.xml')
-xmltohtml1 = Builder(action = '$XMLTO html-nochunks -o $TARGET.dir $SOURCE',
+xmltohtml = Builder(action = '$XMLTO html-nochunks -o $TARGET.dir $XMLTOFLAGS $SOURCE',
                      suffix = '.html',
                      src_suffix = '.xml')
-xmltohtml = Builder(action = '$XMLTO html -o $TARGET.dir $SOURCE',
+xmltohtmlchunks = Builder(action = '$XMLTO html -o $TARGET.dir $XMLTOFLAGS $SOURCE',
                     emitter = xmltohtml_emitter,
                     src_suffix = '.xml')
 
 
 def publish_docbook(env, name, pubdir):
-    html1 = env.xmltohtml1([name])
-    html = env.xmltohtml([name])
+    html1 = env.DocbookHtml([name])
+    html = env.DocbookHtmlChunks([name])
     env.Clean(html, [env.Dir("html")])
-    pdf = env.xmltopdf([name])
+    pdf = env.DocbookPdf([name])
     htmlinstall = env.Install(os.path.join(pubdir,"html"), html)
     env.AddPostAction(htmlinstall, "cp -r $SOURCE.dir/. $TARGET.dir")
     pdfinstall = env.Install(pubdir, pdf)
@@ -73,11 +73,12 @@ def publish_docbook(env, name, pubdir):
 def generate(env):
 
     env.SetDefault(XMLTO='xmlto')
+    env.SetDefault(XMLTOFLAGS='')
     env.SetDefault(DOCBOOK2PDF='docbook2pdf')
     env.SetDefault(HOME=os.environ['HOME'])
-    env['BUILDERS']['xmltohtml1'] = xmltohtml1
-    env['BUILDERS']['xmltohtml'] = xmltohtml
-    env['BUILDERS']['xmltopdf'] = xmltopdf
+    env['BUILDERS']['DocbookHtml'] = xmltohtml
+    env['BUILDERS']['DocbookHtmlChunks'] = xmltohtmlchunks
+    env['BUILDERS']['DocbookPdf'] = xmltopdf
     env.AddMethod(publish_docbook, 'PublishDocbook')
 
 
