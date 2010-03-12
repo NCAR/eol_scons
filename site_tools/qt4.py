@@ -240,9 +240,11 @@ def generate(env):
         moc = env.WhereIs('moc-qt4') or env.WhereIs('moc')
         if moc:
             env['QT4DIR'] = os.path.dirname(os.path.dirname(moc))
-        else:
-            errmsg = "Qt4 not found"
-            raise SCons.Errors.StopError, errmsg
+        elif os.path.exists('/usr/lib/qt4'):
+            env['QT4DIR'] = '/usr/lib/qt4';
+    if not env.has_key('QT4DIR'):
+        errmsg = "Qt4 not found, try setting QT4DIR."
+        raise SCons.Errors.StopError, errmsg
         
     # the basics
     env['QT4_MOC'] = locateQt4Command(env, 'moc')
