@@ -97,6 +97,28 @@ class TestEOLScons(unittest.TestCase):
         self.assert_('prefixoptions' in tools)
         self.assert_('tnt' in tools)
 
+    def test_5_xercesc(self):
+        # Use xercesc tool without prefixoptions set
+        eol_scons._global_tools.clear()
+        eol_scons.global_variables = None
+        env = Environment(tools=['default','xercesc'])
+        print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
+              (env.get('XERCESC_PREFIX', '<none>'),
+               env.get('OPT_PREFIX', '<none>')))
+        self.assert_(not env.has_key('XERCESC_PREFIX'))
+        self.assert_('xerces-c' in env['LIBS'])
+        # Now create an environment using opt_prefix, and make sure
+        # xercesc uses it.
+        env = Environment(tools=['default','prefixoptions'], 
+                          OPT_PREFIX = '/usr/local')
+        env.Require('xercesc')
+        print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
+              (env.get('XERCESC_PREFIX', '<none>'),
+               env.get('OPT_PREFIX', '<none>')))
+        self.assert_(env['XERCESC_PREFIX'] == '/usr/local')
+        self.assert_('xerces-c' in env['LIBS'])
+        self.assert_('/usr/local/lib' in env['LIBPATH'])
+
 suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)
 
 results = unittest.TextTestRunner(verbosity=2).run(suite)

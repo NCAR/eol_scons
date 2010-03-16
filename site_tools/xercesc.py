@@ -1,10 +1,13 @@
+# -*- mode: python; -*-
+
 import os
 import SCons
 from eol_scons.package import Package
+import eol_scons
 import string
 
 actions = [
-    "XERCESCROOT=$XERCESCROOT ./runConfigure -p linux -c gcc -x g++ -m inmem -n socket -t native -r pthread -P $OPT_PREFIX",
+    "XERCESCROOT=$XERCESCROOT ./runConfigure -p linux -c gcc -x g++ -m inmem -n socket -t native -r pthread -P $XERCESC_PREFIX",
     "XERCESCROOT=$XERCESCROOT make",
     "XERCESCROOT=$XERCESCROOT make install"
 ]
@@ -22,9 +25,9 @@ class XercescPackage(Package):
 
     def __init__(self):
         
-        headers = [ os.path.join("$OPT_PREFIX","include","xercesc",p) for
+        headers = [ os.path.join("$XERCESC_PREFIX","include","xercesc",p) for
                     p in xerces_headers ]
-        libs = [ os.path.join("$OPT_PREFIX","lib",p) for
+        libs = [ os.path.join("$XERCESC_PREFIX","lib",p) for
                  p in xerces_libs ]
         Package.__init__(self, "XERCESC",
                          "src/xercesc/runConfigure",
@@ -39,13 +42,20 @@ class XercescPackage(Package):
 
     def require(self, env):
 
+        prefix = None
+        eol_scons.GlobalVariables().Update(env)
+        if env.has_key('XERCESC_PREFIX'):
+            prefix = env['XERCESC_PREFIX']
+        elif env.has_key('OPT_PREFIX'):
+            prefix = env['OPT_PREFIX']
+            env['XERCESC_PREFIX'] = prefix
         self.checkBuild(env)
-        prefix = env['OPT_PREFIX']
         if self.building:
             env['XERCESCROOT'] = self.getPackagePath(env)
             env.Append(LIBS=[env.GetGlobalTarget('libxerces-c'),])
         else:
-            env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib'),])
+            if prefix:
+                env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib'),])
             env.Append(LIBS=['xerces-c'])
             # Supply a hard-coded default for finding doxygen docs
             if not env.has_key('XERCESCROOT'):
@@ -55,7 +65,8 @@ class XercescPackage(Package):
             env['XERCESC_DOXDIR'] = "%s/doc/html/apiDocs" % env['XERCESCROOT']
         doxref= "xercesc:%s" % env['XERCESC_DOXDIR']
         env.AppendDoxref(doxref)
-        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
+        if prefix:
+            env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
         env.Append(DEPLOY_SHARED_LIBS=['xerces-c'])
         
 
