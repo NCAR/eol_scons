@@ -170,15 +170,9 @@ def generate(env):
         return
     
     def locateQt4Command(env, command) :
-
-        # if QT4DIR is set, do not try to use the -qt4 specific commands.
-        # We are assuming in this case that QT4DIR points to a bonified
-        # Qt 4 installation, without the hack that allows qt3 and Qt4 binaries to
-        # coexist in the same qt bin directory.
-        if (not env.has_key('QT4DIR')):
-            commandQt4 = command + "-qt4"
-        else:
-            commandQt4 = command
+        # Look for <command>-qt4, followed by just <command>
+        commandQt4 = command + '-qt4'
+        cmds = [commandQt4, command]
 
         testenv = env.Clone()
         qt4BinDir = None
@@ -198,13 +192,22 @@ def generate(env):
             # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
             else:
                 qt4BinDir = os.path.join(env['QT4DIR'], 'bin')
-                
-            testenv.PrependENVPath('PATH', qt4BinDir)
 
-        # The actual binary may be named <command>-qt4 or just <command>, e.g.,
-        # either moc-qt4 or moc.  Allow either one, with preference for the
-        # one with -qt4 appended.
-        whichCmd = testenv.Detect([commandQt4, command])
+        # If we built a qt4BinDir, check (only) there first for the command. 
+        # This will make sure we get e.g., <myQT4DIR>/bin/moc ahead of 
+        # /usr/bin/moc-qt4 in the case where we have a standard installation 
+        # but we're trying to use a custom one by setting QT4DIR.
+        if (qt4BinDir):
+            defaultPath = testenv['ENV']['PATH']
+            testenv['ENV']['PATH'] = qt4BinDir
+            whichCmd = testenv.Detect(cmds)
+            if (whichCmd):
+                return testenv.WhereIs(whichCmd)
+            # restore the default path
+            testenv['ENV']['PATH'] = defaultPath
+
+        # Check the default path
+        whichCmd = testenv.Detect(cmds)
         if (not whichCmd):
             msg = "Qt4 command " + commandQt4 + " (" + command + ")"
             if (qt4BinDir):
