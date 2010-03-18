@@ -170,7 +170,16 @@ def generate(env):
         return
     
     def locateQt4Command(env, command) :
-        commandQt4 = command + "-qt4"
+
+        # if QT4DIR is set, do not try to use the -qt4 specific commands.
+        # We are assuming in this case that QT4DIR points to a bonified
+        # Qt 4 installation, without the hack that allows qt3 and Qt4 binaries to
+        # coexist in the same qt bin directory.
+        if (not env.has_key('QT4DIR')):
+            commandQt4 = command + "-qt4"
+        else:
+            commandQt4 = command
+
         testenv = env.Clone()
         qt4BinDir = None
         #
