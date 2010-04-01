@@ -11,7 +11,8 @@ def generate(env):
     # contains a /usr/lib/libxmlrpc++.so that supports a different API than
     # the xmlrpc++ package.
     if (os.system('rpm -V --quiet xmlrpc++') == 0):
-        if (os.path.exists("/usr/lib/libxmlrpcpp.so")):
+        if (os.path.exists("/usr/lib/libxmlrpcpp.so") or 
+            os.path.exists("/usr/lib64/libxmlrpcpp.so")):
             env.Append(LIBS=['xmlrpcpp'])
             env.AppendUnique(CPPPATH = ['/usr/include/xmlrpcpp'])
         else:
