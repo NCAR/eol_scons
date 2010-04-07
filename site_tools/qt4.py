@@ -39,7 +39,7 @@ def _checkMocIncluded(target, source, env):
             GeneratedMocFileNotIncluded,
             "Generated moc file '%s' is not included by '%s'" %
             (str(moc), str(cpp)))
-        
+
 def _find_file(filename, paths, node_factory):
     retval = None
     for dir in paths:
@@ -56,7 +56,7 @@ class _Automoc:
 
     def __init__(self, objBuilderName):
         self.objBuilderName = objBuilderName
-        
+
     def __call__(self, target, source, env):
         """
         Smart autoscan function. Gets the list of objects for the Program
@@ -82,13 +82,13 @@ class _Automoc:
         #comment = re.compile(r'(//.*)|(/\*(([^*])|(\*[^/]))*\*/)')
         # CW: something must be wrong with the regexp. See also bug #998222
         #     CURRENTLY THERE IS NO TEST CASE FOR THAT
-        
+
         # The following is kind of hacky to get builders working properly (FIXME)
         objBuilderEnv = objBuilder.env
         objBuilder.env = env
         mocBuilderEnv = env.Moc4.env
         env.Moc4.env = env
-        
+
         # make a deep copy for the result; MocH objects will be appended
         out_sources = source[:]
 
@@ -168,17 +168,14 @@ def generate(env):
     """Add Builders and construction variables for qt4 to an Environment."""
     if env.has_key(myKey):
         return
-    
+
     def locateQt4Command(env, command) :
         # Look for <command>-qt4, followed by just <command>
         commandQt4 = command + '-qt4'
         cmds = [commandQt4, command]
 
         testenv = env.Clone()
-        if os.path.exists('/usr/lib64/qt4'):
-            qt4BinDir = '/usr/lib64/qt4/bin'
-        else:
-            qt4BinDir = None
+        qt4BinDir = None
         #
         # If env['QT4DIR'] is defined, add the associated bin directory to our
         # search path for the commands
@@ -255,29 +252,31 @@ def generate(env):
         moc = env.WhereIs('moc-qt4') or env.WhereIs('moc')
         if moc:
             env['QT4DIR'] = os.path.dirname(os.path.dirname(moc))
+        elif os.path.exists('/usr/lib64/qt4'):
+            env['QT4DIR'] = '/usr/lib64/qt4';
         elif os.path.exists('/usr/lib/qt4'):
             env['QT4DIR'] = '/usr/lib/qt4';
     if not env.has_key('QT4DIR'):
         errmsg = "Qt4 not found, try setting QT4DIR."
         raise SCons.Errors.StopError, errmsg
-        
+
     # the basics
     env['QT4_MOC'] = locateQt4Command(env, 'moc')
     env['QT4_UIC'] = locateQt4Command(env, 'uic')
     env['QT4_RCC'] = locateQt4Command(env, 'rcc')
     env['QT4_LUPDATE'] = locateQt4Command(env, 'lupdate')
     env['QT4_LRELEASE'] = locateQt4Command(env, 'lrelease')
-    
+
     # Should the qt4 tool try to figure out which sources are to be moc'ed ?
     env['QT4_AUTOSCAN'] = 1
-    
+
     # Some QT specific flags. I don't expect someone wants to
     # manipulate those ...
     env['QT4_UICDECLFLAGS'] = ''
     env['QT4_MOCFROMHFLAGS'] = ''
     env['QT4_MOCFROMCXXFLAGS'] = '-i'
     env['QT4_QRCFLAGS'] = ''
-    
+
     # suffixes/prefixes for the headers / sources to generate
     env['QT4_MOCHPREFIX'] = 'moc_'
     env['QT4_MOCHSUFFIX'] = '$CXXFILESUFFIX'
@@ -289,7 +288,7 @@ def generate(env):
     env['QT4_QRCSUFFIX'] = '.qrc',
     env['QT4_QRCCXXSUFFIX'] = '$CXXFILESUFFIX'
     env['QT4_QRCCXXPREFIX'] = 'qrc_'
-    
+
     # Translation builder
     tsbuilder = SCons.Builder.Builder(action ='$QT4_LUPDATE $SOURCES -ts $TARGETS',
                                       multi=1)
@@ -299,7 +298,7 @@ def generate(env):
                                       suffix = '.qm',
                                       single_source = True)
     env.Append( BUILDERS = { 'Qm': qmbuilder } )
-    
+
     # Resource builder
     def scanResources(node, env, path, arg):
         contents = node.get_contents()
@@ -316,7 +315,7 @@ def generate(env):
                                        prefix = '$QT4_QRCCXXPREFIX',
                                        single_source = True)
     env.Append( BUILDERS = { 'Qrc': qrcbuilder } )
-    
+
     # Interface builder
     env['QT4_UIC4CMD'] = [
         SCons.Util.CLVar('$QT4_UIC $QT4_UICDECLFLAGS -o ${TARGETS[0]} $SOURCE'),
@@ -327,7 +326,7 @@ def generate(env):
                                         prefix='$QT4_UICDECLPREFIX',
                                         single_source = True)
     env.Append( BUILDERS = { 'Uic4': uic4builder } )
-    
+
     # Metaobject builder
     env['QT4_MOCFROMHCMD'] = (
         '$QT4_MOC $QT4_MOCFROMHFLAGS -o ${TARGETS[0]} $SOURCE')
@@ -344,7 +343,7 @@ def generate(env):
         mocBld.prefix[cxx] = '$QT4_MOCCXXPREFIX'
         mocBld.suffix[cxx] = '$QT4_MOCCXXSUFFIX'
     env.Append( BUILDERS = { 'Moc4': mocBld } )
-    
+
     # er... no idea what that was for
     static_obj, shared_obj = SCons.Tool.createObjBuilders(env)
     static_obj.src_builder.append('Uic4')
@@ -364,7 +363,7 @@ def generate(env):
     env.AppendUnique(PROGEMITTER =[AutomocStatic],
                      SHLIBEMITTER=[AutomocShared],
                      LIBEMITTER  =[AutomocStatic])
-    
+
     import new
     env.EnableQt4Modules = new.instancemethod(enable_modules, env, type(env))
     env[myKey] = True
@@ -390,7 +389,7 @@ def enable_modules(self, modules, debug=False) :
                         print('Exiting!')
                         sys.exit(1)
                     hdir = os.path.join(prefix, 'include')
-                
+
                 if (os.system('pkg-config --exists ' + module) == 0):
                     # Don't try here to make things unique in LIBS and
                     # CFLAGS; just do a simple append
