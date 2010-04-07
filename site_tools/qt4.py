@@ -175,7 +175,10 @@ def generate(env):
         cmds = [commandQt4, command]
 
         testenv = env.Clone()
-        qt4BinDir = None
+        if os.path.exists('/usr/lib64/qt4'):
+            qt4BinDir = '/usr/lib64/qt4/bin'
+        else:
+            qt4BinDir = None
         #
         # If env['QT4DIR'] is defined, add the associated bin directory to our
         # search path for the commands
