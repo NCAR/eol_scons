@@ -225,8 +225,12 @@ def _generate (env):
 
     # Apply the built-in default tool before applying the eol_scons
     # customizations and tools.
-    import SCons.Tool.default
-    SCons.Tool.default.generate(env)
+    if env['PLATFORM'] != 'win32':
+        import SCons.Tool.default
+        SCons.Tool.default.generate(env)
+    else:
+        import SCons.Tool.mingw
+        SCons.Tool.mingw.generate(env)
 
     # Internal includes need to be setup *before* OptPrefixSetup or any
     # other includes, so that scons will scan for headers locally first.
