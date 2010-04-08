@@ -214,7 +214,7 @@ def generate(env):
                 msg += " not in " + qt4BinDir + " or in $PATH"
             else:
                 msg += " not in $PATH"
-            raise(msg)
+	    raise SCons.Errors.StopError, msg
         return testenv.WhereIs(whichCmd) 
 
 
