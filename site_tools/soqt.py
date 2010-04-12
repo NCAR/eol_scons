@@ -74,6 +74,14 @@ Use the first soqt-config found in this list of paths:
         env.Append(LIBS=['Xi'])
     # This is needed especially to get the doxygen reference.
     env.Require(['PKG_COIN'])
+    if env['PLATFORM'] == 'win32':
+        env.Append(CPPDEFINES=["SOQT_NOT_DLL"])
+        env.Append(LIBS=['SoQt'])
+        env.Append(LIBS=['opengl32'])
+        env.Append(LIBS=['glu32'])
+        
+
+    
 
 def exists(env):
     return True

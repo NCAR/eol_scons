@@ -22,10 +22,13 @@ Use the first coin-config found in this list of paths:
     _options.Update(env)
     prefix = getPrefix(env, apply_config = True)
     if env['PLATFORM'] == 'win32':
-        env.Append(CPPDEFINES=["COIN_DLL"])
+        env.AppendUnique(CPPDEFINES=["COIN_NOT_DLL"])
         env.AppendUnique(CPPPATH=["$COIN_DIR/include"])
         env.Append(LIBPATH=["$COIN_DIR/lib"])
-        env.Append(LIBS=["coin2d"])
+        env.Append(LIBS=["coin"])
+        env.Append(LIBS=['opengl32'])
+        env.Append(LIBS=['glu32'])
+        env.Append(LIBS=['gdi32'])
     if not env.has_key('COIN_DOXDIR'):
         # When installed into the system as the Coin2-devel package,
         # the doxygen html has a custom path.
