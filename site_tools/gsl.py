@@ -3,7 +3,6 @@
 import os, os.path
 
 def generate(env):
-  env.Append(DEPLOY_SHARED_LIBS=['gsl','gslcblas'])
   env.Append(LIBS=['gsl','gslcblas','m'])
 
 
