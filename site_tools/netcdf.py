@@ -86,7 +86,8 @@ class NetcdfPackage(Package):
             env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib')])
             env.AppendUnique(RPATH=[os.path.join(prefix,'lib')])
             env.AppendUnique(LIBPATH=['/usr/lib/netcdf-3'])
-            env.Append(LIBS=['netcdf_c++', 'netcdf'])
+            env.Append(LIBS=['netcdf_c++', 'netcdf', 'hdf5_hl', 'hdf5'])
+            env.AppendUnique(DEPLOY_SHARED_LIBS=['netcdf_c\+\+', 'netcdf', 'hdf5_hl', 'hdf5'])
 
 netcdf_package = NetcdfPackage()
 
