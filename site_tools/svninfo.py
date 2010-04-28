@@ -29,11 +29,11 @@ def svninfo_emitter(target, source, env):
             svndict[k] = match.group()
     svndict.update ( {'workdir':workdir} )
     svndict['Revision'] = svnversion
-    env['SVNREVISION'] = svndict['Revision']
-    env['SVNLASTCHANGEDDATE'] = svndict['Last Changed Date']
-    env['SVNURL'] = svndict['URL']
-    env['SVNWORKDIRSPEC'] = svndict['Working Directory'].replace('\\', '/')
-    env['SVNWORKDIR'] = svndict['workdir'].replace('\\', '/')
+    env['SVNREVISION'] = svndict['Revision'].strip()
+    env['SVNLASTCHANGEDDATE'] = svndict['Last Changed Date'].strip()
+    env['SVNURL'] = svndict['URL'].strip()
+    env['SVNWORKDIRSPEC'] = svndict['Working Directory'].replace('\\', '/').strip()
+    env['SVNWORKDIR'] = svndict['workdir'].replace('\\', '/').strip()
     svnheader = env.subst(
 """
 #ifndef SVNINFOINC
