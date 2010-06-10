@@ -88,9 +88,11 @@ def exists(env):
 # support routines.
 #
 # @param idlFile The idl file defining the DDS for a particular type 
-def DdsLibrary(idlFile, env):
+# @param sources Sources to be compiled into the library, in addition to
+#    those automatically generated from the IDL file
+def DdsLibrary(idlFile, env, sources=[]):
     # get our current directory relative to the top level, needed
-    # for some later comands which must be executed here.
+    # for some later commands which must be executed here.
     curDir = env.Dir('.').get_path(env.Dir('#'))
     execHerePrefix = "cd %s && " % curDir
     #
@@ -131,7 +133,7 @@ def DdsLibrary(idlFile, env):
     #
     # Collect all of the source files, which will be compiled for the
     # library
-    sources = target1[0] + target2[0] + target3[0]
+    sources += target1[0] + target2[0] + target3[0]
     headers = target1[1] + target2[1] + target3[1]
     #
     # library name is the same as the IDL file base name, with the
