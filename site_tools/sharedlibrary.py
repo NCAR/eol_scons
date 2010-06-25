@@ -8,25 +8,12 @@ from SCons.Script import Configure
 def SharedLibrary3(env,target,sources,**kw):
 
     """ 
-        This SCons pseudo builder will build a shared library with name
-
-        env["SHLIBPREFIX"] + target + env["SHLIBSUFFIX"] + '.' +
-            env["SHLIBMAJORVERSION"] + '.' env["SHLIBMINORVERSION"] + '.'
-
-        The library will be built with a soname linker option:
-        -soname env["SHLIBPREFIX"] + target + env["SHLIBSUFFIX"] + '.' + env["SHLIBMAJORVERSION"]
-
-        The SCons environment variables SHLIBPREFIX, SHLIBSUFFIX are pre-defined for you.
-        On linux SHLIBPREFIX='lib' and SHLIBSUFFIX='.so'.
-
-        Then create 2 symbolic links to that library.
-
         For a reference on Linux conventions for shared library names see
         http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html
 
-        The typical convention is that the full library name is something like:
+        The usual convention is that the full library name is something like:
             libxxx.so.3.4
-        The SONAME is
+        The SONAME of the library is
             libxxx.so.3
         And the basic library name is
             libxxx.so
@@ -35,11 +22,42 @@ def SharedLibrary3(env,target,sources,**kw):
         Under linux, libxxx.so.3.4 is the actual library file, and libxxx.so.3
         and libxxx.so are symbolic links.
 
-        To create the above three libraries, do:
+        The idea is that two libraries with the same name, same major
+        number, but differing minor number implement the same binary API, and
+        that a library with a new minor number could replace the old
+        without breaking executable programs that depend on the library.
+
+        From the man page of ld, discussing the -soname option:
+        -soname=name
+            When creating an ELF shared object, set the internal DT_SONAME field to
+            the specified name.  When an executable is linked with a shared object
+            which has a DT_SONAME field, then when the executable is run the dynamic
+            linker will attempt to  load  the  shared object specified by the
+            DT_SONAME field rather than the using the file name given to the linker.
+
+        If the SONAME of a library contains just the major number and not the minor
+        number, and is a symbolic link to the real library, then the real library
+        could be replaced with a library with a different minor number without
+        re-linking executables.
+
+        "ldd prog" lists the SONAMEs of the libraries it was linked against.
+
+        The SONAME of a library can be seen with
+            objdump -p | grep SONAME
+
+        rpmbuild creates dependencies based on the SONAMEs. A library without
+        major and minor number, libxxx.so, is only used at linking time,
+        if the real library has a SONAME. That is why .so's without
+        major and minor numbers are customarily found only in -devel RPMs.
+
+        To create the above three libraries with this pseudo-builder, do:
 
             env['SHLIBMAJORVERSION'] = '3'
             env['SHLIBMINORVERSION'] = '4'
             libs = env.SharedLibrary3('xxx',objects)
+
+        This builder will set the -soname of the real library, and the other
+        two will be symbolic links.
 
         To install the library and the symbolic links to a destination:
 
