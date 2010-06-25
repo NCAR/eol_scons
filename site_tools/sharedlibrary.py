@@ -38,17 +38,18 @@ def SharedLibrary3(env,target,sources,**kw):
         If the SONAME of a library contains just the major number and not the minor
         number, and is a symbolic link to the real library, then the real library
         could be replaced with a library with a different minor number without
-        re-linking executables.
+	re-linking executables (as long as the symbolic link of the SONAME was
+        updated to point to the new library name).
 
-        "ldd prog" lists the SONAMEs of the libraries it was linked against.
+        ldd lists the SONAMEs of the libraries a program was linked against.
 
         The SONAME of a library can be seen with
             objdump -p | grep SONAME
 
         rpmbuild creates dependencies based on the SONAMEs. A library without
         major and minor number, libxxx.so, is only used at linking time,
-        if the real library has a SONAME. That is why .so's without
-        major and minor numbers are customarily found only in -devel RPMs.
+        if the real library has a SONAME. That is why symbolic link .so's
+	without major and minor numbers are customarily found only in -devel RPMs.
 
         To create the above three libraries with this pseudo-builder, do:
 
@@ -144,11 +145,11 @@ def SharedLibrary3Install(env,target,source,**kw):
     nodes.extend(env.Install(target,fullsrc))
 
     for src in source:
-        # print "src=" + str(src)
-        if os.path.islink(src.path):
-            nodes.extend(env.Command(target.File(src.path),fullsrc,
-                'cd $TARGET.dir; ln -sf $SOURCE.file $TARGET.file'))
-
+        if os.path.islink(src.abspath):
+            tgt = target.File(os.path.basename(src.abspath))
+            env.Command(tgt,fullsrc,
+                'cd $TARGET.dir; ln -sf $SOURCE.file $TARGET.file')
+	    nodes.extend([tgt])
     return nodes
 
 
