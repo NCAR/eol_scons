@@ -44,7 +44,7 @@ def SharedLibrary3(env,target,sources,**kw):
         ldd lists the SONAMEs of the libraries a program was linked against.
 
         The SONAME of a library can be seen with
-            objdump -p | grep SONAME
+            objdump -p libxxx.so | grep SONAME
 
         rpmbuild creates dependencies based on the SONAMEs. A library without
         major and minor number, libxxx.so, is only used at linking time,
@@ -120,8 +120,9 @@ def SharedLibrary3Install(env,target,source,**kw):
 
     try: 
         # convert dots to \. for regular expression
-        fullsuffix = re.sub(r'\.',r'\\.',env['SHLIBSUFFIX'] + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
         shortsuffix = re.sub(r'\.',r'\\.',env['SHLIBSUFFIX'])
+
+        fullsuffix = shortsuffix + re.sub(r'\.',r'\\.','.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
     except KeyError:
         print "bug"
         throw
@@ -140,9 +141,9 @@ def SharedLibrary3Install(env,target,source,**kw):
             shortname = re.sub('(.+' + shortsuffix + ').*',r'\1',src.path)
             # print "shortname=" + shortname
 
-            fullname = env.Dir('#').File(shortname + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
+            fullsrc = env.Dir('#').File(shortname + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
             tgt = target.File(os.path.basename(src.path))
-            env.Command(tgt,fullname,
+            env.Command(tgt,fullsrc,
                 'cd $TARGET.dir; ln -sf $SOURCE.file $TARGET.file')
 	    nodes.extend([tgt])
 
