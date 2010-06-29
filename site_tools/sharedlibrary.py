@@ -48,8 +48,8 @@ def SharedLibrary3(env,target,sources,**kw):
 
         rpmbuild creates dependencies based on the SONAMEs. A library without
         major and minor number, libxxx.so, is only used at linking time,
-        if the real library has a SONAME. That is why symbolic link .so's
-	without major and minor numbers are customarily found only in -devel RPMs.
+        if the real library has a SONAME. That is why symbolic link .so's,
+        without major and minor numbers, are customarily found only in -devel RPMs.
 
         To create the above three libraries with this pseudo-builder, do:
 
@@ -118,40 +118,35 @@ def SharedLibrary3Install(env,target,source,**kw):
     # add passed keywords to environment
     env = env.Clone(**kw)
 
-    fullsrc = None
-
     try: 
-        libsuffix = env['SHLIBSUFFIX'] + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION']
+        # convert dots to \. for regular expression
+        fullsuffix = re.sub(r'\.',r'\\.',env['SHLIBSUFFIX'] + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
+        shortsuffix = re.sub(r'\.',r'\\.',env['SHLIBSUFFIX'])
     except KeyError:
         print "bug"
-        throw
-
-    # look for a source ending in .so.MAJOR.MINOR
-    for src in source:
-        # print "src=" + str(src)
-        full = re.search(libsuffix + '$',str(src))
-        if full != None and not os.path.islink(src.path):
-            fullsrc = src
-            break
-
-    # Can't find a library with the right suffix, that isn't a symbolic link.
-    if fullsrc == None:
-        print 'Cannot find shared library with suffix ' + libsuffix + ' to install'
         throw
 
     target = env.Dir(target + '/' + env['LIBDIR'])
 
     nodes = []
-    nodes.extend(env.Install(target,fullsrc))
 
     for src in source:
-        if os.path.islink(src.abspath):
-            tgt = target.File(os.path.basename(src.abspath))
-            env.Command(tgt,fullsrc,
+        # print "src.path=" + src.path
+        full = re.search(fullsuffix + '$',str(src))
+        if full != None and not os.path.islink(src.path):
+            nodes.extend(env.Install(target,src))
+        else:
+            # from src.path get basic name of library: libxxx.so
+            shortname = re.sub('(.+' + shortsuffix + ').*',r'\1',src.path)
+            # print "shortname=" + shortname
+
+            fullname = env.Dir('#').File(shortname + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
+            tgt = target.File(os.path.basename(src.path))
+            env.Command(tgt,fullname,
                 'cd $TARGET.dir; ln -sf $SOURCE.file $TARGET.file')
 	    nodes.extend([tgt])
-    return nodes
 
+    return nodes
 
 def generate(env):
 
