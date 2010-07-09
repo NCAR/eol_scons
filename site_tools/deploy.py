@@ -25,9 +25,13 @@ def ldd(program_node, env):
     "Return a map with each dependent library name and its location."
     libraries = {}
     # Run ldd on the program
-    lddout = os.popen("ldd %s" % (program_node.get_abspath())).read()
+    lddcmd = "ldd %s" % (program_node.get_abspath())
+    # print(lddcmd)
+    lddout = os.popen(lddcmd).read()
+    # print(lddout)
     # Get the list of library keys to include
     libkeys = env['DEPLOY_SHARED_LIBS']
+    # print("Looking for these libraries:\n"+ "\n".join(libkeys))
     libdir = os.path.join(env['DEPLOY_DIRECTORY'],"lib")
     for k in libkeys:
         # If the library is in the dependencies, then the file will
@@ -37,7 +41,7 @@ def ldd(program_node, env):
         if match:
             lib = env.File(match.group(1))
             if not libraries.has_key(lib.name):
-                print "Found", lib
+                print("Found %s" % (str(lib)))
                 libraries[lib.name] = lib
                 libraries.update (ldd(lib, env))
     return libraries
