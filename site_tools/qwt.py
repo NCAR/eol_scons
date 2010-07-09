@@ -81,26 +81,35 @@ class QwtPackage(Package):
         qwt_dir = env['QWTDIR']
         qwt_libdir = os.path.join(qwt_dir, lib_)
         libqwt = os.path.join(qwt_libdir, 'libqwt.so')
-        #
-        # Unless we're building, only generate stuff for -I<>, -R<>,
-        # and -L<> options here.  We let someone else handle the
-        # -l<> options later.
-        #
-        if self.building:
-            env.Append(LIBS=[env.File(libqwt)])
-        else:
-            env.AppendUnique(LIBPATH= [qwt_libdir, ])
-        env.AppendUnique(RPATH=[qwt_libdir])
 
-        env.Append(CPPPATH= [os.path.join(qwt_dir, 'include'),])
-        plugindir='$QWTDIR/designer/plugins/designer'
-        env.Append(QT_UICIMPLFLAGS=['-L',plugindir])
-        env.Append(QT_UICDECLFLAGS=['-L',plugindir])
+        # These settings apply whether building, locating manually, or
+        # locating with pkg-config
         env.Append(DEPLOY_SHARED_LIBS=['qwt'])
+        # print("Appended qwt to DEPLOY_SHARED_LIBS: " +
+        #       ",".join(env['DEPLOY_SHARED_LIBS']))
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')
         if not env.has_key('QWT_DOXREF'):
             env['QWT_DOXREF'] = 'qwt:' + qwt_docdir
         env.AppendDoxref(env['QWT_DOXREF'])
+
+        if (env['QWTDIR'] is USE_PKG_CONFIG):
+            # Don't try here to make things unique in CFLAGS; just do an append
+            env.ParseConfig('pkg-config --cflags Qwt', unique = False)
+            env.ParseConfig('pkg-config --libs Qwt', unique = False)
+            return
+
+        if self.building:
+            env.Append(LIBS=[env.File(libqwt)])
+        else:
+            env.Append(LIBS = ['qwt'])        
+            env.AppendUnique(LIBPATH= [qwt_libdir, ])
+
+        env.AppendUnique(RPATH=[qwt_libdir])
+        env.Append(CPPPATH= [os.path.join(qwt_dir, 'include'),])
+        plugindir='$QWTDIR/designer/plugins/designer'
+        env.Append(QT_UICIMPLFLAGS=['-L',plugindir])
+        env.Append(QT_UICDECLFLAGS=['-L',plugindir])
+
 
 qwt_package = QwtPackage()
 
@@ -129,6 +138,7 @@ def find_qwtdir(env):
     elif (env.has_key('OPT_PREFIX') and 
           os.path.exists(os.path.join(env['OPT_PREFIX'], lib_, 'libqwt.so'))):
         qwtdir = env['OPT_PREFIX']
+    print("qwtdir set to '%s'" % (qwtdir))
     return qwtdir
 
 
@@ -153,25 +163,9 @@ def generate(env):
     if not qwtdir:
         raise SCons.Errors.StopError, "Qwt not found"
     env['QWTDIR'] = qwtdir
-    #
-    # First-time-only stuff here: -I<>, -D<>, and -L<> options
-    # The -l<> stuff we do later every time this tool is loaded
-    #   
-    if (env['QWTDIR'] is USE_PKG_CONFIG):
-        # Don't try here to make things unique in CFLAGS; just do an append
-        env.ParseConfig('pkg-config --cflags Qwt', unique = False)
-    else:
-        qwt_package.require(env)
-        
+    qwt_package.require(env)
     env[myKey] = True
-    #
-    # Add -lqwt each time this tool is requested
-    #
-    if (env['QWTDIR'] is USE_PKG_CONFIG):
-        # Don't try here to make things unique in LIBS; just do an append
-        env.ParseConfig('pkg-config --libs Qwt', unique = False)
-    else:
-        env.Append(LIBS = ['qwt'])        
+
 
 def exists(env):
     return True
