@@ -1,7 +1,5 @@
 import os
 import re
-import tempfile
-import subprocess
 from SCons.Node.FS import Dir,File
 from SCons.Script import Configure
 
@@ -15,7 +13,7 @@ def SharedLibrary3(env,target,sources,**kw):
             libxxx.so.3.4
         The SONAME of the library is
             libxxx.so.3
-        And the basic library name is
+        The basic library name, used when initially linking executables, is
             libxxx.so
         where 3 is the major number of the binary API and 4 is the minor number.
 
@@ -35,21 +33,24 @@ def SharedLibrary3(env,target,sources,**kw):
             linker will attempt to  load  the  shared object specified by the
             DT_SONAME field rather than the using the file name given to the linker.
 
-        If the SONAME of a library contains just the major number and not the minor
-        number, and is a symbolic link to the real library, then the real library
-        could be replaced with a library with a different minor number without
-	re-linking executables (as long as the symbolic link of the SONAME was
-        updated to point to the new library name).
-
-        ldd lists the SONAMEs of the libraries a program was linked against.
+        If the SONAME of a library contains just the major version number, and a
+        a symbolic link exists with a name equal to the SONAME, pointing
+        to the real library file, then a new library file could be installed
+        with a different minor number, and the symbolic link updated to point
+        to the new library, without re-linking executables.  This will only work
+        if the binary APIs of libraries with the same major number are compatible.
 
         The SONAME of a library can be seen with
             objdump -p libxxx.so | grep SONAME
 
-        rpmbuild creates dependencies based on the SONAMEs. A library without
-        major and minor number, libxxx.so, is only used at linking time,
-        if the real library has a SONAME. That is why symbolic link .so's,
-        without major and minor numbers, are customarily found only in -devel RPMs.
+        ldd lists the SONAMEs of the libraries that a program was linked against.
+        rpmbuild uses the same tools as ldd, and creates dependencies for
+        executables based on the SONAMEs of the linked libraries.
+
+        If the library has a SONAME, then the basic library name, libxxx.so,
+        without major and minor numbers, is only used when linking executables
+        with the -lxxx option.  That is why symbolic link .so's, without major
+        and minor numbers, are sometimes found only in -devel RPMs.
 
         To create the above three libraries with this pseudo-builder, do:
 
@@ -57,7 +58,7 @@ def SharedLibrary3(env,target,sources,**kw):
             env['SHLIBMINORVERSION'] = '4'
             libs = env.SharedLibrary3('xxx',objects)
 
-        This builder will set the -soname of the real library, and the other
+        This builder will set the -soname in the real library file, and the other
         two will be symbolic links.
 
         To install the library and the symbolic links to a destination:
@@ -65,8 +66,8 @@ def SharedLibrary3(env,target,sources,**kw):
             env.SharedLibrary3Install('/opt/local/mystuff',libs)
 
         The libraries will be installed to subdirectory 'lib' or 'lib64' of
-            /opt/local/mystuff, depending on whether the current environment
-            builds 64 or 32 bit objects.
+        /opt/local/mystuff, depending on whether the current environment
+        builds 32 or 64 bit objects.
 
         Note that the initial version of this tool is directed at Linux.
         Support for other architectures needs to be added as necessary.
