@@ -245,10 +245,12 @@ def _generate (env):
     env.PrependUnique (CPPPATH=['#'])
 
     # Builder wrappers
-    WrapProgram(env)
-    WrapLibrary("StaticLibrary", env)
-    WrapLibrary("SharedLibrary", env)
-    WrapLibrary("Library", env)
+    Debug("Before wrapping Library, env.Library = %s" % env.Library)
+    env.AddMethod(ProgramMethod('Program', env, env.Program), 'Program')
+    WrapLibrary("StaticLibrary", env, env.StaticLibrary)
+    WrapLibrary("Library", env, env.Library)
+    WrapLibrary("SharedLibrary", env, env.SharedLibrary)
+    Debug("After wrapping Library, env.Library = %s" % env.Library)
 
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
@@ -324,45 +326,59 @@ def _Require(env, tools):
 # preserved, thus these don't replace the existing builder, only the
 # builder's __call__ method.
 
-class WrapProgram:
-    """\
+class ProgramMethod:
+    """
     Wrap the Program builder to add the targets as a named construction
-    varible, by which other parts of the build can refer to them.
+    variable, by which other parts of the build can refer to them.
     """
 
-    def __init__(self, env):
-        self.programBuilder = env.get_builder('Program')
-        # env['BUILDERS']['Program'] = self
-        self.call_method = self.programBuilder.__call__
-        self.programBuilder.__call__ = self.__call__
+    def __init__(self, name, env, method):
+        self.name = name
+        self.method = method
         if not env.has_key('EXTRA_SOURCES'):
             env['EXTRA_SOURCES'] = []
+        Debug("created Program wrapper, method=%s" % (self.method))
 
     def __call__(self, env, target = None, source = _null, **overrides):
+        Debug("called Program wrapper, method=%s" %
+              (self.method))
         es = env['EXTRA_SOURCES']
         if source == _null and len(es) == 0:
-            return self.call_method(env, target, source, **overrides)
+            return self.method(target, source, **overrides)
         else:
             if type(source) != type([]):
                 source = [source]
-            return self.call_method(env, target, source + es, **overrides)
+            return self.method(target, source + es, **overrides)
 
 
-class WrapLibrary:
-    """\
-    Wrap the Library builder to add the target as a named construction
-    varible, by which other parts of the build can refer to them.
+def WrapLibrary(name, env, method):
+    env.AddMethod(LibraryMethod(name, env, method), name)
+
+
+class LibraryMethod:
+    """
+    Wrap a Library Environment method to add the resulting library target
+    as a named global target.  Other parts of the build can refer to these
+    named targets implicitly by using AppendLibrary() or explicitly through
+    GetGlobalTarget().
+
+    Typically the environment method being wrapped is actually a
+    SCons.Environment.BuilderWrapper, so this effectively chains that
+    MethodWrapper with this one.  Since the existing MethodWrapper is
+    already bound to the Environment instance, the environment does not
+    need to be passed when the chained method is called.
     """
 
-    def __init__(self, name, env):
-        self.libraryBuilder = env['BUILDERS'][name]
-        # env['BUILDERS']['Library'] = self
-        self.call_method = self.libraryBuilder.__call__
-        self.libraryBuilder.__call__ = self.__call__
+    def __init__(self, name, env, method):
+        self.name = name
+        self.library = method
+        Debug("created library wrapper for %s, library=%s" %
+              (name, self.library))
 
     def __call__(self, env, target = None, source = _null, **overrides):
         "Add the library to the list of global targets."
-        ret = self.call_method(env, target, source, **overrides)
+        Debug("called library wrapper for %s" % self.name)
+        ret = self.library(target, source, **overrides)
         if target:
             env.AddLibraryTarget(target, ret)
         return ret
@@ -473,6 +489,7 @@ def _GetGlobalTarget(env, name):
 
 def _AppendLibrary (env, name, path = None):
     "Add this library either as a local target or a link option."
+    Debug("AppendLibrary wrapper looking for %s" % name)
     env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
     if target:
