@@ -246,7 +246,6 @@ def _generate (env):
 
     # Builder wrappers
     Debug("Before wrapping Library, env.Library = %s" % env.Library)
-    env.AddMethod(ProgramMethod('Program', env, env.Program), 'Program')
     WrapLibrary("StaticLibrary", env, env.StaticLibrary)
     WrapLibrary("Library", env, env.Library)
     WrapLibrary("SharedLibrary", env, env.SharedLibrary)
@@ -320,37 +319,6 @@ def _Require(env, tools):
     return applied
 
 
-# The following classes create a call chain with an existing builder,
-# replacing that builder's call method with the one from the wrapper
-# instance.  All other attributes of the existing builder need to be
-# preserved, thus these don't replace the existing builder, only the
-# builder's __call__ method.
-
-class ProgramMethod:
-    """
-    Wrap the Program builder to add the targets as a named construction
-    variable, by which other parts of the build can refer to them.
-    """
-
-    def __init__(self, name, env, method):
-        self.name = name
-        self.method = method
-        if not env.has_key('EXTRA_SOURCES'):
-            env['EXTRA_SOURCES'] = []
-        Debug("created Program wrapper, method=%s" % (self.method))
-
-    def __call__(self, env, target = None, source = _null, **overrides):
-        Debug("called Program wrapper, method=%s" %
-              (self.method))
-        es = env['EXTRA_SOURCES']
-        if source == _null and len(es) == 0:
-            return self.method(target, source, **overrides)
-        else:
-            if type(source) != type([]):
-                source = [source]
-            return self.method(target, source + es, **overrides)
-
-
 def WrapLibrary(name, env, method):
     env.AddMethod(LibraryMethod(name, env, method), name)
 
@@ -408,27 +376,6 @@ def _Install (self, dir, source):
     t = SCons.Environment.Base.Install (self, dir, source)
     DefaultEnvironment().Alias('install', t)
     return t
-
-def _ExtraSources(env, source):
-    """Add the given list of sources to the list of extra sources.
-
-    If a member of the source list is a string, then it will be resolved
-    to a target from the list of global targets.  Otherwise the members
-    must be a SCons target node.
-    """
-    if type(source) != type([]):
-        source = [source]
-    targets=[]
-    for s in source:
-        try:
-            if type(s) == str:
-                targets.append (_global_targets[s])
-            else:
-                targets.append (s)
-        except KeyError:
-            print "Unknown global target '%s'." % (s)
-    env['EXTRA_SOURCES'].extend (targets)
-    return targets
 
 def _AddLibraryTarget(env, base, target):
     "Register this library target using a prefix reserved for libraries."
@@ -720,7 +667,6 @@ def _AppendDoxref(env, ref):
 def _ExtendEnvironment(envclass):
     
     envclass.Require = _Require
-    envclass.ExtraSources = _ExtraSources
     envclass.AddLibraryTarget = _AddLibraryTarget
     envclass.AddGlobalTarget = _AddGlobalTarget
     envclass.GetGlobalTarget = _GetGlobalTarget

@@ -11,7 +11,6 @@ def generate(env):
         env.AppendDoxref("logx")
     else:
         env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
-    # env.ExtraSources("liblogx")
     env.Tool ('log4cpp')
 
 def exists(env):
