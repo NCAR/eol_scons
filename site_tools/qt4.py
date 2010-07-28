@@ -174,7 +174,6 @@ def generate(env):
         commandQt4 = command + '-qt4'
         cmds = [commandQt4, command]
 
-        testenv = env.Clone()
         qt4BinDir = None
         #
         # If env['QT4DIR'] is defined, add the associated bin directory to our
@@ -198,24 +197,24 @@ def generate(env):
         # /usr/bin/moc-qt4 in the case where we have a standard installation 
         # but we're trying to use a custom one by setting QT4DIR.
         if (qt4BinDir):
-            defaultPath = testenv['ENV']['PATH']
-            testenv['ENV']['PATH'] = qt4BinDir
-            whichCmd = testenv.Detect(cmds)
+            # check for the binaries in *just* qt4BinDir
+            shortPathEnv = env.__class__()   # new Environment of same class as env
+            shortPathEnv['ENV']['PATH'] = qt4BinDir
+            whichCmd = shortPathEnv.Detect(cmds)
             if (whichCmd):
-                return testenv.WhereIs(whichCmd)
-            # restore the default path
-            testenv['ENV']['PATH'] = defaultPath
+                return shortPathEnv.WhereIs(whichCmd)
 
         # Check the default path
-        whichCmd = testenv.Detect(cmds)
-        if (not whichCmd):
+        whichCmd = env.Detect(cmds)
+        if (whichCmd):
+            return env.WhereIs(whichCmd) 
+        else:
             msg = "Qt4 command " + commandQt4 + " (" + command + ")"
             if (qt4BinDir):
                 msg += " not in " + qt4BinDir + " or in $PATH"
             else:
                 msg += " not in $PATH"
-	    raise SCons.Errors.StopError, msg
-        return testenv.WhereIs(whichCmd) 
+            raise SCons.Errors.StopError, msg
 
 
     global _options
