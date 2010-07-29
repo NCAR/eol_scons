@@ -212,18 +212,6 @@ def _atd_concat(prefix, list, suffix, env, f=lambda x, env: x):
 _global_targets = {}
 
 
-def _LibraryBuilderCall(self, env, target = None, source = None, 
-                        chdir=SCons.Builder._null, **kw):
-        "Add the library to the list of global targets."
-        Debug("called library wrapper for %s" % self.get_name())
-        ret = self.__eolscons_save_call__(env, target, source, chdir, **kw)
-        if target:
-            env.AddLibraryTarget(target, ret)
-        else:
-            Debug("library builder returned None!")
-        return ret
-
-
 from SCons.Builder import BuilderBase
 
 class _LibraryBuilder(BuilderBase):
@@ -318,33 +306,14 @@ def _generate (env):
 
     # Debug("Before wrapping Library: %s" % (_library_builder_str(env)))
 
-    if 0:
-        WrapLibrary("StaticLibrary", env, env.StaticLibrary)
-        WrapLibrary("Library", env, env.Library)
-        WrapLibrary("SharedLibrary", env, env.SharedLibrary)
-
-    if 0:
-        # Stash the original method, then add our own.
-        env._SConscript_Library = env.Library
-        env.RemoveMethod(env.Library)
-        env.AddMethod(ChainLibrary, "Library")
-
-    if 0:
-        # Create or get the current library builder, then
-        # modify it directly with our own function
-        builder = SCons.Tool.createStaticLibBuilder(env)
-        builder.__eolscons_save_call__ = builder.__call__
-        builder.__call__ = _LibraryBuilderCall
-
-    if 1:
-        Debug("Replacing standard library builders with subclass")
-        builder = SCons.Tool.createStaticLibBuilder(env)
-        builder = _LibraryBuilder(builder)
-        env['BUILDERS']['StaticLibrary'] = builder
-        env['BUILDERS']['Library'] = builder
-        builder = SCons.Tool.createSharedLibBuilder(env)
-        builder = _LibraryBuilder(builder)
-        env['BUILDERS']['SharedLibrary'] = builder
+    Debug("Replacing standard library builders with subclass")
+    builder = SCons.Tool.createStaticLibBuilder(env)
+    builder = _LibraryBuilder(builder)
+    env['BUILDERS']['StaticLibrary'] = builder
+    env['BUILDERS']['Library'] = builder
+    builder = SCons.Tool.createSharedLibBuilder(env)
+    builder = _LibraryBuilder(builder)
+    env['BUILDERS']['SharedLibrary'] = builder
 
     # Debug("After wrapping Library: %s" % (_library_builder_str(env)))
 
@@ -414,54 +383,6 @@ def _Require(env, tools):
         if tool:
             applied.append( tool )
     return applied
-
-
-def WrapLibrary(name, env, method):
-    # Remove the method first, since it is being replaced.  Otherwise I
-    # think that confuses the cloning logic in SCons.Environment.Clone().
-    env.RemoveMethod(method)
-    env.AddMethod(LibraryMethod(name, env, method), name)
-
-def ChainLibrary(env, target = None, source = _null, **overrides):
-    "Add the library to the list of global targets."
-    Debug("called chain library wrapper for %s" % str(target))
-    ret = env._SConscript_Library(target, source, **overrides)
-    if target:
-        env.AddLibraryTarget(target, ret)
-    else:
-        Debug("library builder returned None!")
-    return ret
-
-
-class LibraryMethod:
-    """
-    Wrap a Library Environment method to add the resulting library target
-    as a named global target.  Other parts of the build can refer to these
-    named targets implicitly by using AppendLibrary() or explicitly through
-    GetGlobalTarget().
-
-    Typically the environment method being wrapped is actually a
-    SCons.Environment.BuilderWrapper, so this effectively chains that
-    MethodWrapper with this one.  Since the existing MethodWrapper is
-    already bound to the Environment instance, the environment does not
-    need to be passed when the chained method is called.
-    """
-
-    def __init__(self, name, env, method):
-        self.name = name
-        self.library = method
-        Debug("created library wrapper for %s, library=%s" %
-              (name, self.library))
-
-    def __call__(self, env, target = None, source = _null, **overrides):
-        "Add the library to the list of global targets."
-        Debug("called library wrapper for %s" % self.name)
-        ret = self.library(target, source, **overrides)
-        if target:
-            env.AddLibraryTarget(target, ret)
-        else:
-            Debug("library builder returned None!")
-        return ret
 
 
 def _Test (self, sources, actions):
