@@ -211,6 +211,57 @@ def _atd_concat(prefix, list, suffix, env, f=lambda x, env: x):
 
 _global_targets = {}
 
+
+def _LibraryBuilderCall(self, env, target = None, source = None, 
+                        chdir=SCons.Builder._null, **kw):
+        "Add the library to the list of global targets."
+        Debug("called library wrapper for %s" % self.get_name())
+        ret = self.__eolscons_save_call__(env, target, source, chdir, **kw)
+        if target:
+            env.AddLibraryTarget(target, ret)
+        else:
+            Debug("library builder returned None!")
+        return ret
+
+
+from SCons.Builder import BuilderBase
+
+class _LibraryBuilder(BuilderBase):
+    """
+    This class should allow for equivalent instances to the builder created
+    by SCons.Tool.createStaticLibBuilder, as long as the right Builder
+    keywords are propagated to the BuilderBase subclass.  The only
+    difference in the subclass instance should be the __call__ method to
+    intercept the library target.
+    """
+
+    def __init__(self, builder):
+        BuilderBase.__init__(self, 
+                             action = builder.action,
+                             emitter = builder.emitter,
+                             prefix = builder.prefix,
+                             suffix = builder.suffix,
+                             src_suffix = builder.src_suffix,
+                             src_builder = builder.src_builder)
+
+    def __call__(self, env, target=None, source=None, chdir=_null, **kw):
+        "Override __call__ from the base class to register the target library."
+        Debug("_LibraryBuilder.__call__ for target(%s)" % (target))
+        ret = BuilderBase.__call__(self, env, target, source, chdir, **kw)
+        if target:
+            env.AddLibraryTarget(target, ret)
+        else:
+            Debug("library builder returned None!")
+        return ret
+
+def _library_builder_str(env):
+    t = "[env.Library=%s, builder=%s]"
+    try:
+        libmethod = env.Library
+    except AttributeError:
+        libmethod = "None"
+    return t % (libmethod, env.get_builder('Library'))
+
 def _generate (env):
     """Generate the basic eol_scons customizations for the given
     environment, especially applying the scons built-in default tool
@@ -244,12 +295,58 @@ def _generate (env):
     # affect the scons scan.
     env.PrependUnique (CPPPATH=['#'])
 
-    # Builder wrappers
-    Debug("Before wrapping Library, env.Library = %s" % env.Library)
-    WrapLibrary("StaticLibrary", env, env.StaticLibrary)
-    WrapLibrary("Library", env, env.Library)
-    WrapLibrary("SharedLibrary", env, env.SharedLibrary)
-    Debug("After wrapping Library, env.Library = %s" % env.Library)
+    # The customized Library wrapper methods might be added directly to
+    # envclass, as in _ExtendEnvironment, except SCons overrides the
+    # instance methods associated with builders, so I don't think that
+    # would work.  It should work to "chain" MethodWrapper, by calling
+    # AddMethod() to add a function object which then calls the original
+    # MethodWrapper instance.  However, this runs into problems with
+    # Environment.Clone().  When the Environment Builders are cloned, they
+    # are added back to the BUILDERS dictionary, and that dictionary is
+    # especially designed to update the Environment instance methods
+    # corresponding to the Builders.  Maybe that's as it should be, but the
+    # point is that we need to replace the standard builder with our own
+    # copy of the builder.
+    #
+    # Can the global list of targets be acquired other than by intercepting
+    # Library() just to register the global targets?  Perhaps when
+    # GetGlobalTarget is called, it can search the SCons Node tree for a
+    # target which matches that name?  That would be supremely simpler, as
+    # long as the tree search is not too slow.  One problem may be
+    # selecting among multiple nodes with similar names.  Which is the one
+    # to which the wrapped Library call would have pointed?
+
+    # Debug("Before wrapping Library: %s" % (_library_builder_str(env)))
+
+    if 0:
+        WrapLibrary("StaticLibrary", env, env.StaticLibrary)
+        WrapLibrary("Library", env, env.Library)
+        WrapLibrary("SharedLibrary", env, env.SharedLibrary)
+
+    if 0:
+        # Stash the original method, then add our own.
+        env._SConscript_Library = env.Library
+        env.RemoveMethod(env.Library)
+        env.AddMethod(ChainLibrary, "Library")
+
+    if 0:
+        # Create or get the current library builder, then
+        # modify it directly with our own function
+        builder = SCons.Tool.createStaticLibBuilder(env)
+        builder.__eolscons_save_call__ = builder.__call__
+        builder.__call__ = _LibraryBuilderCall
+
+    if 1:
+        Debug("Replacing standard library builders with subclass")
+        builder = SCons.Tool.createStaticLibBuilder(env)
+        builder = _LibraryBuilder(builder)
+        env['BUILDERS']['StaticLibrary'] = builder
+        env['BUILDERS']['Library'] = builder
+        builder = SCons.Tool.createSharedLibBuilder(env)
+        builder = _LibraryBuilder(builder)
+        env['BUILDERS']['SharedLibrary'] = builder
+
+    # Debug("After wrapping Library: %s" % (_library_builder_str(env)))
 
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
@@ -320,7 +417,20 @@ def _Require(env, tools):
 
 
 def WrapLibrary(name, env, method):
+    # Remove the method first, since it is being replaced.  Otherwise I
+    # think that confuses the cloning logic in SCons.Environment.Clone().
+    env.RemoveMethod(method)
     env.AddMethod(LibraryMethod(name, env, method), name)
+
+def ChainLibrary(env, target = None, source = _null, **overrides):
+    "Add the library to the list of global targets."
+    Debug("called chain library wrapper for %s" % str(target))
+    ret = env._SConscript_Library(target, source, **overrides)
+    if target:
+        env.AddLibraryTarget(target, ret)
+    else:
+        Debug("library builder returned None!")
+    return ret
 
 
 class LibraryMethod:
@@ -349,6 +459,8 @@ class LibraryMethod:
         ret = self.library(target, source, **overrides)
         if target:
             env.AddLibraryTarget(target, ret)
+        else:
+            Debug("library builder returned None!")
         return ret
 
 
@@ -569,6 +681,8 @@ tool_dict = {}
 def _Tool(env, tool, toolpath=None, **kw):
     Debug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)))
     name = str(tool)
+    # Debug("...before loading tool %s: %s" % (name, _library_builder_str(env)))
+
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
         tool = None
@@ -639,6 +753,7 @@ def _Tool(env, tool, toolpath=None, **kw):
 
     Debug("Applying tool %s" % name)
     tool(env)
+    # Debug("...after applying tool %s: %s" % (name, _library_builder_str(env)))
     return tool
 
 
