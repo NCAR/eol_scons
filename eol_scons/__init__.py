@@ -111,106 +111,13 @@ def GlobalVariables(cfile = None):
 # Alias for temporary backwards compatibility
 GlobalOptions = GlobalVariables
 
-_global_tools = {}
-
-
 # ================================================================
 # End of public interface
 # ================================================================
 
-
-def _fix_paths(list,env):
-    """
-    Remove duplicates from the path list, and keep local paths first.
-
-    We need to call RDirs to convert paths like # to the correct form.
-    However, RDirs gives us back nodes rather than strings, so the nodes
-    are converted to string here so that _atd_concat does not treat them
-    like special targets that do not need to be prefixed.
-    """
-    if env.has_key("RDirs"):
-        list = env["RDirs"](list)
-    ret = []
-    for x in list:
-        x = str(x)
-        if x in ret:
-            continue
-        # print "Adding ", str(x)
-        if x.startswith("/"):
-            ret.append(x)
-        else:
-            ret.insert(0, x)
-    # print "Leaving fix_paths()"
-    return ret
-
-
-
-def _fix_libs(list,env):
-    "Leave only the last instance of each library in the list."
-    ret = []
-    for x in list:
-        if x in ret:
-            ret.remove(x)
-        ret.append(x)
-    return ret
-
-def _atd_concat(prefix, list, suffix, env, f=lambda x, env: x):
-    """
-    Turn list into a string of options, each with the given prefix and suffix,
-    except for list members which are not strings, such as Nodes.  This way
-    target nodes are concatenated with their full path, without the prefix
-    or suffix.
-    """
-    
-    if not list:
-        return list
-
-    Debug([prefix, list, suffix])
-
-    if not SCons.Util.is_List(list):
-        list = [list]
-
-    def subst(x, env = env):
-        if SCons.Util.is_String(x):
-            return env.subst(x)
-        else:
-            return x
-
-    list = map(subst, list)
-    Debug(["after subst:"] + list)
-    list = f(list,env)
-    Debug(["after function:"] + list)
-    ret = []
-
-    # ensure that prefix and suffix are strings
-    prefix = str(env.subst(prefix))
-    suffix = str(env.subst(suffix))
-
-    for x in list:
-        # Leave the path without a suffix or prefix if this is a local
-        # target node, ie, not a string
-        if not isinstance(x, str):
-            ret.append (str(x))
-            Debug("_atd_concat: appending target node: %s" % str(x))
-            continue
-        x = str(x)
-
-        if prefix and prefix[-1] == ' ':
-            ret.append(prefix[:-1])
-            ret.append(x)
-        else:
-            ret.append(prefix+x)
-
-        if suffix and suffix[0] == ' ':
-            ret.append(suffix[1:])
-        else:
-            ret[-1] = ret[-1]+suffix
-
-    return ret
-
+_global_tools = {}
 
 _global_targets = {}
-
 
 from SCons.Builder import BuilderBase
 
@@ -541,11 +448,11 @@ def _GlobalTools(env):
     return gtools
 
 
-tool_matches = None
+_tool_matches = None
 
 def _findToolFile(env, name):
-    global tool_matches
-    if tool_matches == None:
+    global _tool_matches
+    if _tool_matches == None:
         # Get a list of all files named "tool_<tool>.py" under the
         # top directory.
         toolpattern = re.compile("^tool_.*\.py")
@@ -555,11 +462,11 @@ def _findToolFile(env, name):
                               filter(toolpattern.match, contents)])
             if '.svn' in contents:
                 contents.remove('.svn')
-        tool_matches = []
-        os.path.walk(env.Dir('#').get_abspath(), addMatches, tool_matches)
+        _tool_matches = []
+        os.path.walk(env.Dir('#').get_abspath(), addMatches, _tool_matches)
 
     toolFileName = "tool_" + name + ".py"
-    return filter(lambda f: toolFileName == os.path.basename(f), tool_matches)
+    return filter(lambda f: toolFileName == os.path.basename(f), _tool_matches)
 
 
 def _loadToolFile(env, name):
