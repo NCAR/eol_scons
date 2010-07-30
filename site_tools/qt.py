@@ -76,7 +76,7 @@ def PKG_QT3(env):
     qtlib=os.path.join(qt_root,'lib')
     env.Replace(QT_UIC = uic)
     env.Replace(QT_LIB = 'qt-mt')
-    env.AppendUnique(DEPLOY_SHARED_LIBS = ['$QT_LIB'])
+#    env.AppendUnique(DEPLOY_SHARED_LIBS = ['$QT_LIB'])
     env.AppendUnique(CPPDEFINES = ['QT_THREAD_SUPPORT','_REENTRANT'])
     if env['PLATFORM'] == 'win32':
         # qmake on Windows defines WIN32, so we do too for all the qt

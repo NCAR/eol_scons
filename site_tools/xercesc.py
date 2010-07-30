@@ -67,7 +67,7 @@ class XercescPackage(Package):
         env.AppendDoxref(doxref)
         if prefix:
             env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
-        env.Append(DEPLOY_SHARED_LIBS=['xerces-c'])
+#        env.Append(DEPLOY_SHARED_LIBS=['xerces-c'])
         
 
 # These are the 2.7 headers.

@@ -84,7 +84,7 @@ class QwtPackage(Package):
 
         # These settings apply whether building, locating manually, or
         # locating with pkg-config
-        env.Append(DEPLOY_SHARED_LIBS=['qwt'])
+#        env.Append(DEPLOY_SHARED_LIBS=['qwt'])
         # print("Appended qwt to DEPLOY_SHARED_LIBS: " +
         #       ",".join(env['DEPLOY_SHARED_LIBS']))
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')

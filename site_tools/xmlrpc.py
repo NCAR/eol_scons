@@ -16,7 +16,7 @@ def generate(env):
         if (os.path.exists("/usr/lib/libxmlrpcpp.so") or 
             os.path.exists("/usr/lib64/libxmlrpcpp.so")):
             env.Append(LIBS=['xmlrpcpp'])
-            env.AppendUnique(DEPLOY_SHARED_LIBS=['xmlrpcpp'])
+#            env.AppendUnique(DEPLOY_SHARED_LIBS=['xmlrpcpp'])
             env.AppendUnique(CPPPATH = ['/usr/include/xmlrpcpp'])
         else:
             env.Append(LIBS=['xmlrpc++'])
