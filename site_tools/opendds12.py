@@ -96,6 +96,18 @@ def DdsLibrary(idlFile, env, sources=[]):
     curDir = env.Dir('.').get_path(env.Dir('#'))
     execHerePrefix = "cd %s && " % curDir
     #
+    # get the OpenDDS version fields
+    (major, minor, micro) = openDDSVersion(env)
+    # DDSversion will be an integer of the form xxyyzz
+    # So we are counting on none of the version fields being greater than 9.
+    DDSversion = major * 10000 + minor * 100 + micro
+    #
+    # Perform the idl processing steps. This amounts to:
+    #  1. tao_idl -Gdcps file.idl  # (no -Gdcps in latter versions of OpenDDS)
+    #  2. dcps_ts.pl     file.idl  # (opendds_idl instead of dcps_ts.pl in latter versions of OpenDDS)
+    #  3. tao_idl        fileTypeSupport.idl
+    #  4. compile the generated products and create a library
+    #
     # 1. ------------------------------------------
     #
     # create a target list of files produced by the tao_idl 
@@ -103,9 +115,13 @@ def DdsLibrary(idlFile, env, sources=[]):
     #[[*.cpp], [*.h], [*.inl]]
     target1 = taoIdlFiles(idlFile)
     #
-    # Now process the main idl file with tao_idl -Gdcps.
-    env.Command(target1, idlFile, 
-                env['TAO_IDL'] + ' -o $SOURCE.dir -Gdcps $SOURCE')
+    # Now process the main idl file with tao_idl
+    # The -Gdcps switch is used for OpenDDS versions less than 2.2.0
+    if DDSversion < 20200:
+    	cmd = env['TAO_IDL'] + ' -o $SOURCE.dir -Gdcps $SOURCE'
+    else:
+    	cmd = env['TAO_IDL'] + ' -o $SOURCE.dir $SOURCE'
+    env.Command(target1, idlFile, cmd)
     #
     # 2. ------------------------------------------
     #
@@ -114,9 +130,15 @@ def DdsLibrary(idlFile, env, sources=[]):
     #[[*.cpp], [*.h], [*.idl]]  (Note the idl output)
     target2 = dcpsTsFiles(idlFile)
     #
-    # Process the main idl file with dcps_ts.pl
+    #
+    # Process the main idl file with dcps_ts.pl or opendds_idl.
+    # The latter is used for OpenDDS v2.2 and greater
+    if DDSversion < 20200:
+    	dcps_idl_processor = 'dcps_ts.pl'
+    else:
+        dcps_idl_processor = 'opendds_idl'
     # Execute the dcp_tl.pl command in the current directory.
-    cmd = os.path.join(env['DDS_ROOT'], 'bin', 'dcps_ts.pl')
+    cmd = os.path.join(env['DDS_ROOT'], 'bin', dcps_idl_processor)
     dcpsCmd = ChdirActions(env, [cmd + " $SOURCE.file"], curDir)
     env.Command(target2, idlFile, dcpsCmd)
     #
@@ -180,3 +202,24 @@ def dcpsTsFiles(idlFile):
     hFile   = [root+'TypeSupportImpl.h',]
     idlFile = [root+'TypeSupport.idl',]
     return [cppFile, hFile, idlFile]
+
+# Determine the OpenDDS version and return a the list [major, minor, micro]
+def openDDSVersion(env):
+	major = 0
+	minor = 0
+	micro = 0
+	version_h = env['DDS_ROOT']+'/dds/Version.h'
+	fd = open(version_h,'r')
+	versionContents = fd.readlines()
+	fd.close()
+	for line in versionContents:
+		l = line.split()
+		if len(l) == 3:
+			if l[1] == 'DDS_MAJOR_VERSION':
+				major = int(l[2])
+			if l[1] == 'DDS_MINOR_VERSION':
+				minor = int(l[2])
+			if l[1] == 'DDS_MICRO_VERSION':
+				micro = int(l[2])
+	return (major, minor, micro)
+	
