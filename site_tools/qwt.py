@@ -92,7 +92,7 @@ class QwtPackage(Package):
             env['QWT_DOXREF'] = 'qwt:' + qwt_docdir
         env.AppendDoxref(env['QWT_DOXREF'])
 
-        if (env['QWTDIR'] is USE_PKG_CONFIG):
+        if (env['QWTDIR'] == USE_PKG_CONFIG):
             # Don't try here to make things unique in CFLAGS; just do an append
             env.ParseConfig('pkg-config --cflags Qwt', unique = False)
             env.ParseConfig('pkg-config --libs Qwt', unique = False)
