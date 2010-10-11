@@ -86,8 +86,20 @@ class NetcdfPackage(Package):
             env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib')])
             env.AppendUnique(RPATH=[os.path.join(prefix,'lib')])
             env.AppendUnique(LIBPATH=['/usr/lib/netcdf-3'])
-            env.Append(LIBS=['netcdf_c++', 'netcdf', 'hdf5_hl', 'hdf5'])
-#            env.AppendUnique(DEPLOY_SHARED_LIBS=['netcdf_c\+\+', 'netcdf', 'hdf5_hl', 'hdf5'])
+
+            # At this point, we should have identified the netcdf library
+            # we will use.  Now try to check whether the HDF libraries
+            # are needed explicitly also.
+            env.Append(LIBS=['netcdf_c++', 'netcdf'])
+            conf = env.Configure()
+            if not conf.CheckLib('netcdf'):
+                env.Append(LIBS=['hdf5_hl', 'hdf5', 'bz2'])
+                if not conf.CheckLib('netcdf'):
+                    msg = "Failed to link to netcdf both with and without"
+                    msg += " explicit HDF libraries.  Check config.log."
+                    raise SCons.Errors.StopError, msg
+            conf.Finish()
+
 
 netcdf_package = NetcdfPackage()
 
