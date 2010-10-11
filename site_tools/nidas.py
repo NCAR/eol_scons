@@ -43,7 +43,13 @@ paths relative to the top directory.""",
     if env.EnableNIDAS():
         env.Append(CPPPATH=[os.path.join(p,'x86','include') 
                             for p in nidas_paths])
-        env.Append(LIBPATH=[os.path.join(p,'x86','lib') for p in nidas_paths])
+        sconf = env.Configure()
+        libdir = 'lib'
+        if sconf.CheckTypeSize('void *',expect=8,language='C'):
+            libdir = 'lib64'
+        sconf.Finish()
+        env.Append(LIBPATH=[os.path.join(p, 'x86', libdir) 
+                            for p in nidas_paths])
         # The nidas library contains nidas_util already, so only the nidas
         # and nidas_dynld libraries need to be linked.  Linking nidas_util
         # causes static constructors to run multiple times (and
@@ -51,7 +57,7 @@ paths relative to the top directory.""",
         nidas_libs = ['nidas','nidas_dynld','nidas_util']
         env.Append(LIBS=nidas_libs)
         env.AppendUnique(DEPLOY_SHARED_LIBS=nidas_libs)
-        env.AppendUnique(RPATH=[os.path.join(p,'x86','lib') 
+        env.AppendUnique(RPATH=[os.path.join(p, 'x86', libdir)
                                 for p in nidas_paths])
         # env.Tool("xercesc")
 
