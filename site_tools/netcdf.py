@@ -86,8 +86,38 @@ class NetcdfPackage(Package):
             env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib')])
             env.AppendUnique(RPATH=[os.path.join(prefix,'lib')])
             env.AppendUnique(LIBPATH=['/usr/lib/netcdf-3'])
-            env.Append(LIBS=['netcdf_c++', 'netcdf', 'hdf5_hl', 'hdf5'])
-#            env.AppendUnique(DEPLOY_SHARED_LIBS=['netcdf_c\+\+', 'netcdf', 'hdf5_hl', 'hdf5'])
+
+            # Now try to check whether the HDF libraries are needed
+            # explicitly when linking with netcdf.  Use a cloned
+            # Environment so Configure does not modify the original
+            # Environment.  Also, reset the LIBS so that libraries in
+            # the original Environment do not affect the linking.  All
+            # the library link check needs is the netcdf-related
+            # libraries.
+
+            clone = env.Clone()
+            libs = ['netcdf_c++', 'netcdf']
+            clone.Replace(LIBS=libs)
+            conf = clone.Configure()
+            if not conf.CheckLib('netcdf'):
+                libs.append(['hdf5_hl', 'hdf5', 'bz2'])
+                clone.Replace(LIBS=libs)
+                if not conf.CheckLib('netcdf'):
+                    msg = "Failed to link to netcdf both with and without"
+                    msg += " explicit HDF libraries.  Check config.log."
+                    raise SCons.Errors.StopError, msg
+            env.Append(LIBS=libs)
+            conf.Finish()
+
+# Background on Configure check for netcdf linking: The first attempt
+# directly used the Environment passed in.  That works as long as the
+# Environment does not already contain dependencies (such as internal
+# project libraries) which break the linking.  The other option was to
+# create a brand new Environment.  However, if this tool is a global
+# tool, then there will be infinite recursion trying to create the new
+# Environment.  So the current approach clones the Environment, but
+# then resets the LIBS list on the assumption that none of those
+# dependencies are needed to link with netcdf.
 
 netcdf_package = NetcdfPackage()
 
