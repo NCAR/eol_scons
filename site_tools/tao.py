@@ -56,6 +56,10 @@ def tao_idl_generate(env):
 
 def generate(env):
 
+    # Require ace first, so the TAO_ROOT default can depend on it.
+    if not env.has_key(mykey):
+        env.Require(['ace', 'doxygen'])
+
     global _options
     if not _options:
         _options = env.GlobalVariables() 
@@ -64,13 +68,12 @@ def generate(env):
                                        tao_root))
     _options.Update(env)
 
-  # Use the existence of a key in the env to separate the TAO tool into
-  # what need only be applied once and what must be applied every time this
-  # tool is Require()d by another package.  Basically that means the library
-  # must always be appended; everything else happens once.
+    # Use the existence of a key in the env to separate the TAO tool
+    # into what need only be applied once and what must be applied
+    # every time this tool is Require()d by another package.
+    # Basically that means the library must always be appended;
+    # everything else happens once.
     if not env.has_key(mykey):
-        env.Require(['ace', 'doxygen'])
-    
         tao_root = env['TAO_ROOT']
         # TAO tools (like tao_idl) need TAO_ROOT set in their environment too
         env['ENV']['TAO_ROOT'] = tao_root
