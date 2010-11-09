@@ -65,6 +65,9 @@ class NetcdfPackage(Package):
 
     def require(self, env):
         "Need to add both c and c++ libraries to the environment."
+        # The netcdf tool avails itself of the settings in the
+        # prefixoptions tool, so make sure it gets required first.
+        env.Require('prefixoptions')
         Package.checkBuild(self, env)
         if env.has_key('OPT_PREFIX'):
             prefix = env['OPT_PREFIX']
