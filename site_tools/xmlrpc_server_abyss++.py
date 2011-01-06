@@ -9,7 +9,8 @@ def generate(env):
         env.ParseConfig(config_cmd + " --cflags", unique = False)
         env.ParseConfig(config_cmd + " --libs", unique = False)
     except Exception, e:
-        print "Unable to run '" + config_cmd + "'. Cannot load tool xmlrpc_server_abyss++."
+        print "Unable to run '" + config_cmd + " --libs'. Cannot load tool xmlrpc_server_abyss++."
+        print "Is package xmlrpc++ installed on this computer?"
         sys.exit(1)
 
 def exists(env):
