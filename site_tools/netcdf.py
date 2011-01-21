@@ -62,12 +62,18 @@ class NetcdfPackage(Package):
         dpf="ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-3.6.2.tar.gz"
         Package.__init__(self, "NETCDF", "INSTALL",
                          netcdf_actions, libs + headers, dpf)
+        self.settings = {}
 
     def require(self, env):
         "Need to add both c and c++ libraries to the environment."
         # The netcdf tool avails itself of the settings in the
         # prefixoptions tool, so make sure it gets required first.
         env.Require('prefixoptions')
+        if not self.settings:
+            self.calculate_settings(env)
+        self.apply_settings(env)
+
+    def calculate_settings(self, env):
         Package.checkBuild(self, env)
         if env.has_key('OPT_PREFIX'):
             prefix = env['OPT_PREFIX']
@@ -81,14 +87,13 @@ class NetcdfPackage(Package):
                      "/usr/include/netcdf" ]
         header = env.FindFile("netcdf.h", incpaths)
         if header:
-            env.AppendUnique(CPPPATH=header.get_dir().get_abspath())
+            self.settings['CPPPATH'] = [ header.get_dir().get_abspath() ]
         if self.building:
-            env.Append(LIBS=env.File(libs[0]))
-            env.Append(LIBS=env.File(libs[1]))
+            self.settings['LIBS'] = [ env.File(libs[0]), env.File(libs[1]) ]
         else:
-            env.AppendUnique(LIBPATH=[os.path.join(prefix,'lib')])
-            env.AppendUnique(RPATH=[os.path.join(prefix,'lib')])
-            env.AppendUnique(LIBPATH=['/usr/lib/netcdf-3'])
+            self.settings['LIBPATH'] = [os.path.join(prefix,'lib')]
+            self.settings['RPATH'] = [os.path.join(prefix,'lib')]
+            self.settings['LIBPATH'].append('/usr/lib/netcdf-3')
 
             # Now try to check whether the HDF libraries are needed
             # explicitly when linking with netcdf.  Use a cloned
@@ -109,8 +114,19 @@ class NetcdfPackage(Package):
                     msg = "Failed to link to netcdf both with and without"
                     msg += " explicit HDF libraries.  Check config.log."
                     raise SCons.Errors.StopError, msg
-            env.Append(LIBS=libs)
+            self.settings['LIBS'] = libs
             conf.Finish()
+
+    def apply_settings(self, env):
+        if self.settings.has_key('CPPPATH'):
+            env.AppendUnique(CPPPATH=self.settings['CPPPATH'])
+
+        env.Append(LIBS=self.settings['LIBS'])
+        if not self.building:
+            env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
+            env.AppendUnique(RPATH=self.settings['RPATH'])
+
+
 
 # Background on Configure check for netcdf linking: The first attempt
 # directly used the Environment passed in.  That works as long as the
