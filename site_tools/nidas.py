@@ -10,6 +10,19 @@ _options = None
 
 _warned_paths = {}
 
+_libsubdir = None
+
+def _get_libsubdir(env):
+    global _libsubdir
+    if not _libsubdir:
+        sconf = env.Configure()
+        _libsubdir = 'lib'
+        if sconf.CheckTypeSize('void *',expect=8,language='C'):
+            _libsubdir = 'lib64'
+        sconf.Finish()
+    return _libsubdir
+
+
 def generate(env):
     global _options
     if not _options:
@@ -43,11 +56,7 @@ paths relative to the top directory.""",
     if env.EnableNIDAS():
         env.Append(CPPPATH=[os.path.join(p,'x86','include') 
                             for p in nidas_paths])
-        sconf = env.Configure()
-        libdir = 'lib'
-        if sconf.CheckTypeSize('void *',expect=8,language='C'):
-            libdir = 'lib64'
-        sconf.Finish()
+        libdir = _get_libsubdir(env)
         env.Append(LIBPATH=[os.path.join(p, 'x86', libdir) 
                             for p in nidas_paths])
         # The nidas library contains nidas_util already, so only the nidas
@@ -59,7 +68,12 @@ paths relative to the top directory.""",
         env.AppendUnique(DEPLOY_SHARED_LIBS=nidas_libs)
         env.AppendUnique(RPATH=[os.path.join(p, 'x86', libdir)
                                 for p in nidas_paths])
-        # env.Tool("xercesc")
+        # Anything using nidas is almost guaranteed now to have to link
+        # with xerces.  Including some of the nidas headers creates direct
+        # dependencies on xercesc symbols, even though an application may
+        # not actually make any xercesc calls.  Such shared library
+        # dependencies now have to be linked explicitly.
+        env.Tool("xercesc")
 
 def exists(env):
     return True
