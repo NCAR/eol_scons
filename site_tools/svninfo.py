@@ -17,11 +17,13 @@ def svninfo_emitter(target, source, env):
     svncmd = [ env.subst("$SVN"), "info", workdir ]
     svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
     # print " ".join(svncmd)
-    svninfo = Popen(svncmd, stdout=PIPE).stdout.read()
+    child = Popen(svncmd, stdout=PIPE)
+    svninfo = child.communicate()[0]
     # print svninfo
     svnversioncmd = [ env.subst("$SVNVERSION"), "-n", workdir ]
     # print " ".join(svnversioncmd)
-    svnversion = Popen(svnversioncmd, stdout=PIPE).stdout.read()
+    child = Popen(svnversioncmd, stdout=PIPE)
+    svnversion = child.communicate()[0]
     # print svnversion
     for k in svndict.keys():
         match = re.search(r"^%s: .*$" % (k), svninfo, re.M)
