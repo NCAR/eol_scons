@@ -111,6 +111,21 @@ def GlobalVariables(cfile = None):
 # Alias for temporary backwards compatibility
 GlobalOptions = GlobalVariables
 
+_cache_variables = None
+
+def ToolCacheVariables():
+    global _cache_variables
+    if not _cache_variables:
+        cfile = "tools.cache"
+        if not cfile.startswith("/"):
+            # Turn relative config file path to absolute, relative
+            # to top directory.
+            cfile = os.path.abspath(os.path.join(__path__[0], 
+                                                 "../..", cfile))
+        _cache_variables = Variables (cfile)
+        print "Tool settings cache: %s" % (_cache_variables.files)
+    return _cache_variables
+
 # ================================================================
 # End of public interface
 # ================================================================
@@ -438,6 +453,9 @@ def _LogDebug(env, msg):
 def _GlobalVariables(env):
     return GlobalVariables()
 
+def _CacheVariables(env):
+    return ToolCacheVariables()
+
 def _GlobalTools(env):
     global _global_tools
     gkey = env.get('GLOBAL_TOOLS_KEY')
@@ -452,7 +470,17 @@ _tool_matches = None
 
 def _findToolFile(env, name):
     global _tool_matches
+    cache = ToolCacheVariables()
+    toolcache = cache.files[0]
+    cache.Add('_tool_matches')
+    cache.Update(env)
+    if _tool_matches == None and env.has_key('_tool_matches'):
+        _tool_matches = env['_tool_matches'].split()
+        print("Using %d cached tool filenames from %s" % 
+              (len(_tool_matches), toolcache))
+
     if _tool_matches == None:
+        print("Searching for tool_*.py files...")
         # Get a list of all files named "tool_<tool>.py" under the
         # top directory.
         toolpattern = re.compile("^tool_.*\.py")
@@ -464,6 +492,11 @@ def _findToolFile(env, name):
                 contents.remove('.svn')
         _tool_matches = []
         os.path.walk(env.Dir('#').get_abspath(), addMatches, _tool_matches)
+        # Update the cache
+        env['_tool_matches'] = "\n".join(_tool_matches)
+        cache.Save(toolcache, env)
+        print("Found %d tool files in source tree, cached in %s" %
+              (len(_tool_matches), toolcache))
 
     toolFileName = "tool_" + name + ".py"
     return filter(lambda f: toolFileName == os.path.basename(f), _tool_matches)
@@ -622,6 +655,7 @@ def _ExtendEnvironment(envclass):
     envclass.LogDebug = _LogDebug
     envclass.FindPackagePath = _FindPackagePath
     envclass.GlobalVariables = _GlobalVariables
+    envclass.CacheVariables = _CacheVariables
     # Alias for temporary backwards compatibility
     envclass.GlobalOptions = _GlobalVariables
     envclass.GlobalTools = _GlobalTools
