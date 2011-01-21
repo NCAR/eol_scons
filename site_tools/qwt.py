@@ -55,6 +55,7 @@ class QwtPackage(Package):
         Package.__init__(self, "QWT", ["qwt.pro"]+headers,
                          qwt_actions, libs,
                          default_package_file = "qwt-4.2.0.zip")
+        self.settings = {}
 
     def checkBuild(self, env):
         if env['PLATFORM'] == 'win32':
@@ -69,46 +70,70 @@ class QwtPackage(Package):
 
 
     def require(self, env):
+        env.Tool('download')
+        env.Tool('unpack')
+        if not self.settings:
+            self.calculate_settings(env)
+        self.apply_settings(env)
+      
 
+    def calculate_settings(self, env):
+
+        qwt_dir = find_qwtdir(env)
+        if not qwt_dir:
+            raise SCons.Errors.StopError, "Qwt not found"
         # The actual QWTDIR value to use depends upon whether qwt is being
         # built internally or not.  Check here to see if the QWTDIR option
         # points to an existing library, and if not then resort to the
         # package build location.
 
-        env.Tool('download')
-        env.Tool('unpack')
         Package.checkBuild(self, env)
-        qwt_dir = env['QWTDIR']
+        self.settings['QWTDIR'] = qwt_dir
         qwt_libdir = os.path.join(qwt_dir, lib_)
         libqwt = os.path.join(qwt_libdir, 'libqwt.so')
 
         # These settings apply whether building, locating manually, or
         # locating with pkg-config
-#        env.Append(DEPLOY_SHARED_LIBS=['qwt'])
-        # print("Appended qwt to DEPLOY_SHARED_LIBS: " +
-        #       ",".join(env['DEPLOY_SHARED_LIBS']))
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')
+        self.settings['QWT_DOXREF'] = 'qwt:' + qwt_docdir
+
+        if (qwt_dir == USE_PKG_CONFIG):
+            return
+
+        if self.building:
+            self.settings['LIBS'] = [env.File(libqwt)]
+        else:
+            self.settings['LIBS'] = ['qwt']
+            self.settings['LIBPATH'] = [qwt_libdir]
+
+        self.settings['RPATH'] = [qwt_libdir]
+        self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
+        plugindir='$QWTDIR/designer/plugins/designer'
+        self.settings['QT_UICIMPLFLAGS'] = ['-L', plugindir]
+        self.settings['QT_UICDECLFLAGS'] = ['-L', plugindir]
+
+
+    def apply_settings(self, env):
+
+        env['QWTDIR'] = self.settings['QWTDIR']
         if not env.has_key('QWT_DOXREF'):
-            env['QWT_DOXREF'] = 'qwt:' + qwt_docdir
+            env['QWT_DOXREF'] = self.settings['QWT_DOXREF']
         env.AppendDoxref(env['QWT_DOXREF'])
 
-        if (env['QWTDIR'] == USE_PKG_CONFIG):
+        if (self.settings['QWTDIR'] == USE_PKG_CONFIG):
             # Don't try here to make things unique in CFLAGS; just do an append
             env.ParseConfig('pkg-config --cflags Qwt', unique = False)
             env.ParseConfig('pkg-config --libs Qwt', unique = False)
             return
 
-        if self.building:
-            env.Append(LIBS=[env.File(libqwt)])
-        else:
-            env.Append(LIBS = ['qwt'])        
-            env.AppendUnique(LIBPATH= [qwt_libdir, ])
+        env.Append(LIBS=self.settings['LIBS'])
+        if not self.building:
+            env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
 
-        env.AppendUnique(RPATH=[qwt_libdir])
-        env.Append(CPPPATH= [os.path.join(qwt_dir, 'include'),])
-        plugindir='$QWTDIR/designer/plugins/designer'
-        env.Append(QT_UICIMPLFLAGS=['-L',plugindir])
-        env.Append(QT_UICDECLFLAGS=['-L',plugindir])
+        env.AppendUnique(RPATH=self.settings['RPATH'])
+        env.Append(CPPPATH=self.settings['CPPPATH'])
+        env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
+        env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
 
 
 qwt_package = QwtPackage()
@@ -159,10 +184,6 @@ def generate(env):
         #env.Require(['qt', 'doxygen'])
 	env.Require(['doxygen'])
         
-    qwtdir = find_qwtdir(env)
-    if not qwtdir:
-        raise SCons.Errors.StopError, "Qwt not found"
-    env['QWTDIR'] = qwtdir
     qwt_package.require(env)
     env[myKey] = True
 
