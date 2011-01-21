@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import SCons
 from SCons.Builder import Builder
 from SCons.Action import Action
@@ -25,10 +26,11 @@ def ldd(program_node, env):
     "Return a map with each dependent library name and its location."
     libraries = {}
     # Run ldd on the program
-    lddcmd = "ldd %s" % (program_node.get_abspath())
-    # print(lddcmd)
-    lddout = os.popen(lddcmd).read()
-    # print(lddout)
+    lddcmd = ["ldd", program_node.get_abspath()]
+    print(lddcmd)
+    lddprocess = subprocess.Popen(lddcmd, stdout=subprocess.PIPE)
+    lddout = lddprocess.communicate()[0]
+    print(lddout)
     # Get the list of library keys to include
     libkeys = env['DEPLOY_SHARED_LIBS']
     # print("Looking for these libraries:\n"+ "\n".join(libkeys))
@@ -53,26 +55,27 @@ def deploy_program_emitter(target, source, env):
     # thus we can't use an emitter to calculate the targets that will
     # be copied into the deploy directory.  So the only target we can
     # generate now is the copy of the program itself.
-    bindir = os.path.join(env['DEPLOY_DIRECTORY'],"bin")
-    dest = os.path.join(bindir,source[0].name)
-    return dest, source
+    bindir = os.path.join(env['DEPLOY_DIRECTORY'], "bin")
+    dest = os.path.join(bindir, source[0].name)
+    return [dest], source
 
 
-def deploy_program_generator(source, target, env, for_signature):
+def deploy_program(target, source, env):
 
     """Copy a program target into a deploy tree along with all of its
     dynamic dependencies."""
     bindir = os.path.join(env['DEPLOY_DIRECTORY'],"bin")
     libdir = os.path.join(env['DEPLOY_DIRECTORY'],"lib")
     actions = [ Mkdir(bindir), Mkdir(libdir) ]
-    progdest = os.path.join(bindir,source[0].name)
+    progdest = target[0]
     libraries = ldd(source[0], env)
     actions.append (Copy(progdest, source[0]))
     for k in libraries:
-        file = libraries[k]
-        libdest = os.path.join(libdir, file.name)
-        actions.append (Copy(libdest, file))
-    return actions
+        libfile = libraries[k]
+        libdest = os.path.join(libdir, libfile.name)
+        actions.append (Copy(libdest, libfile))
+    return env.Execute(actions)
+
 
 # 2009-09-25 GJG: The parameters for creating a global Action seem to have
 # changed.  Instead of taking a list of variables, the variables are passed
@@ -88,7 +91,7 @@ def deploy_program_generator(source, target, env, for_signature):
 # changed.  Oh well, this works for now.
 # 
 
-deploy_program_builder = Builder(generator = deploy_program_generator,
+deploy_program_builder = Builder(action = deploy_program,
                                  emitter = deploy_program_emitter)
 
 
