@@ -164,58 +164,58 @@ class _Automoc:
 AutomocShared = _Automoc('SharedObject')
 AutomocStatic = _Automoc('StaticObject')
 
+def _locateQt4Command(env, command) :
+    # Look for <command>-qt4, followed by just <command>
+    commandQt4 = command + '-qt4'
+    cmds = [commandQt4, command]
+
+    qt4BinDir = None
+    #
+    # If env['QT4DIR'] is defined, add the associated bin directory to our
+    # search path for the commands
+    #
+    if (env.has_key('QT4DIR')):
+        # If we're using pkg-config, assume all Qt4 binaries live in 
+        # <prefix_from_pkgconfig>/bin.  This is slightly dangerous,
+        # but seems to match all installation schemes I've seen so far,
+        # and the "prefix" variable appears to always be available (again,
+        # so far...).
+        if (env['QT4DIR'] == USE_PKG_CONFIG):
+            qt4Prefix = os.popen('pkg-config --variable=prefix QtCore').read().strip()
+            qt4BinDir = os.path.join(qt4Prefix, 'bin')
+        # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
+        else:
+            qt4BinDir = os.path.join(env['QT4DIR'], 'bin')
+
+    # If we built a qt4BinDir, check (only) there first for the command. 
+    # This will make sure we get e.g., <myQT4DIR>/bin/moc ahead of 
+    # /usr/bin/moc-qt4 in the case where we have a standard installation 
+    # but we're trying to use a custom one by setting QT4DIR.
+    if (qt4BinDir):
+        # check for the binaries in *just* qt4BinDir
+        shortPathEnv = env.__class__()   # new Environment of same class as env
+        shortPathEnv['ENV']['PATH'] = qt4BinDir
+        whichCmd = shortPathEnv.Detect(cmds)
+        if (whichCmd):
+            return shortPathEnv.WhereIs(whichCmd)
+
+    # Check the default path
+    whichCmd = env.Detect(cmds)
+    if (whichCmd):
+        return env.WhereIs(whichCmd) 
+    else:
+        msg = "Qt4 command " + commandQt4 + " (" + command + ")"
+        if (qt4BinDir):
+            msg += " not in " + qt4BinDir + " or in $PATH"
+        else:
+            msg += " not in $PATH"
+        raise SCons.Errors.StopError, msg
+
+
 def generate(env):
     """Add Builders and construction variables for qt4 to an Environment."""
     if env.has_key(myKey):
         return
-
-    def locateQt4Command(env, command) :
-        # Look for <command>-qt4, followed by just <command>
-        commandQt4 = command + '-qt4'
-        cmds = [commandQt4, command]
-
-        qt4BinDir = None
-        #
-        # If env['QT4DIR'] is defined, add the associated bin directory to our
-        # search path for the commands
-        #
-        if (env.has_key('QT4DIR')):
-            # If we're using pkg-config, assume all Qt4 binaries live in 
-            # <prefix_from_pkgconfig>/bin.  This is slightly dangerous,
-            # but seems to match all installation schemes I've seen so far,
-            # and the "prefix" variable appears to always be available (again,
-            # so far...).
-            if (env['QT4DIR'] == USE_PKG_CONFIG):
-                qt4Prefix = os.popen('pkg-config --variable=prefix QtCore').read().strip()
-                qt4BinDir = os.path.join(qt4Prefix, 'bin')
-            # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
-            else:
-                qt4BinDir = os.path.join(env['QT4DIR'], 'bin')
-
-        # If we built a qt4BinDir, check (only) there first for the command. 
-        # This will make sure we get e.g., <myQT4DIR>/bin/moc ahead of 
-        # /usr/bin/moc-qt4 in the case where we have a standard installation 
-        # but we're trying to use a custom one by setting QT4DIR.
-        if (qt4BinDir):
-            # check for the binaries in *just* qt4BinDir
-            shortPathEnv = env.__class__()   # new Environment of same class as env
-            shortPathEnv['ENV']['PATH'] = qt4BinDir
-            whichCmd = shortPathEnv.Detect(cmds)
-            if (whichCmd):
-                return shortPathEnv.WhereIs(whichCmd)
-
-        # Check the default path
-        whichCmd = env.Detect(cmds)
-        if (whichCmd):
-            return env.WhereIs(whichCmd) 
-        else:
-            msg = "Qt4 command " + commandQt4 + " (" + command + ")"
-            if (qt4BinDir):
-                msg += " not in " + qt4BinDir + " or in $PATH"
-            else:
-                msg += " not in $PATH"
-            raise SCons.Errors.StopError, msg
-
 
     global _options
     if not _options:
@@ -260,11 +260,11 @@ def generate(env):
         raise SCons.Errors.StopError, errmsg
 
     # the basics
-    env['QT4_MOC'] = locateQt4Command(env, 'moc')
-    env['QT4_UIC'] = locateQt4Command(env, 'uic')
-    env['QT4_RCC'] = locateQt4Command(env, 'rcc')
-    env['QT4_LUPDATE'] = locateQt4Command(env, 'lupdate')
-    env['QT4_LRELEASE'] = locateQt4Command(env, 'lrelease')
+    env['QT4_MOC'] = _locateQt4Command(env, 'moc')
+    env['QT4_UIC'] = _locateQt4Command(env, 'uic')
+    env['QT4_RCC'] = _locateQt4Command(env, 'rcc')
+    env['QT4_LUPDATE'] = _locateQt4Command(env, 'lupdate')
+    env['QT4_LRELEASE'] = _locateQt4Command(env, 'lrelease')
 
     # Should the qt4 tool try to figure out which sources are to be moc'ed ?
     env['QT4_AUTOSCAN'] = 1
