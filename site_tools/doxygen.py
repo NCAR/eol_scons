@@ -320,10 +320,10 @@ REFERENCES_RELATION = NO
     # of generating output in unusual locations, where it's up to the
     # caller of the builder to set the target correctly.
     #
-    dfile.write(env['DOXYFILE_TEXT'])
+    dfile.write(env.Subst(env['DOXYFILE_TEXT']))
 
     for k, v in env['DOXYFILE_DICT'].iteritems():
-        dfile.write ("%s = \"%s\"\n" % (k, str(v)))
+        dfile.write ("%s = \"%s\"\n" % (k, env.Subst(str(v))))
 
     dfile.close()
     if ddebug(env):
