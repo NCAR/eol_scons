@@ -39,7 +39,6 @@ Use the first coin-config found in this list of paths:
     if not env.has_key('COIN_DOXREF'):
         env['COIN_DOXREF'] = "coin:%s" % env['COIN_DOXDIR']
     env.AppendDoxref(env['COIN_DOXREF'])
-#    env.AppendUnique(DEPLOY_SHARED_LIBS=['Coin'])
 
 
 def exists(env):
