@@ -33,7 +33,7 @@ import traceback
 
 import SCons
 import SCons.Tool
-
+import SCons.Variables
 
 from SCons.Script import Variables
 from SCons.Script import Environment
@@ -113,6 +113,40 @@ GlobalOptions = GlobalVariables
 
 _cache_variables = None
 
+
+class VariableCache(SCons.Variables.Variables):
+
+    def __init__(self, path):
+        SCons.Variables.Variables.__init__(self, [path])
+        self.cfile = path
+
+    def getPath(self):
+        return self.cfile
+
+    def cacheKey(self, name):
+        return "_vcache_" + name
+
+    def lookup(self, env, name):
+        key = self.cacheKey(name)
+        if not key in self.keys():
+            self.Add(key)
+        self.Update(env)
+        value = None
+        if env.has_key(key):
+            value = env[key]
+            Debug("returning %s cached value: %s" % (key, value))
+        else:
+            Debug("no value cached for %s" % (key))
+        return value
+        
+    def store(self, env, name, value):
+        # Update the cache
+        key = self.cacheKey(name)
+        env[key] = value
+        self.Save(self.getPath(), env)
+        Debug("Updated %s to value %s" % (key, value))
+
+
 def ToolCacheVariables():
     global _cache_variables
     if not _cache_variables:
@@ -122,8 +156,8 @@ def ToolCacheVariables():
             # to top directory.
             cfile = os.path.abspath(os.path.join(__path__[0], 
                                                  "../..", cfile))
-        _cache_variables = Variables (cfile)
-        print "Tool settings cache: %s" % (_cache_variables.files)
+        _cache_variables = VariableCache (cfile)
+        print "Tool settings cache: %s" % (_cache_variables.getPath())
     return _cache_variables
 
 # ================================================================
@@ -172,11 +206,33 @@ def _library_builder_str(env):
         libmethod = "None"
     return t % (libmethod, env.get_builder('Library'))
 
+_default_tool_list = None
+
+# The first attempt by scons to build DefaultEnvironment will load the
+# eol_scons default tool, which can cause things like infinite recursion if
+# a tool causes the DefaultEnvironment() call.  To try to cut that off,
+# create the default environment here, but without any of the eol_scons
+# extensions.
+
+_scons_default_environment = None
+_creating_default_environment = False
+
+def _createDefaultEnvironment():
+
+    global _scons_default_environment
+    global _creating_default_environment
+    if (not _scons_default_environment and
+        not _creating_default_environment):
+        _creating_default_environment = True
+        _scons_default_environment = SCons.Defaults.DefaultEnvironment()
+        _creating_default_environment = False
+
+
 def _generate (env):
     """Generate the basic eol_scons customizations for the given
     environment, especially applying the scons built-in default tool
     and the eol_scons global tools."""
-
+    _createDefaultEnvironment()
     GlobalVariables().Update (env)
     if env.has_key('eolsconsdebug') and env['eolsconsdebug']:
         eol_scons.debug = True
@@ -185,13 +241,37 @@ def _generate (env):
           (name, env.Dir('#').get_abspath()))
 
     # Apply the built-in default tool before applying the eol_scons
-    # customizations and tools.
-    if env['PLATFORM'] != 'win32':
-        import SCons.Tool.default
-        SCons.Tool.default.generate(env)
-    else:
-        import SCons.Tool.mingw
-        SCons.Tool.mingw.generate(env)
+    # customizations and tools.  We only need to find the tools once, so
+    # subvert the SCons.Tool.default.generate(env) implementation with our
+    # own implementation here.  First time through, accumulate the default
+    # list of tool names, cache it for the next time around, and stash the
+    # list of instantiated default tools.  We can cache the names returned
+    # by tool_list in tools.cache, and then we can create the Tool()
+    # instances for those names and store them in a local variable for
+    # re-use on each new Environment.
+
+    global _default_tool_list
+    if _default_tool_list == None:
+
+        # See if the default list of tool names is already in the cache
+        cache = env.CacheVariables()
+        key = "_eol_scons_default_tool_names"
+        toolnames = cache.lookup(env, key)
+        if not toolnames:
+            if env['PLATFORM'] != 'win32':
+                toolnames = SCons.Tool.tool_list(env['PLATFORM'], env)
+            else:
+                toolnames = ['mingw']
+            cache.store(env, key, "\n".join(toolnames))
+        else:
+            toolnames = toolnames.split("\n")
+
+        # Now instantiate a Tool for each of the names.
+        _default_tool_list = [ SCons.Tool.Tool(t) for t in toolnames ]
+
+    # Now apply the default tools
+    for tool in _default_tool_list:
+        tool(env)
 
     # Internal includes need to be setup *before* OptPrefixSetup or any
     # other includes, so that scons will scan for headers locally first.
@@ -242,6 +322,10 @@ def _generate (env):
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
     env.PassEnv(r'CVS.*|SSH_.*')
+
+    if _creating_default_environment:
+        print("Limiting DefaultEnvironment to standard scons tools.")
+        return env
 
     # The global tools will be keyed by directory path, so they will only
     # be applied to Environments contained within that path.  Make the path
@@ -471,13 +555,13 @@ _tool_matches = None
 def _findToolFile(env, name):
     global _tool_matches
     cache = ToolCacheVariables()
-    toolcache = cache.files[0]
-    cache.Add('_tool_matches')
-    cache.Update(env)
-    if _tool_matches == None and env.has_key('_tool_matches'):
-        _tool_matches = env['_tool_matches'].split()
-        print("Using %d cached tool filenames from %s" % 
-              (len(_tool_matches), toolcache))
+    toolcache = cache.getPath()
+    if _tool_matches == None:
+        cvalue = cache.lookup(env, '_tool_matches')
+        if cvalue:
+            _tool_matches = cvalue.split("\n")
+            print("Using %d cached tool filenames from %s" % 
+                  (len(_tool_matches), toolcache))
 
     if _tool_matches == None:
         print("Searching for tool_*.py files...")
@@ -493,8 +577,7 @@ def _findToolFile(env, name):
         _tool_matches = []
         os.path.walk(env.Dir('#').get_abspath(), addMatches, _tool_matches)
         # Update the cache
-        env['_tool_matches'] = "\n".join(_tool_matches)
-        cache.Save(toolcache, env)
+        cache.store(env, '_tool_matches', "\n".join(_tool_matches))
         print("Found %d tool files in source tree, cached in %s" %
               (len(_tool_matches), toolcache))
 

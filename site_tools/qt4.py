@@ -6,6 +6,10 @@ import SCons.Node
 import SCons.Tool
 import SCons.Util
 from SCons.Variables import PathVariable
+from SCons.Script import Scanner
+
+from eol_scons.parseconfig import RunConfig
+from eol_scons.parseconfig import CheckConfig
 
 _options = None
 USE_PKG_CONFIG = "Using pkg-config"
@@ -165,6 +169,13 @@ AutomocShared = _Automoc('SharedObject')
 AutomocStatic = _Automoc('StaticObject')
 
 def _locateQt4Command(env, command) :
+    # Check the cache
+    cache = env.CacheVariables()
+    key = "qt4_" + command
+    result = cache.lookup(env, key)
+    if result:
+        return result
+
     # Look for <command>-qt4, followed by just <command>
     commandQt4 = command + '-qt4'
     cmds = [commandQt4, command]
@@ -181,7 +192,7 @@ def _locateQt4Command(env, command) :
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if (env['QT4DIR'] == USE_PKG_CONFIG):
-            qt4Prefix = os.popen('pkg-config --variable=prefix QtCore').read().strip()
+            qt4Prefix = RunConfig(env, 'pkg-config --variable=prefix QtCore')
             qt4BinDir = os.path.join(qt4Prefix, 'bin')
         # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
         else:
@@ -196,24 +207,99 @@ def _locateQt4Command(env, command) :
         shortPathEnv = env.__class__()   # new Environment of same class as env
         shortPathEnv['ENV']['PATH'] = qt4BinDir
         whichCmd = shortPathEnv.Detect(cmds)
-        if (whichCmd):
-            return shortPathEnv.WhereIs(whichCmd)
+        if whichCmd:
+            result = shortPathEnv.WhereIs(whichCmd)
 
     # Check the default path
-    whichCmd = env.Detect(cmds)
-    if (whichCmd):
-        return env.WhereIs(whichCmd) 
-    else:
+    if not result:
+        whichCmd = env.Detect(cmds)
+        if (whichCmd):
+            result = env.WhereIs(whichCmd) 
+
+    if not result:
         msg = "Qt4 command " + commandQt4 + " (" + command + ")"
         if (qt4BinDir):
-            msg += " not in " + qt4BinDir + " or in $PATH"
-        else:
-            msg += " not in $PATH"
+            msg += " not in " + qt4BinDir + ","
+        msg += " not in $PATH"
         raise SCons.Errors.StopError, msg
+
+    cache.store(env, key, result)
+    return result
+
+
+tsbuilder = None
+qmbuilder = None
+qrcscanner = None
+qrcbuilder = None
+uic4builder = None
+mocBld = None
+
+def _scanResources(node, env, path, arg):
+    contents = node.get_contents()
+    includes = qrcinclude_re.findall(contents)
+    return includes
+
+
+def create_builders():
+    global tsbuilder, qmbuilder, qrcscanner, qrcbuilder, uic4builder, mocBld
+
+    # Translation builder
+    tsbuilder = SCons.Builder.Builder(action =
+                                      '$QT4_LUPDATE $SOURCES -ts $TARGETS',
+                                      multi=1)
+    qmbuilder = SCons.Builder.Builder(action =['$QT4_LRELEASE $SOURCE',    ],
+                                      src_suffix = '.ts',
+                                      suffix = '.qm',
+                                      single_source = True)
+
+    # Resource builder
+    qrcscanner = Scanner(name = 'qrcfile',
+        function = _scanResources,
+        argument = None,
+        skeys = ['.qrc'])
+    qrcbuilder = SCons.Builder.Builder(
+        action='$QT4_RCC $QT4_QRCFLAGS $SOURCE -o $TARGET',
+        source_scanner = qrcscanner,
+        src_suffix = '$QT4_QRCSUFFIX',
+        suffix = '$QT4_QRCCXXSUFFIX',
+        prefix = '$QT4_QRCCXXPREFIX',
+        single_source = True)
+    uic4builder = SCons.Builder.Builder(action='$QT4_UIC4CMD',
+                                        src_suffix='$QT4_UISUFFIX',
+                                        suffix='$QT4_UICDECLSUFFIX',
+                                        prefix='$QT4_UICDECLPREFIX',
+                                        single_source = True)
+    mocBld = SCons.Builder.Builder(action={}, prefix={}, suffix={})
+    for h in header_extensions:
+        mocBld.add_action(h, '$QT4_MOCFROMHCMD')
+        mocBld.prefix[h] = '$QT4_MOCHPREFIX'
+        mocBld.suffix[h] = '$QT4_MOCHSUFFIX'
+    for cxx in cxx_suffixes:
+        mocBld.add_action(cxx, '$QT4_MOCFROMCXXCMD')
+        mocBld.prefix[cxx] = '$QT4_MOCCXXPREFIX'
+        mocBld.suffix[cxx] = '$QT4_MOCCXXSUFFIX'
+
+
+create_builders()
+
+
+_pkgConfigKnowsQt4 = None
+
+def checkPkgConfig(env):
+    #
+    # See if pkg-config knows about Qt4 on this system
+    #
+    global _pkgConfigKnowsQt4
+    if _pkgConfigKnowsQt4 == None:
+        check = (CheckConfig(env, 'pkg-config --exists QtCore') == 0)
+        _pkgConfigKnowsQt4 = check
+    return _pkgConfigKnowsQt4
 
 
 def generate(env):
     """Add Builders and construction variables for qt4 to an Environment."""
+
+    # Only need to setup any particular environment once.
     if env.has_key(myKey):
         return
 
@@ -223,13 +309,6 @@ def generate(env):
         _options.AddVariables(PathVariable('QT4DIR','Qt4 installation root.',None))
     _options.Update(env)
 
-    #
-    # See if pkg-config knows about Qt4 on this system
-    #
-    try:
-        pkgConfigKnowsQt4 = (os.system('pkg-config --exists QtCore') == 0)
-    except:
-        pkgConfigKnowsQt4 = 0
     # 
     # Try to find the Qt4 installation location, trying in order:
     #    o command line QT4DIR option
@@ -241,6 +320,9 @@ def generate(env):
     # top of the installation, it will be set to USE_PKG_CONFIG, or 
     # we will raise an exception.
     #
+    pkgConfigKnowsQt4 = checkPkgConfig(env)
+    # print("pkgConfigKnowsQt4 = %s" % (pkgConfigKnowsQt4))
+
     if (env.has_key('QT4DIR')):
         pass
     elif (os.environ.has_key('QT4DIR')):
@@ -288,42 +370,16 @@ def generate(env):
     env['QT4_QRCCXXSUFFIX'] = '$CXXFILESUFFIX'
     env['QT4_QRCCXXPREFIX'] = 'qrc_'
 
-    # Translation builder
-    tsbuilder = SCons.Builder.Builder(action ='$QT4_LUPDATE $SOURCES -ts $TARGETS',
-                                      multi=1)
     env.Append( BUILDERS = { 'Ts': tsbuilder } )
-    qmbuilder = SCons.Builder.Builder(action =['$QT4_LRELEASE $SOURCE',    ],
-                                      src_suffix = '.ts',
-                                      suffix = '.qm',
-                                      single_source = True)
     env.Append( BUILDERS = { 'Qm': qmbuilder } )
 
-    # Resource builder
-    def scanResources(node, env, path, arg):
-        contents = node.get_contents()
-        includes = qrcinclude_re.findall(contents)
-        return includes
-    qrcscanner = env.Scanner(name = 'qrcfile',
-        function = scanResources,
-        argument = None,
-        skeys = ['.qrc'])
-    qrcbuilder = SCons.Builder.Builder(action ='$QT4_RCC $QT4_QRCFLAGS $SOURCE -o $TARGET',
-                                       source_scanner = qrcscanner,
-                                       src_suffix = '$QT4_QRCSUFFIX',
-                                       suffix = '$QT4_QRCCXXSUFFIX',
-                                       prefix = '$QT4_QRCCXXPREFIX',
-                                       single_source = True)
+    env.Append(SCANNERS = qrcscanner)
     env.Append( BUILDERS = { 'Qrc': qrcbuilder } )
 
     # Interface builder
     env['QT4_UIC4CMD'] = [
         SCons.Util.CLVar('$QT4_UIC $QT4_UICDECLFLAGS -o ${TARGETS[0]} $SOURCE'),
         ]
-    uic4builder = SCons.Builder.Builder(action='$QT4_UIC4CMD',
-                                        src_suffix='$QT4_UISUFFIX',
-                                        suffix='$QT4_UICDECLSUFFIX',
-                                        prefix='$QT4_UICDECLPREFIX',
-                                        single_source = True)
     env.Append( BUILDERS = { 'Uic4': uic4builder } )
 
     # Metaobject builder
@@ -332,15 +388,6 @@ def generate(env):
     env['QT4_MOCFROMCXXCMD'] = [
         SCons.Util.CLVar('$QT4_MOC $QT4_MOCFROMCXXFLAGS -o ${TARGETS[0]} $SOURCE'),
         SCons.Action.Action(_checkMocIncluded,None)]
-    mocBld = SCons.Builder.Builder(action={}, prefix={}, suffix={})
-    for h in header_extensions:
-        mocBld.add_action(h, '$QT4_MOCFROMHCMD')
-        mocBld.prefix[h] = '$QT4_MOCHPREFIX'
-        mocBld.suffix[h] = '$QT4_MOCHSUFFIX'
-    for cxx in cxx_suffixes:
-        mocBld.add_action(cxx, '$QT4_MOCFROMCXXCMD')
-        mocBld.prefix[cxx] = '$QT4_MOCCXXPREFIX'
-        mocBld.suffix[cxx] = '$QT4_MOCCXXSUFFIX'
     env.Append( BUILDERS = { 'Moc4': mocBld } )
 
     # er... no idea what that was for
@@ -379,9 +426,10 @@ def enable_modules(self, modules, debug=False) :
                 # 'pkg-config --variable=headerdir Qt'. If that's empty 
                 # (this happens on CentOS 5 systems...), try 
                 # 'pkg-config --variable=prefix QtCore' and append '/include'.
-                hdir = os.popen('pkg-config --variable=headerdir Qt').read().strip()
+                hdir = RunConfig(self, 'pkg-config --variable=headerdir Qt')
                 if (hdir == ''):
-                    prefix = os.popen('pkg-config --variable=prefix QtCore').read().strip()
+                    prefix = RunConfig(self, 
+                                       'pkg-config --variable=prefix QtCore')
                     if (prefix == ''):
                         print('Unable to build Qt header dir for adding module ' +
                               module)
@@ -389,11 +437,12 @@ def enable_modules(self, modules, debug=False) :
                         sys.exit(1)
                     hdir = os.path.join(prefix, 'include')
 
-                if (os.system('pkg-config --exists ' + module) == 0):
+                if (CheckConfig(self, 'pkg-config --exists ' + module) == 0):
                     # Don't try here to make things unique in LIBS and
                     # CFLAGS; just do a simple append
-                    self.ParseConfig('pkg-config --libs --cflags ' + module, 
-                                     unique = False)
+                    flags = RunConfig(self, 
+                                      'pkg-config --libs --cflags ' + module)
+                    self.MergeFlags(flags, unique=0)
                 else:
                     # warn if we haven't already
                     if not (module in no_pkgconfig_warned):
