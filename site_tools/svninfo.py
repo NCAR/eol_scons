@@ -1,72 +1,219 @@
 import os
 import re
 import SCons
+import traceback
+import sys
+
 from SCons.Builder import Builder
 from SCons.Action import Action
 from SCons.Node import FS
 from SCons.Node.Python import Value
 from subprocess import *
 
-def svninfo_emitter(target, source, env):
-    """Given an argument for svn info in the first source, replace that
-    source with a Value() node with the svn info contents."""
-    svndict = { "Revision":None, "Last Changed Date":None, "URL":None }
-    workdir = source[0].get_abspath()
-    if FS.default_fs.isfile(workdir):
-        workdir = source[0].dir.get_abspath()
+_debug = 0
+
+def _find_svn_files(path):
+    found = []
+    for root, dirs, files in os.walk(path):
+        # Look for the svn subdir first.
+        svndirs = [ d for d in dirs if d in ['.svn', '_svn'] ]
+        for d in svndirs:
+            dirs.remove(d)
+            for f in [ 'entries', 'all-wcprops' ]:
+                path = os.path.normpath(os.path.join(root, d, f))
+                if os.path.exists(path):
+                    found.append(path)
+    return found
+
+
+def _get_workdir(source):
+    workdir = source[0]
+    if workdir.isfile():
+        workdir = workdir.get_dir()
+    if workdir.name in ['.svn', '_svn']:
+        workdir = workdir.get_dir()
+    if _debug: 
+        print ("get_workdir(%s) ==> %s" % 
+               (str(source[0]), workdir.get_abspath()))
+    return workdir.get_abspath()
+
+
+def svninfo_emitter_svnfiles(target, source, env):
+    """
+    Given an argument for svn info in the first source, return the svn
+    admin files as sources, so that svn info and svnversion do not need to
+    be run unless something in the svn admin files has changed.
+    """
+    workdir = _get_workdir(source)
+    cache = env.CacheVariables()
+    key = "svninfo_files" + re.sub(r'[^\w]', '_', workdir)
+    svnfiles = cache.lookup(env, key)
+    if not svnfiles:
+        svnfiles = _find_svn_files(workdir)
+        cache.store(env, key, "\n".join(svnfiles))
+    else:
+        svnfiles = svnfiles.split("\n")
+    if _debug:
+        print("svninfo_emitter: found %d svn admin files" % (len(svnfiles)))
+    if _debug: sys.stdout.writelines(traceback.format_stack())
+    return target, svnfiles
+
+
+def _generateHeader(env, workdir):
+    """Run svn info and svnversion to generate the header text."""
+    if _debug: print("_generateHeader()")
     svncmd = [ env.subst("$SVN"), "info", workdir ]
+    svndict = { "Revision":None, "Last Changed Date":None, "URL":None }
     svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
-    # print " ".join(svncmd)
+    if _debug: print " ".join(svncmd)
     child = Popen(svncmd, stdout=PIPE)
     svninfo = child.communicate()[0]
-    # print svninfo
+    if _debug: print svninfo
     svnversioncmd = [ env.subst("$SVNVERSION"), "-n", workdir ]
-    # print " ".join(svnversioncmd)
+    if _debug: print " ".join(svnversioncmd)
     child = Popen(svnversioncmd, stdout=PIPE)
     svnversion = child.communicate()[0]
-    # print svnversion
+    if _debug: print svnversion
     for k in svndict.keys():
         match = re.search(r"^%s: .*$" % (k), svninfo, re.M)
         if (match):
             svndict[k] = match.group()
     svndict.update ( {'workdir':workdir} )
     svndict['Revision'] = svnversion
-    env['SVNREVISION'] = svndict['Revision'].strip()
-    env['SVNLASTCHANGEDDATE'] = svndict['Last Changed Date'].strip()
-    env['SVNURL'] = svndict['URL'].strip()
-    env['SVNWORKDIRSPEC'] = svndict['Working Directory'].replace('\\', '/').strip()
-    env['SVNWORKDIR'] = svndict['workdir'].replace('\\', '/').strip()
-    svnheader = env.subst(
-"""
+    for k, v in svndict.items():
+        svndict[k] = v.replace('\\', '/').strip()
+    svnheader = """
 #ifndef SVNINFOINC
 #define SVNINFOINC
-#define SVNREVISION \"$SVNREVISION\"
-#define SVNLASTCHANGEDDATE \"$SVNLASTCHANGEDDATE\"
-#define SVNURL \"$SVNURL\"
-#define SVNWORKDIRSPEC \"$SVNWORKDIRSPEC\"
-#define SVNWORKDIR \"$SVNWORKDIR\"
+#define SVNREVISION \"%(Revision)s\"
+#define SVNLASTCHANGEDDATE \"%(Last Changed Date)s\"
+#define SVNURL \"%(URL)s\"
+#define SVNWORKDIRSPEC \"%(Working Directory)s\"
+#define SVNWORKDIR \"%(workdir)s\"
 #endif
-""")
-    # print svnheader
-    return target, [Value(svnheader)]
+""" % svndict
+    if _debug: print svnheader
+    return svnheader
 
-def svninfo_build(env, target, source):
+def _apply_header(env, header):
+    "Apply settings in the header to the environment."
+    print("Applying svn variables from %s" % (header))
+    hin = open(header, "r")
+    lines = hin.readlines()
+    hin.close()
+    for line in lines:
+        match = re.search(r"^#define (\w+) \"(.*)\"$", line)
+        if (match):
+            k = match.group(1)
+            v = match.group(2)
+            env[k] = v
+            if _debug: print("  %s = %s" % (k, v))
+
+
+def svninfo_emitter_value(target, source, env):
+    """Given an argument for svn info in the first source, replace that
+    source with a Value() node with the svn info contents."""
+    workdir = _get_workdir(source)
+    return target, [Value(_generateHeader(env, workdir))]
+
+def svninfo_build_value(env, target, source):
+    "Build header based on contents in the source."
     out = open(target[0].path, "w")
     out.write(source[0].get_contents())
     out.write("\n")
     out.close()
 
-action = Action(svninfo_build, lambda t,s,e: "Generating %s"%t[0])
+def svninfo_build_svnfiles(env, target, source):
+    "Build header by generating it now."
+    out = open(target[0].get_abspath(), "w")
+    workdir = _get_workdir(source)
+    out.write(_generateHeader(env, workdir))
+    out.write("\n")
+    out.close()
 
-svninfobuilder = Builder(action = action,
-                         source_factory = FS.default_fs.Entry,
-                         emitter = svninfo_emitter)
+# svninfobuilder = Builder(
+#     action = Action(svninfo_build_value, lambda t,s,e: "Generating %s"%t[0]),
+#     source_factory = FS.default_fs.Entry,
+#     emitter = svninfo_emitter_value)
+
+
+svninfobuilder = Builder(
+    action = Action(svninfo_build_svnfiles,
+                    lambda t,s,e: "Generating %s"%t[0]),
+    source_factory = FS.default_fs.Entry,
+    emitter = svninfo_emitter_svnfiles)
+
 
 class SvnInfoWarning(SCons.Warnings.Warning):
     pass
 
+
+_svninfonode = None
+
+
+def SvnInfo(env, target, source):
+    """Wrapper method to create a builder for the target header."""
+    # A top-level svnInfo.h file is generated implicitly by the svninfo
+    # tool, and usually this is enough.  Call this builder from a
+    # SConscript file to create additional header files which perhaps
+    # depend only upon a subdirectory of the project.  However, to set
+    # those variables correctly, the header file must be generated
+    # immediately in case svnversion and svn info need to be run.  All this
+    # is to avoid running 'svn info' and 'svnversion' unless really
+    # necessary.
+    #
+    # As a special porting case, ignore any explicit requests to build the
+    # same file as the implicit header.
+    global _svninfonode
+    if _debug: print("SvnInfo(%s,%s)" % (str(target), str(source)))
+    if _debug:
+        print("target=%s, svninfonode=%s" % (str(target), str(_svninfonode)))
+    if _debug: sys.stdout.writelines(traceback.format_stack())
+    if _svninfonode and str(target) == str(_svninfonode):
+        print("SvnInfo: %s is already an implicit target." % str(target))
+        return [_svninfonode]
+    node = env.SvnInfoBuilder(target, source)[0]
+    # In building this node, scons calls
+    # SCons.Defaults.DefaultEnvironment(), which creates a default
+    # Environment, which recursively enters eol_scons._generate() and may
+    # require this module again.  Therefore we need to guard against that
+    # by updating _svninfonode here, before running the build.
+    if not _svninfonode:
+        _svninfonode = node
+    tm = SCons.Taskmaster.Taskmaster([node], SCons.Script.Main.BuildTask)
+    SCons.Script.Main.BuildTask.options = SCons.Script.Main.OptionsParser.values
+    jobs = SCons.Job.Jobs(1, tm)
+    jobs.run()
+    # node.make_ready()
+    # if node.changed():
+    #     print("%s needs to be rebuilt..." % (node.get_abspath()))
+    #     print(node.explain())
+    #     node.prepare()
+    #     node.build()
+    #     node.built()
+    # else:
+    #     print("%s has no changes" % (str(node)))
+
+    # Now update the environment with whatever settings are in that header
+    # file.
+    _apply_header(env, node.get_abspath())
+    return [node]
+
+
 def generate(env):
-    env['BUILDERS']['SvnInfo'] = svninfobuilder
+    """
+    Add svn info and version for the top directory to the environment, and
+    provide a builder for generating a header file with the definitions.
+    """
+    # We need the most current svn info at this point to add it to the
+    # environment.  We cannot rely on a regular builder to generate the
+    # information by running svnversion later, because by then it is too
+    # late.  To cache the version info between runs and between
+    # applications of the svninfo tool, we use a single implicit builder
+    # for a top-level header file.
+
+    if _debug: print("svninfo: generate()")
+    env['BUILDERS']['SvnInfoBuilder'] = svninfobuilder
     env['SVN'] = "svn"
     env['SVNVERSION'] = "svnversion"
     # Use the default location for the subversion Windows installer.
@@ -74,6 +221,19 @@ def generate(env):
         svnbin=r'c:\Program Files\Svn'
         env['SVN'] = os.path.join(svnbin, "svn")
         env['SVNVERSION'] = os.path.join(svnbin, "svnversion")
+    env.AddMethod(SvnInfo, 'SvnInfo')
+
+    global _svninfonode
+    if _svninfonode == None:
+        if _debug: print("svninfo: creating implicit svnInfo.h")
+        _svninfonode = env.SvnInfo('svnInfo.h', '#')[0]
+
+    else:
+        if _debug: print("svninfo: applying existing svnInfo.h")
+        # The header has already been created and updated,
+        # so just update the environment with the settings.
+        _apply_header(env, _svninfonode.get_abspath())
+
 
 def exists(env):
     svn = env.WhereIs('svn')
