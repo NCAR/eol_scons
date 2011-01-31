@@ -1,3 +1,4 @@
+# -*- python -*-
 import os
 import string
 from eol_scons import parseconfig
