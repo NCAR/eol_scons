@@ -1,3 +1,36 @@
+# -*- python -*-
+"""
+Provide Subversion construction variables derived from 'svnversion' and
+'svn info', and provide a builder wrapper for generating a header file
+with definitions for those values.
+"""
+
+# This tool works by first creating a default, top-level header target
+# which contains the version settings and depends upon key svn
+# administration files in the source tree.  The point is to avoid running
+# 'svn info' and 'svnversion' unless something has changed which would
+# change the svnversion output.  svnverion can be slow to run since it must
+# scan the whole source tree for svn version info and modified versioned
+# files.  Since the version settings need to be applied to the environment
+# when this tool is applied, and since other scons targets rely on those
+# settings being current, this tool actually runs the SCons Taskmaster to
+# update the implicit header node once it has been defined.  SCons seems to
+# be able to detect whether svnversion needs to be updated faster than
+# running svnversion by default.
+
+# NOTE: The svn admin files change if there is an svn operation like update,
+# commit, add, or delete.  However, after an update or commit to a clean
+# checkout, the svnversion is R, unmodified.  Then a file is modified
+# outside of svn, making the svnversion Rm, but svnversion will not be
+# re-run because none of the svn admin files changed.  All the svn-versioned
+# files in the tree could be added as dependencies of svninfo, similar to
+# the svn admin dependencies, or perhaps even in place of the svnadmin
+# dependencies.  However, then svnversion gets rerun each time any file
+# changes, even though the version output won't actually change.  It's like
+# the dependencies need to be different if the tree is 'clean' or not.  If
+# it's clean, the dependencies are all the source files.  If not, the
+# dependencies are all the svn admin files.
+
 import os
 import re
 import SCons
