@@ -1,3 +1,4 @@
+# -*- python -*-
 import re
 import os
 
@@ -320,14 +321,11 @@ def generate(env):
     # top of the installation, it will be set to USE_PKG_CONFIG, or 
     # we will raise an exception.
     #
-    pkgConfigKnowsQt4 = checkPkgConfig(env)
-    # print("pkgConfigKnowsQt4 = %s" % (pkgConfigKnowsQt4))
-
     if (env.has_key('QT4DIR')):
         pass
     elif (os.environ.has_key('QT4DIR')):
         env['QT4DIR'] = os.environ['QT4DIR']
-    elif pkgConfigKnowsQt4:
+    elif checkPkgConfig(env):
         env['QT4DIR'] = USE_PKG_CONFIG
     else:
         moc = env.WhereIs('moc-qt4') or env.WhereIs('moc')
