@@ -455,7 +455,10 @@ def enable_modules(self, modules, debug=False) :
                 # Module library directory can apparently be either 
                 # <QT4DIR>/lib/<module> or just <QT4DIR>/lib.  Use the longer
                 # one if the directory exists, otherwise the shorter one...
-                libpath = os.path.join(self['QT4DIR'], 'lib')
+                if os.path.exists('/usr/lib64/qt4'):
+                    libpath = os.path.join(self['QT4DIR'], 'lib64')
+                else:
+                    libpath = os.path.join(self['QT4DIR'], 'lib')
                 longpath = os.path.join(libpath, module)
                 if os.path.isdir(longpath):
                     libpath = longpath
