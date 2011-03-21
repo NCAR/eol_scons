@@ -35,7 +35,7 @@ def OptPrefixSetup(env):
         # will be found first and used.
         env.PrependENVPath('PATH', opt_bin)
     if os.path.exists(opt_lib):
-        env.AppendUnique(RPATH=opt_lib)
+        env.AppendUnique(RPATH=[opt_lib])
         env.AppendUnique(LIBPATH=[opt_lib] )
     if os.path.exists(opt_inc):
         env.AppendUnique(CPPPATH=[opt_inc] )
