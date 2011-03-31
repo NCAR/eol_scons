@@ -452,12 +452,16 @@ def enable_modules(self, modules, debug=False) :
                     # Add -I<Qt4HeaderDir>/<module>
                     self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
             else:
-                # Module library directory can apparently be either 
-                # <QT4DIR>/lib/<module> or just <QT4DIR>/lib.  Use the longer
-                # one if the directory exists, otherwise the shorter one...
-                if os.path.exists('/usr/lib64/qt4'):
-                    libpath = os.path.join(self['QT4DIR'], 'lib64')
-                else:
+                # Module library directory can apparently be either
+                # <QT4DIR>/lib/<module> or just <QT4DIR>/lib.  Use the
+                # longer one if the directory exists, otherwise the shorter
+                # one...  Likewise use the lib64 prefix if it exists, since
+                # system installations on 64-bit hosts may only be
+                # accessible in /usr/lib64/qt4/lib64.  Otherwise resort to
+                # the usual 'lib' subdir, which sometimes exists even on
+                # x86_64 .
+                libpath = os.path.join(self['QT4DIR'], 'lib64')
+                if not os.path.exists(libpath):
                     libpath = os.path.join(self['QT4DIR'], 'lib')
                 longpath = os.path.join(libpath, module)
                 if os.path.isdir(longpath):
