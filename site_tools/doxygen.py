@@ -11,29 +11,46 @@ from SCons.Node import FS
 import fnmatch
 from fnmatch import fnmatch
 
+_debug = False
+
+def apidocssubdir(node):
+    if not node.isdir():
+        node = node.get_dir()
+    top = node.Dir('#')
+    if ddebug():
+        print('top=%s' % str(top))
+    if node == top:
+        subdir = 'root'
+    else:
+        subdir = str(node.get_path(top))
+    subdir = string.replace(subdir, '/', '_')
+    if ddebug():
+        print("apidocssubdir(%s) ==> %s" % (str(node), subdir))
+    return subdir
+
+
 def tagfile (node):
     """
     Construct the name of the tag file for the source directory
     in the given node.
     """
-    top = node.get_dir().Dir('#')
-    if node.get_dir() == top:
-        subdir = 'root'
-    else:
-        subdir = str(node.get_dir().get_path(top))
-    qtag = string.replace(subdir, '/', '_') + '.tag'
+    subdir = apidocssubdir(node)
+    qtag = subdir + '.tag'
+    if ddebug():
+        print("tagfile(%s) ==> %s" % (str(node), qtag))
     return qtag
 
 
 def apidocsdir(env):
+    subdir = apidocssubdir(env.Dir('.'))
+    docsdir = os.path.join(env['APIDOCSDIR'], subdir)
+    if ddebug():
+        print("apidocsdir(%s) ==> %s" % (str(env.Dir('.')), str(docsdir)))
+    return docsdir
 
-    subdir = str(env.Dir('.').get_path(env.Dir('#')))
-    subdir = string.replace(subdir, '/', '_')
-    return os.path.join(env['APIDOCSDIR'],subdir)
 
-
-def ddebug(env):
-    return env.has_key('DOXYGEN_DEBUG')
+def ddebug():
+    return _debug
 
 
 def CheckMissingHeaders(subdir, doxfiles, ignores):
@@ -58,8 +75,8 @@ def CheckMissingHeaders(subdir, doxfiles, ignores):
     missing = [ f for f in found if f not in known ]
     missing.sort()
     if len(missing) > 0:
-        print "Header files missing in "+subdir+":"
-        print "  "+"\n  ".join(missing)
+        print("Header files missing in "+subdir+":")
+        print("  "+"\n  ".join(missing))
     return missing
 
 
@@ -71,17 +88,18 @@ def Doxyfile_Emitter (target, source, env):
     Dependencies on external HTML documentation references are also
     appended to the source list.
     """
-    if ddebug(env):
-        print "doxyfile_emitter:"
+    if ddebug():
+        print("doxyfile_emitter:")
     try:
         source.extend ([env.File (env['DOXYFILE_FILE'])])
-        if ddebug(env):
+        if ddebug():
             print("added Doxyfile dependency: " + str(source[-1]))
     except KeyError:
         pass
     outputdir = str(target[0].get_dir())
-    if ddebug(env):
-        print ("DOXREF=", env['DOXREF'])
+    if ddebug():
+        print("outputdir='%s'" % outputdir)
+        print("DOXREF=%s" % (env['DOXREF']))
     for tag in env['DOXREF']:
         i = string.find(tag,':')
         if i > 0:
@@ -89,8 +107,8 @@ def Doxyfile_Emitter (target, source, env):
         qtag=string.replace(tag,"/","_")
         indexpath="%s/../%s/html/index.html" % (outputdir, qtag)
         source.append (env.File(indexpath))
-        if ddebug(env):
-            print "added doxref dependency: ", str(source[-1])
+        if ddebug():
+            print("added doxref dependency: %s" % str(source[-1]))
 
     return target, source
     
@@ -152,11 +170,11 @@ def Doxyfile_Builder (target, source, env):
     set explicitly, they are given defaults in the Doxyfile.
     
     PROJECT_NAME        Title of project, defaults to the source directory.
-    PROJECT_VERSION     Version string for the project.  Defaults to 1.0
+    PROJECT_NUMBER      Version string for the project.  Defaults to 1.0
 
     """ 
 
-    if ddebug(env):
+    if ddebug():
         print("entering Doxyfile_Builder...")
     topdir = target[0].Dir('#')
     subdir = source[0].get_dir()
@@ -180,7 +198,7 @@ def Doxyfile_Builder (target, source, env):
     except:
         if not os.access(docsdir, os.W_OK): throw
 
-    print docsdir + " exists"
+    print(docsdir + " exists")
 
     dfile = file(str(target[0]),"w")
     # These are defaults that any of the customization methods can override
@@ -246,7 +264,9 @@ REFERENCES_RELATION = NO
     #
     dfile.write("INPUT                  = \\\n")
     for s in source:
-        if not doxyfile or s.path != doxyfile.path:
+        # Source files named Doxyfile or index.html are not inputs.
+        if ((not doxyfile or s.path != doxyfile.path) and 
+            (s.name != 'index.html')):
             dfile.write ("%s \\\n" % s.get_path())
             
     dfile.write ("\n")
@@ -273,7 +293,7 @@ REFERENCES_RELATION = NO
     # path to the html files.
 
     doxref = env['DOXREF']
-    print "Parsing DOXREF for tag references: ", doxref
+    print("Parsing DOXREF for tag references: %s" % (str(doxref)))
     tagfiles={}
     for tag in doxref:
         i = string.find(tag,':')
@@ -284,7 +304,7 @@ REFERENCES_RELATION = NO
             tagpath=qtag
             if os.path.exists(tagpath):
                 tagfiles[tag] = "%s=%s" % (tagpath, docpath)
-                print "Using explicit doxref: "+tagfiles[tag]
+                print("Using explicit doxref: %s" % tagfiles[tag])
                 continue
 
         qtag=string.replace(qtag,"/","_")
@@ -300,17 +320,17 @@ REFERENCES_RELATION = NO
             topdocpath=os.path.join(docsdir, docpath)
             toptagdir=os.path.join(tagdir)
             if os.access(toptagpath, os.R_OK):
-                print "+ %s exists." % toptagpath
+                print("+ %s exists." % toptagpath)
             else:
-                print "+ Creating tag file %s (%s)." % (tagpath, docpath)
+                print("+ Creating tag file %s (%s)." % (tagpath, docpath))
                 try:
-                    print "mkdir ", toptagdir
+                    print("mkdir %s" % toptagdir)
                     os.makedirs(toptagdir)
                 except:
                     if not os.access(toptagdir, os.W_OK): raise
                 os.symlink (docpath, "%s/html" % tagdir)
                 doxytag = "doxytag -t %s %s" % (tagpath, docpath)
-                print doxytag
+                print(doxytag)
                 os.system (doxytag)
         
     if len(tagfiles) > 0:
@@ -326,7 +346,7 @@ REFERENCES_RELATION = NO
         dfile.write ("%s = \"%s\"\n" % (k, env.subst(str(v))))
 
     dfile.close()
-    if ddebug(env):
+    if ddebug():
         print("leaving Doxyfile_Builder.")
     return None
 
@@ -358,15 +378,15 @@ def Doxygen_Emitter (target, source, env):
     If an explicit target location has been specified (as in it hasn't
     defaulted to be the same as the source), then use that target.
     """
-    if ddebug(env):
+    if ddebug():
         print("entering Doxygen_Emitter")
     outputdir = str(source[0].get_dir())
     t = target
     if str(target[0]) == str(source[0]):
         t = [ env.File(os.path.join (outputdir, "html", "index.html")) ]
-        if ddebug(env):
-            print "doxygen_emitter: target set to ", str(t[0])
-    if ddebug(env):
+        if ddebug():
+            print("doxygen_emitter: target set to %s" % (str(t[0])))
+    if ddebug():
         print("leaving Doxygen_Emitter")
     return t, source
     
