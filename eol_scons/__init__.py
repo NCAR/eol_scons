@@ -380,10 +380,10 @@ def _PassEnv(env, regexp):
 
 
 def _Require(env, tools):
-    Debug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]))
     applied = []
     if not isinstance(tools,type([])):
         tools = [ tools ]
+    Debug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]))
     for t in tools:
         tool = env.Tool(t)
         if tool:
