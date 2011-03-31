@@ -415,6 +415,7 @@ def SetDoxref(env, name, tagfile, url):
 def generate(env):
     """Add builders and construction variables for DOXYGEN."""
     # print "doxygen.generate(%s)" % env.Dir('.').get_path(env.Dir("#"))
+    env.Require('prefixoptions')
     env['BUILDERS']['Doxyfile'] = doxyfile_builder
     env['BUILDERS']['Doxygen'] = doxygen_builder
     env.SetDefault(DOXREF=[])
