@@ -70,6 +70,24 @@ def _get_workdir(source):
                (str(source[0]), workdir.get_abspath()))
     return workdir.get_abspath()
 
+# Return a list of svn:externals subdirectories relative to the given working
+# directory
+def _getExternals(env, workdir):
+    svncmd = [env.subst("$SVN"), 'status', workdir]
+    child = Popen(svncmd, stdout=PIPE)
+    svnstatus = child.communicate()[0].split('\n')
+    externals = []
+    for line in svnstatus:
+        # 'svn status' lines which start with 'X' are externals
+        if re.match('^X', line):
+            subdir = re.sub('^X +', '', line)
+            # remove the working directory from the subdir
+            relativeSubdir = subdir.replace(workdir, '', 1)
+            # then remove leading directory separator character, if any
+            relativeSubdir = re.sub('^\\' + os.sep, '', relativeSubdir)
+            externals += [relativeSubdir]
+    print externals
+    return externals
 
 def svninfo_emitter_svnfiles(target, source, env):
     """
@@ -96,12 +114,14 @@ def _generateHeader(env, workdir):
     """Run svn info and svnversion to generate the header text."""
     if _debug: print("_generateHeader()")
     svncmd = [ env.subst("$SVN"), "info", workdir ]
-    svndict = { "Revision":None, "Last Changed Date":None, "URL":None }
+    svndict = { "Revision":None, "Last Changed Date":None, "URL":None, 
+               "ExternalRevs":None }
     svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
     if _debug: print " ".join(svncmd)
     child = Popen(svncmd, stdout=PIPE)
     svninfo = child.communicate()[0]
     if _debug: print svninfo
+    
     svnversioncmd = [ env.subst("$SVNVERSION"), "-n", workdir ]
     if _debug: print " ".join(svnversioncmd)
     child = Popen(svnversioncmd, stdout=PIPE)
@@ -113,12 +133,27 @@ def _generateHeader(env, workdir):
             svndict[k] = match.group()
     svndict.update ( {'workdir':workdir} )
     svndict['Revision'] = svnversion
+    
+    externals = _getExternals(env, workdir)
+    svnExternRevs = ""
+    for subdir in externals:
+        subdirPath = os.path.join(workdir, subdir)
+        svnversioncmd = [ env.subst("$SVNVERSION"), "-n", subdirPath ]
+        child = Popen(svnversioncmd, stdout=PIPE)
+        svnversion = child.communicate()[0]
+        if subdir != externals[0]:
+            svnExternRevs += ","
+        svnExternRevs += subdir + ":" + svnversion
+        if _debug: print svnExternRevs
+    svndict['ExternalRevs'] = svnExternRevs
+    
     for k, v in svndict.items():
         svndict[k] = v.replace('\\', '/').strip()
     svnheader = """
 #ifndef SVNINFOINC
 #define SVNINFOINC
 #define SVNREVISION \"%(Revision)s\"
+#define SVNEXTERNALREVS \"%(ExternalRevs)s\"
 #define SVNLASTCHANGEDDATE \"%(Last Changed Date)s\"
 #define SVNURL \"%(URL)s\"
 #define SVNWORKDIRSPEC \"%(Working Directory)s\"
