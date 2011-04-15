@@ -86,7 +86,6 @@ def _getExternals(env, workdir):
             # then remove leading directory separator character, if any
             relativeSubdir = re.sub('^\\' + os.sep, '', relativeSubdir)
             externals += [relativeSubdir]
-    print externals
     return externals
 
 def svninfo_emitter_svnfiles(target, source, env):
