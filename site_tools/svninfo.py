@@ -83,6 +83,8 @@ def _getExternals(env, workdir):
             subdir = re.sub('^X +', '', line)
             # remove the working directory from the subdir
             relativeSubdir = subdir.replace(workdir, '', 1)
+            # remove the trailing cr, found on windows systems
+            relativeSubdir = re.sub('\r','',relativeSubdir)
             # then remove leading directory separator character, if any
             relativeSubdir = re.sub('^\\' + os.sep, '', relativeSubdir)
             externals += [relativeSubdir]
