@@ -10,6 +10,7 @@ from SCons.Action import Action
 from subprocess import Popen,PIPE
 
 
+
 _options = None
 
 def findMex(env):
@@ -39,22 +40,20 @@ def getMexPath(env):
     return mex
 
 def generate(env):
-    bld = Builder(action = 'mex $SOURCE -o $TARGET')
-    env['BUILDERS']['MEX'] = bld
-#    cmd = ['echo','matlab', '-nodisplay', '-nojvm', '-r', '"mexext;quit"'] 
-#    cmd = ['matlab', '-nodisplay', '-nojvm', '-r', '\"mexext;quit\"'] 
- 
-    # since I'm having problems passing thru 'mexext;quit' as command line arguments
-    # supply them on standard input
     cmd = ['matlab', '-nodisplay', '-nojvm' ]
     # invoke matlab
     p1 = Popen(cmd,stdin=PIPE,stdout=PIPE)
     os.write(p1.stdin.fileno(), "mexext\n")
     os.write(p1.stdin.fileno(), "quit\n")
-    # invoke grep to retrieve the extension
+    # now, invoke grep to retrieve the extension
     p2 = Popen(['grep', 'mex'], stdin=p1.stdout, stdout=PIPE)
 
-    env['MEX_EXT']  = p2.communicate()[0][:-1]
+    mexext = p2.communicate()[0][:-1]
+    env['MEX_EXT']  = mexext
+
+    bld = Builder(action = '%s $SOURCE -o $TARGET' % getMexPath(env),
+                  suffix=mexext)
+    env['BUILDERS']['MEX'] = bld
 
 
 
