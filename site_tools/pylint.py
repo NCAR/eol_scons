@@ -3,7 +3,7 @@ import os
 import re
 
 pylint = "${PYLINTPYTHONPATH and 'env PYTHONPATH='+PYLINTPYTHONPATH or ''} "
-pylint += "${PYLINT} "
+pylint += "${PYLINT} ${PYLINTARGS} "
 pylint += "${PYLINTRC and '--rcfile='+str(PYLINTRC) or ''} ${SOURCES} 2>&1 | "
 pylint += 'egrep -v "maximum recursion depth exceeded.*ignored"'
 
@@ -17,8 +17,8 @@ def find_python_files(env, topdir):
     return found
 
 
-def PythonLint(env, name, sources):
-    target = env.Command(name, sources, pylint)
+def PythonLint(env, name, sources, **kw):
+    target = env.Command(name, sources, pylint, **kw)
     env.Alias(name, target)
     return target
 
@@ -29,6 +29,7 @@ def generate(env):
     env.SetDefault(PYLINT='pylint')
     pylintrc = os.path.join(os.path.dirname(__file__), "pylintrc")
     env.SetDefault(PYLINTRC=pylintrc)
+    env.SetDefault(PYLINTARGS='')
     env.SetDefault(PYLINTPYTHONPATH=env.Dir('.').path)
                    
 
