@@ -15,6 +15,8 @@ POSTGRES_DIR/include.  Otherwise the default is to use the system location.
         env.AppendUnique(LIBPATH = "$POSTGRES_DIR/lib")
         env.AppendUnique(CPPPATH = "$POSTGRES_DIR/include")
     env.Append(LIBS=['pq',])
+    env.Append(LIBS=['ssl',])
+    env.Append(LIBS=['crypto',])
 
 def exists(env):
     return True
