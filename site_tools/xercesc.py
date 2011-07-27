@@ -2,9 +2,13 @@
 
 import os
 import SCons
+from SCons.Script import BoolVariable
 from eol_scons.package import Package
 import eol_scons
 import string
+
+_options = None
+
 
 actions = [
     "XERCESCROOT=$XERCESCROOT ./runConfigure -p linux -c gcc -x g++ -m inmem -n socket -t native -r pthread -P $XERCESC_PREFIX",
@@ -43,10 +47,20 @@ class XercescPackage(Package):
     def require(self, env):
 
         prefix = None
-        eol_scons.GlobalVariables().Update(env)
+        global _options
+        if not _options:
+            _options = env.GlobalVariables()
+            _options.Add(
+                BoolVariable('xercesc27',
+                             """
+Enable special paths for xerces 2.7 compatibility on Fedora.
+Requires the xerces-c27-devel package to be installed.""",
+                             False))
+        _options.Update(env)
+        x27 = env['xercesc27']
         if env.has_key('XERCESC_PREFIX'):
             prefix = env['XERCESC_PREFIX']
-        elif env.has_key('OPT_PREFIX'):
+        elif env.has_key('OPT_PREFIX') and not x27:
             prefix = env['OPT_PREFIX']
             env['XERCESC_PREFIX'] = prefix
         self.checkBuild(env)
@@ -65,9 +79,18 @@ class XercescPackage(Package):
             env['XERCESC_DOXDIR'] = "%s/doc/html/apiDocs" % env['XERCESCROOT']
         doxref= "xercesc:%s" % env['XERCESC_DOXDIR']
         env.AppendDoxref(doxref)
+
         if prefix:
             env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
-#        env.Append(DEPLOY_SHARED_LIBS=['xerces-c'])
+
+        # If no prefix was set explicitly, and the 2.7 handling is enabled,
+        # then look for special paths for the xerces-c27 package on Fedora.
+        if not prefix and x27:
+            env.AppendUnique(CPPPATH=['/usr/include/xercesc-2.7.0'])
+            if os.path.exists('/usr/lib64/xerces-c-2.7.0'):
+                env.AppendUnique(LIBPATH=['/usr/lib64/xerces-c-2.7.0'])
+            else:
+                env.AppendUnique(LIBPATH=['/usr/lib/xerces-c-2.7.0'])
         
 
 # These are the 2.7 headers.
