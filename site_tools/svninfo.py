@@ -60,6 +60,7 @@ def _find_svn_files(path):
 
 
 def _get_workdir(source):
+    if _debug: print "_get_workdir source=" + str(['%s' % d for d in source])
     workdir = source[0]
     if workdir.isfile():
         workdir = workdir.get_dir()
@@ -96,6 +97,8 @@ def svninfo_emitter_svnfiles(target, source, env):
     admin files as sources, so that svn info and svnversion do not need to
     be run unless something in the svn admin files has changed.
     """
+    if _debug: print "svninfo_emitter source=" + str(['%s' % d for d in source])
+
     workdir = _get_workdir(source)
     cache = env.CacheVariables()
     key = "svninfo_files" + re.sub(r'[^\w]', '_', workdir)
@@ -164,6 +167,24 @@ def _generateHeader(env, workdir):
     if _debug: print svnheader
     return svnheader
 
+def _generateCluelessHeader(env):
+    """If there is no svn information, generate header with
+       all macros defined as "unknown". """
+    return """
+#ifndef SVNINFOINC
+/* Sorry, no subversion information was available for scons build. */
+/*
+    #define SVNINFOINC
+    #define SVNREVISION "unknown"
+    #define SVNEXTERNALREVS "unknown"
+    #define SVNLASTCHANGEDDATE "unknown"
+    #define SVNURL "unknown"
+    #define SVNWORKDIRSPEC "unknown"
+    #define SVNWORKDIR "unknown"
+*/
+#endif
+"""
+
 def _apply_header(env, header):
     "Apply settings in the header to the environment."
     print("Applying svn variables from %s" % (header))
@@ -194,9 +215,27 @@ def svninfo_build_value(env, target, source):
 
 def svninfo_build_svnfiles(env, target, source):
     "Build header by generating it now."
+    if _debug:
+        print "source len=" + str(len(source))
+        print "target[0]=" + target[0].get_abspath()
+        print "target exists=" + str(os.path.exists(target[0].get_abspath()))
+    # If len(source) is 0 then no svn files have been found
+    # which could be if we're building in an exported directory, 
+    # or from a tar ball with the svn stuff excluded.
+    # In that case don't update the target if it exists and no svn files
+    # are found.
+    if len(source) == 0 and os.path.exists(target[0].get_abspath()): return
     out = open(target[0].get_abspath(), "w")
-    workdir = _get_workdir(source)
-    out.write(_generateHeader(env, workdir))
+    # If no source, and target doesn't exist, create empty target file.
+    # We could be more thorough and fill the target with lines like
+    #   #define SVNREVISION "unknown"
+    # As it is, by generating an empty header file, a compiler will find
+    # the macros to be undefined.
+    if len(source) > 0:
+        workdir = _get_workdir(source)
+        out.write(_generateHeader(env, workdir))
+    else:
+        out.write(_generateCluelessHeader(env))
     out.write("\n")
     out.close()
 
