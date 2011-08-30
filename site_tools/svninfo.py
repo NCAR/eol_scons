@@ -172,9 +172,9 @@ def _generateCluelessHeader(env):
        all macros defined as "unknown". """
     return """
 #ifndef SVNINFOINC
+#define SVNINFOINC
 /* Sorry, no subversion information was available for scons build. */
 /*
-    #define SVNINFOINC
     #define SVNREVISION "unknown"
     #define SVNEXTERNALREVS "unknown"
     #define SVNLASTCHANGEDDATE "unknown"
