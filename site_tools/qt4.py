@@ -24,7 +24,7 @@ class Qt4ModuleIssue(ToolQt4Warning):
     pass
 SCons.Warnings.enableWarningClass(ToolQt4Warning)
 
-qrcinclude_re = re.compile(r'<file>([^<]*)</file>', re.M)
+qrcinclude_re = re.compile(r'<file[^>]*>([^<]*)</file>', re.M)
 
 
 header_extensions = [".h", ".hxx", ".hpp", ".hh"]
