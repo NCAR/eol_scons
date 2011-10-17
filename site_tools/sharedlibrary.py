@@ -1,10 +1,10 @@
 import os
 import re
+from symlink import MakeSymLink
 from SCons.Node.FS import Dir,File
-from SCons.Script import Configure
+from SCons.Script import Configure,Builder,Action,Touch,Mkdir,Move
 
-def SharedLibrary3(env,target,sources,**kw):
-
+def SharedLibrary3Emitter(target,source,env):
     """ 
         For a reference on Linux conventions for shared library names see
         http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html
@@ -17,11 +17,11 @@ def SharedLibrary3(env,target,sources,**kw):
             libxxx.so
         where 3 is the major number of the binary API and 4 is the minor number.
 
-        Under linux, libxxx.so.3.4 is the actual library file, and libxxx.so.3
-        and libxxx.so are symbolic links.
+        Under linux, libxxx.so.3.4 is typically the actual library file,
+        and libxxx.so.3 and libxxx.so are symbolic links.
 
         The idea is that two libraries with the same name, same major
-        number, but differing minor number implement the same binary API, and
+        number, but differing minor number, implement the same binary API, and
         that a library with a new minor number could replace the old
         without breaking executable programs that depend on the library.
 
@@ -56,113 +56,163 @@ def SharedLibrary3(env,target,sources,**kw):
 
             env['SHLIBMAJORVERSION'] = '3'
             env['SHLIBMINORVERSION'] = '4'
-            libs = env.SharedLibrary3('xxx',objects)
+            lib = env.SharedLibrary3('xxx',objects)
 
         This builder will set the -soname in the real library file, and the other
         two will be symbolic links.
 
         To install the library and the symbolic links to a destination:
 
-            env.SharedLibrary3Install('/opt/local/mystuff',libs)
+            env.SharedLibrary3Install('/opt/mystuff',lib)
 
-        The libraries will be installed to subdirectory 'lib' or 'lib64' of
-        /opt/local/mystuff, depending on whether the current environment
-        builds 32 or 64 bit objects.
+        If the environment token USE_ARCHLIBDIR is not defined, the
+        libraries will be installed to /opt/mystuff/lib.  If USE_ARCHLIBDIR
+        is defined, the libraries will be installed in /opt/mystuff/env['ARCHLIBDIR'].
+        ARCHLIBDIR will have a value of "lib64" on linux 64 bit systems, otherwise
+        "lib".
 
-        Note that the initial version of this tool is directed at Linux.
+        As of this writing, this builder has only been tested on Linux.
         Support for other architectures needs to be added as necessary.
+    """
+
+    """
+    In this builder's emitter, target is the desired name of the library, like 'xxx'.
+    source is the list of source or object files.
+    
+    This emitter registers a SharedLibrary builder for the source with
+    a target of 'libxxx.so_tmp'.
+
+    It then registers a Move builder to move libxxx.so_tmp to libxxx.so.3.4,
+    and a symbolic link builder to link libxxx.so.3.4 to libxxx.so.3.
+
+    It then emits a target dependency of libxxx.so, and a source dependency
+    of libxxx.so.3.4. The target dependency is necesary if the user wants
+    to do more with the library, such as install it with SharedLibrary3Install.
+    
+    The action of this builder then just has to complete the symbolic link
+    from libxxx.so.3.4 to libxxx.so.
+    If you try to register a symbolic link builder for libxxx.so in this
+    emitter, you'll get a warning:
+        Two different environments were specified for target libxxx.so,
+        but they appear to have the same action:
+    So we have to do the symbolic link in the action.
+    """
+
+    # libxxx.so
+    libname = env.subst('${SHLIBPREFIX}' + str(target[0]) + '$SHLIBSUFFIX')
+
+    try:
+        # libxxx.so.3
+        soname = libname + '.' + env['SHLIBMAJORVERSION']
+    except KeyError:
+        print 'Cannot find SHLIBMAJORVERSION env variable'
+
+    try:
+        # libxxx.so.3.4
+        fullname = soname + '.' + env['SHLIBMINORVERSION']
+    except KeyError:
+        print 'Cannot find SHLIBMINORVERSION env variable'
+        return None
+
+    tmplib = env.SharedLibrary(libname + "_tmp",source,
+        SHLINKFLAGS = env['SHLINKFLAGS'] + ['-Wl,-soname=' + soname],
+        SHLIBSUFFIX = env['SHLIBSUFFIX'] + '_tmp')
+
+    # Have to create the original target, otherwise we get a missing
+    # implicit dependency. Create an empty file.
+    env.Command(target,source,
+            [Mkdir('$TARGET.dir'),Touch('$TARGET')])
+
+    env.Command(fullname,tmplib,Move('$TARGET','$SOURCE'))
+    env.SymLink(soname,fullname)
+
+    # Don't register a builder here to create libname, like so:
+    # env.SymLink(libname,fullname)
+    # because you'll get a warning:
+    # Two different environments were specified for target libxxx.so,
+    #         but they appear to have the same action:
+
+    return ([libname],[fullname])
+
+def SharedLibrary3Action(target,source,env):
+
+    MakeSymLink(target,source,env)
+    return 0
+
+def SharedLibrary3Install(env,target,source,**kw):
+
+    """
+    Install source library to a subdirectory of target.
+    If env["USE_ARCHLIBDIR"] is defined, the source will be installed
+    on target/$ARCHLIBDIR otherwise to target/lib.
+
+    ARCHLIBDIR is defined as "lib64" on Linux 64 bit systems, otherwise "lib".
+
+    See the discussion for SharedLibrary3 about how library versions 
+    are handled.
+
+    source should be a path like libxxx.so, which is what is returned
+    as a target by the SharedLibrary3 builder.
+
+    This installer will copy libxxx.so.$SHLIBMAJORVERSION.$SHLIBMINORVERSION
+    to target/lib[64], and then create symbolic links on the target library directory:
+        libxxx.so -> libxxx.so.$SHLIBMAJORVERSION.$SHLIBMINORVERSION
+        libxxx.so.$SHLIBMAJORVERSION -> libxxx.so.$SHLIBMAJORVERSION.$SHLIBMINORVERSION
     """
 
     # add passed keywords to environment
     env = env.Clone(**kw)
 
-    # target argument here is a simple string
-    libname = env.subst('${SHLIBPREFIX}' + target + '$SHLIBSUFFIX')
+    if env.has_key("USE_ARCHLIBDIR"):
+        targetDir = env.Dir(target + '/' + env['ARCHLIBDIR'])
+    else:
+        targetDir = env.Dir(target + '/lib')
+
+    # libname = source[0].path
+    libname = str(source[0])
     try:
         soname = libname + '.' + env['SHLIBMAJORVERSION']
     except KeyError:
         print 'Cannot find SHLIBMAJORVERSION env variable'
         return None
+    # print "SharedLibrary3Install, soname=" + soname
 
     try:
         fullname = soname + '.' + env['SHLIBMINORVERSION']
     except KeyError:
         print 'Cannot find SHLIBMINORVERSION env variable'
         return None
+    # print "SharedLibrary3Install, fullname=" + fullname
 
     nodes = []
-    # build the shared library with full .so.MAJOR.MINOR suffix
-    # and a -soname linker option pointing to .so.MAJOR
-    # kw['SHLINKFLAGS'] = env['SHLINKFLAGS'] + ['-Wl,-soname=' + soname]
-    # kw['SHLIBSUFFIX'] = env['SHLIBSUFFIX'] + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION']
-    # nodes.extend(env.SharedLibrary(target,sources,**kw))
-    nodes.extend(env.SharedLibrary(target,sources,
-        SHLINKFLAGS = env['SHLINKFLAGS'] + ['-Wl,-soname=' + soname],
-        SHLIBSUFFIX = env['SHLIBSUFFIX'] + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION']))
-    # print 'nodes[0]=' + str(nodes[0])
+    tgt = env.Install(targetDir,fullname)
+    nodes.extend(tgt)
 
-    # symbolic links
-    nodes.extend(env.Command(libname,fullname,'cd $TARGET.dir; ln -sf $SOURCE.file $TARGET.file'))
-    nodes.extend(env.Command(soname,fullname,'cd $TARGET.dir; ln -sf $SOURCE.file $TARGET.file'))
+    tgt = targetDir.File(os.path.basename(libname))
+    nodes.extend(env.SymLink(tgt,fullname))
 
-    return nodes
-
-def SharedLibrary3Install(env,target,source,**kw):
-
-    # SharedLibraries returns the library targets in this order:
-    #   1. libname: SHLIBPREFIX + name + SHLIBSUFFIX: libxxx.so
-    #   2. soname: libname + '.' + SHLIBMAJORVERSION: libxxx.so.3
-    #   3. fullname: libname + '.' + SHLIBMINORVERSION: libxxx.so.3.2
-    # Fullname should be the actual library, the others are symbolic links to fullname.
-    # We'll use regular expressions and os.path.islink() to determine which is which.
-
-    # add passed keywords to environment
-    env = env.Clone(**kw)
-
-    try: 
-        # convert dots to \. for regular expression
-        shortsuffix = re.sub(r'\.',r'\\.',env['SHLIBSUFFIX'])
-
-        fullsuffix = shortsuffix + re.sub(r'\.',r'\\.','.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
-    except KeyError:
-        print "bug"
-        throw
-
-    target = env.Dir(target + '/' + env['LIBDIR'])
-
-    nodes = []
-
-    for src in source:
-        # print "src.path=" + src.path
-        full = re.search(fullsuffix + '$',str(src))
-        if full != None and not os.path.islink(src.path):
-            nodes.extend(env.Install(target,src))
-        else:
-            # from src.path get basic name of library: libxxx.so
-            shortname = re.sub('(.+' + shortsuffix + ').*',r'\1',src.path)
-            # print "shortname=" + shortname
-
-            fullsrc = env.Dir('#').File(shortname + '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'])
-            tgt = target.File(os.path.basename(src.path))
-            env.Command(tgt,fullsrc,
-                'cd $TARGET.dir; ln -sf $SOURCE.file $TARGET.file')
-	    nodes.extend([tgt])
-
+    tgt = targetDir.File(os.path.basename(soname))
+    nodes.extend(env.SymLink(tgt,fullname))
+    
+    # return list of targets which can then be used in an Alias
     return nodes
 
 def generate(env):
 
-    # Add pseudo builders for shared libraries
-    env.AddMethod(SharedLibrary3)
+    # Add builder and installer for shared libraries
+    builder = Builder(action=SharedLibrary3Action,emitter=SharedLibrary3Emitter)
+    env.Append(BUILDERS = {"SharedLibrary3": builder})
+
     env.AddMethod(SharedLibrary3Install)
 
+    # ARCHLIBDIR can be used if the user wants to install libraries
+    # to a special directory for the architecture, like lib64
     sconf = Configure(env)
     libdir = 'lib'
     if sconf.CheckTypeSize('void *',expect=8,language='C'):
         libdir = 'lib64'
-    sconf.env.Append( LIBDIR = libdir)
+    sconf.env.Append( ARCHLIBDIR = libdir)
     env = sconf.Finish()
-    return libdir
 
 def exists(env):
     return 1
