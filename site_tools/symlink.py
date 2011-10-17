@@ -6,6 +6,11 @@ def MakeSymLink(target,source,env):
     # cmd = env.subst("cd ${TARGET.dir}; ln -sf ${SOURCE.file} ${TARGET.file}",
     #         target=target,source=source)
     # env.Execute(Action(cmd,cmd))
+
+    if os.path.lexists(target[0].path):
+        print "unlinking " + target[0].path
+        os.unlink(target[0].path)
+
     os.symlink(os.path.basename(source[0].path),target[0].path)
 
 def generate(env):
