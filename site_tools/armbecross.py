@@ -10,7 +10,7 @@ import SCons.Tool
 
 def generate(env,**kw):
     """
-    Add Builders and construction variables for C compilers to an Environment.
+    Add construction variables for C compilers to an Environment.
     """
 
     env.Replace(AR	= 'armbe-linux-ar')

@@ -12,7 +12,7 @@ import SCons.Tool
 
 def generate(env,**kw):
     """
-    Add Builders and construction variables for C compilers to an Environment.
+    Add construction variables for C compilers to an Environment.
     """
 
     env.Replace(AR	= 'arm-linux-ar')
@@ -36,11 +36,6 @@ def generate(env,**kw):
 
     env['KINCLUDE'] = env.Dir("#").get_abspath()
     env['KMAKE'] = "make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE ARCH=arm CROSS_COMPILE=arm-linux-"
-
-    # temporary hack.  RTLinux vipers have GLIBC_2.3.1
-    # and something in nibnidas needs GLIBC_2.3.2
-    # so build with old tools as long as we have RTLinux vipers
-    # env.PrependENVPath('PATH', '/opt/arm_tools/bin')
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if arm-linux-gcc is
