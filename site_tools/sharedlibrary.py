@@ -1,8 +1,7 @@
 import os
-import re
 from symlink import MakeSymLink
 from SCons.Node.FS import Dir,File
-from SCons.Script import Configure,Builder,Action,Touch,Mkdir,Move
+from SCons.Script import Configure,Builder,Action,Mkdir,Touch
 
 def SharedLibrary3Emitter(target,source,env):
     """ 
@@ -10,15 +9,16 @@ def SharedLibrary3Emitter(target,source,env):
         http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html
 
         The usual convention is that the full library name is something like:
-            libxxx.so.3.4
+            libxxx.so.X.Y
+        Where X is the major version number of the binary API and Y is the minor version.
+
         The SONAME of the library is
-            libxxx.so.3
+            libxxx.so.X
         The basic library name, used when initially linking executables, is
             libxxx.so
-        where 3 is the major number of the binary API and 4 is the minor number.
 
-        Under linux, libxxx.so.3.4 is typically the actual library file,
-        and libxxx.so.3 and libxxx.so are symbolic links.
+        Under linux, libxxx.so.X.Y is typically the actual library file,
+        and libxxx.so.X and libxxx.so are symbolic links.
 
         The idea is that two libraries with the same name, same major
         number, but differing minor number, implement the same binary API, and
@@ -52,7 +52,7 @@ def SharedLibrary3Emitter(target,source,env):
         with the -lxxx option.  That is why symbolic link .so's, without major
         and minor numbers, are sometimes found only in -devel RPMs.
 
-        To create the above three libraries with this pseudo-builder, do:
+        To create the above three libraries with this builder, do:
 
             env['SHLIBMAJORVERSION'] = '3'
             env['SHLIBMINORVERSION'] = '4'
@@ -76,21 +76,30 @@ def SharedLibrary3Emitter(target,source,env):
     """
 
     """
-    In this builder's emitter, target is the desired name of the library, like 'xxx'.
+    In this emitter for SharedLibary3, target is the desired name of
+    the library, like 'xxx'.
     source is the list of source or object files.
-    
-    This emitter registers a SharedLibrary builder for the source with
-    a target of 'libxxx.so_tmp'.
 
-    It then registers a Move builder to move libxxx.so_tmp to libxxx.so.3.4,
-    and a symbolic link builder to link libxxx.so.3.4 to libxxx.so.3.
+    Two construction variables must be defined for this builder:
+    SHLIBMAJORVERSION and SHLIBMINORVERSION, which in the following
+    examples are 'X' and 'Y'.
+    
+    This emitter registers a SharedLibrary builder for a target 'xxx' with
+    the given source list of object and source files, link flags of
+    '-Wl,-soname=libxxx.so.X' a and a shared library suffix of
+    '.so.X.Y'. The SharedLibrary builder returns a target with the
+    full name of 'libxxx.so.X.Y'
+
+    This emitter then registers a symbolic link builder to link
+    libxxx.so.X.Y to the soname libxxx.so.X.
 
     It then emits a target dependency of libxxx.so, and a source dependency
-    of libxxx.so.3.4. The target dependency is necesary if the user wants
+    of libxxx.so.X.Y. The target dependency is necesary if the user wants
     to do more with the library, such as install it with SharedLibrary3Install.
     
     The action of this builder then just has to complete the symbolic link
-    from libxxx.so.3.4 to libxxx.so.
+    from libxxx.so.X.Y to libxxx.so.
+
     If you try to register a symbolic link builder for libxxx.so in this
     emitter, you'll get a warning:
         Two different environments were specified for target libxxx.so,
@@ -99,32 +108,38 @@ def SharedLibrary3Emitter(target,source,env):
     """
 
     # libxxx.so
-    libname = env.subst('${SHLIBPREFIX}' + str(target[0]) + '$SHLIBSUFFIX')
+    # env['SHLIBPREFIX'] becomes $LIBPREFIX so use env.subst()
+    libname = env.subst('$SHLIBPREFIX') + str(target[0]) + env['SHLIBSUFFIX']
 
     try:
-        # libxxx.so.3
+        # libxxx.so.X
         soname = libname + '.' + env['SHLIBMAJORVERSION']
     except KeyError:
         print 'Cannot find SHLIBMAJORVERSION env variable'
 
     try:
-        # libxxx.so.3.4
-        fullname = soname + '.' + env['SHLIBMINORVERSION']
+        fulllib = env.SharedLibrary(str(target[0]),source,
+            SHLINKFLAGS = env['SHLINKFLAGS'] + ['-Wl,-soname=' + soname],
+            SHLIBSUFFIX = env['SHLIBSUFFIX'] +
+                '.' + env['SHLIBMAJORVERSION'] +
+                '.' + env['SHLIBMINORVERSION'])
     except KeyError:
         print 'Cannot find SHLIBMINORVERSION env variable'
         return None
 
-    tmplib = env.SharedLibrary(libname + "_tmp",source,
-        SHLINKFLAGS = env['SHLINKFLAGS'] + ['-Wl,-soname=' + soname],
-        SHLIBSUFFIX = env['SHLIBSUFFIX'] + '_tmp')
+    # For some reason we have to create the original target, otherwise:
+    # scons: *** [x86] Implicit dependency `build_x86/util/nidas_util' not found,
+    # needed by target `x86'.
+    # 'util' is the directory containing the SConscript, whose variant_dir is
+    # 'build_util'.
+    # Creating an empty file named str(target[0]) on the variant_dir
+    # satisfies scons.
 
-    # Have to create the original target, otherwise we get a missing
-    # implicit dependency. Create an empty file.
     env.Command(target,source,
-            [Mkdir('$TARGET.dir'),Touch('$TARGET')])
+        [Mkdir('$TARGET.dir'),Touch('$TARGET')])
 
-    env.Command(fullname,tmplib,Move('$TARGET','$SOURCE'))
-    env.SymLink(soname,fullname)
+    # Register builder to create link to soname
+    env.SymLink(soname,fulllib)
 
     # Don't register a builder here to create libname, like so:
     # env.SymLink(libname,fullname)
@@ -132,17 +147,25 @@ def SharedLibrary3Emitter(target,source,env):
     # Two different environments were specified for target libxxx.so,
     #         but they appear to have the same action:
 
-    return ([libname],[fullname])
+    return ([libname],[fulllib])
 
 def SharedLibrary3Action(target,source,env):
-
+    # This action just has to make the final symbolic link from
+    # libxxx.so.X.Y to libxxx.so. Note it is done with an action,
+    # not a builder, which would have created more dependencies.
     MakeSymLink(target,source,env)
+
+    # If we ever want to completely replace the action of
+    # SharedLibrary, here is its action, as found in
+    # /usr/lib/scons/SCons/Defaults.py
+    # ShLinkAction = SCons.Action.Action("$SHLINKCOM","$SHLINKCOMSTR")
+
     return 0
 
 def SharedLibrary3Install(env,target,source,**kw):
 
     """
-    Install source library to a subdirectory of target.
+    Install source library to a library subdirectory of target.
     If env["USE_ARCHLIBDIR"] is defined, the source will be installed
     on target/$ARCHLIBDIR otherwise to target/lib.
 
