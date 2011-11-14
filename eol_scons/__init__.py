@@ -716,6 +716,10 @@ def _SetHelp(env, text):
 # conveniently add their doxref without requiring the doxygen tool.
 def _AppendDoxref(env, ref):
     """Append to the DOXREF variable and force it to be a list."""
+    # If the reference is a Doxygen target node, convert it into a
+    # directory reference by stripping the html/index.html from it.
+    if type(ref) != type(""):
+        ref = ref.Dir('..').name
     if not env.has_key('DOXREF'):
         env['DOXREF'] = [ref]
     else:
