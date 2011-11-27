@@ -50,9 +50,13 @@ def SharedLibrary3Action(target,source,env):
     SHLINKCOM is the action used by the SharedLibrary builder.
     """
 
+    soname = os.path.basename(target[1].path)
+    env.Append(SHLINKFLAGS=['-Wl,-soname=' + soname])
+
     # Execute the shared library action to build the full library
-    env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source),
-        env.subst('$SHLINKCOMSTR',target=target[2],source=source))
+    env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source))
+
+    # env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source), env.subst('$SHLINKCOMSTR',target=target[2],source=source))
 
     # Now use the action of the SymLink builder to create
     # symbolic links from libxxx.so.X.Y to libxxx.so.X and libxxx.so
