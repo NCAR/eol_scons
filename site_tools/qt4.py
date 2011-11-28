@@ -205,20 +205,12 @@ def _locateQt4Command(env, command) :
     # but we're trying to use a custom one by setting QT4DIR.
     if (qt4BinDir):
         # check for the binaries in *just* qt4BinDir
-        qt4path = [qt4BinDir]
-        whichCmd = None
-        for c in cmds:
-            whichCmd = env.WhereIs(c, qt4path)
-            if whichCmd:
-			    break
-        if whichCmd:
-            result = shortPathEnv.WhereIs(whichCmd)
+        result = reduce(lambda a,b: a or env.WhereIs(b, [qt4BinDir]), 
+                        cmds, None)
 
     # Check the default path
     if not result:
-        whichCmd = env.Detect(cmds)
-        if (whichCmd):
-            result = env.WhereIs(whichCmd) 
+        result = env.Detect(cmds)
 
     if not result:
         msg = "Qt4 command " + commandQt4 + " (" + command + ")"
