@@ -51,10 +51,14 @@ def SharedLibrary3Action(target,source,env):
     """
 
     soname = os.path.basename(target[1].path)
+
+    env = env.Clone()
     env.Append(SHLINKFLAGS=['-Wl,-soname=' + soname])
 
     # Execute the shared library action to build the full library
-    env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source))
+    if env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source)):
+        raise SCons.Errors.BuildError(node=target[2],
+                errstr="%s failed" % env.subst('$SHLINKCOM'))
 
     # env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source), env.subst('$SHLINKCOMSTR',target=target[2],source=source))
 
