@@ -23,7 +23,7 @@ def apidocssubdir(node):
         subdir = 'root'
     else:
         subdir = str(node.get_path(top))
-    subdir = string.replace(subdir, '/', '_')
+    subdir = string.replace(subdir, os.sep, '_')
     if ddebug():
         print("apidocssubdir(%s) ==> %s" % (str(node), subdir))
     return subdir
