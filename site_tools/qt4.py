@@ -450,7 +450,7 @@ def enable_modules(self, modules, debug=False) :
                               ", doing what I can...")
                         no_pkgconfig_warned.append(module)
                     # Add -l<module>
-                    self.AppendUnique(LIBS = [module])
+                    self.Append(LIBS = [module])
                     # Add -I<Qt4HeaderDir>/<module>
                     self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
             else:
@@ -491,9 +491,9 @@ def enable_modules(self, modules, debug=False) :
     if sys.platform == "win32" :
         if debug : debugSuffix = 'd'
         else : debugSuffix = ''
-        self.AppendUnique(LIBS=[lib+'4'+debugSuffix for lib in modules])
+        self.Append(LIBS=[lib+'4'+debugSuffix for lib in modules])
         if 'QtOpenGL' in modules:
-            self.AppendUnique(LIBS=['opengl32'])
+            self.Append(LIBS=['opengl32'])
         self.AppendUnique(CPPPATH=[ '$QT4DIR/include/' ])
         self.AppendUnique(CPPPATH=[ '$QT4DIR/include/'+module
             for module in modules])
