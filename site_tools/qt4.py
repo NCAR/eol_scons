@@ -320,6 +320,13 @@ def generate(env):
         pass
     elif (os.environ.has_key('QT4DIR')):
         env['QT4DIR'] = os.environ['QT4DIR']
+    elif (env['PLATFORM'] == 'win32'):
+        print
+        print "For Windows, QT4DIR must be set" + \
+            " on the command line or in the environment."
+        print "E.g.:"
+        print "    scons QT4DIR='/c/QtSDK/Desktop/Qt/4.7.4/mingw'"
+        print
     elif checkPkgConfig(env):
         env['QT4DIR'] = USE_PKG_CONFIG
     else:
@@ -487,6 +494,7 @@ def enable_modules(self, modules, debug=False) :
         self.AppendUnique(LIBS=[lib+'4'+debugSuffix for lib in modules])
         if 'QtOpenGL' in modules:
             self.AppendUnique(LIBS=['opengl32'])
+        self.AppendUnique(CPPPATH=[ '$QT4DIR/include/' ])
         self.AppendUnique(CPPPATH=[ '$QT4DIR/include/'+module
             for module in modules])
         self.AppendUnique(LIBPATH=['$QT4DIR/lib'])
