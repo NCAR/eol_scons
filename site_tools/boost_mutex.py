@@ -10,12 +10,18 @@ def generate(env):
     # boost_thread and pthread libraries. For later versions, we only
     # need pthread. Use Environment.Configure to test which way will work
     # on this system.
+    # Try, in order,
+    #       -lpthread
+    #       -lboost_thread-mt -lpthread
+    #       -lboost_thread -lpthread
+    # to see if any combination will work. If not, complain and quit.
     clone = env.Clone()
     clone.Replace(LIBS=[])
     conf = clone.Configure()
     header = 'boost/thread/mutex.hpp'
     test_src = 'boost::mutex m; boost::mutex::scoped_lock guard(m);'
     if (not conf.CheckLibWithHeader('pthread', header, 'CXX', test_src) and
+        not conf.CheckLibWithHeader(['boost_thread-mt', 'pthread'], header, 'CXX', test_src) and
         not conf.CheckLibWithHeader(['boost_thread', 'pthread'], header, 'CXX', test_src)):
             msg = "Failed to link to boost::mutex both with and without"
             msg += " libboost_thread.  Check config.log."
