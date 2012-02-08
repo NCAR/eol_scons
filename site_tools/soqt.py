@@ -71,7 +71,7 @@ Use the first soqt-config found in this list of paths:
         env['SOQT_DOXREF'] = 'soqt:%s' % env['SOQT_DOXDIR']
     env.AppendDoxref(env['SOQT_DOXREF'])
 #    env.Append(DEPLOY_SHARED_LIBS=['SoQt'])
-    if env['PLATFORM'] != 'win32':
+    if (env['PLATFORM'] != 'win32') and (env['PLATFORM'] != 'darwin'):
         env.Append(LIBS=['Xi'])
     # This is needed especially to get the doxygen reference.
     env.Require(['PKG_COIN'])
