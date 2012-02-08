@@ -83,14 +83,16 @@ def ParseConfigPrefix(env, config_script, search_prefixes,
             if _debug: print("No flags from %s" % (config_script))
         ldflags = _get_config(env, search_paths, config_script,
                               ['--ldflags'])[1]
+                              
         if ldflags:
             ldflags = ldflags.split()
             for flag in ldflags:
-                if (flag.strip().index('-L') == 0):
-                    # remove the -L to get the directory, and make the
-                    # resulting path absolute
-                    dir = os.path.abspath(flag.replace('-L', ''))
-                    env.Append(RPATH=dir)
+                if flag.find('-L') != -1:
+                    if (flag.strip().index('-L') == 0):
+                        # remove the -L to get the directory, and make the
+                        # resulting path absolute
+                        dir = os.path.abspath(flag.replace('-L', ''))
+                        env.Append(RPATH=dir)
     return prefix
 
 
