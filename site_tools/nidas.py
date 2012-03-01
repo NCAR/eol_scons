@@ -1,3 +1,4 @@
+import sys
 import os
 import eol_scons
 from SCons.Variables import EnumVariable
@@ -24,6 +25,11 @@ def _get_libsubdir(env):
 
 
 def generate(env):
+    # It is not (yet) possible to build against NIDAS on anything
+    # except Linux, so don't even give anyone the option.
+    if sys.platform == 'win32' or sys.platform == 'darwin':
+        env.EnableNIDAS = (lambda: 0)
+        return
     global _options
     if not _options:
         _options = env.GlobalVariables()
@@ -74,6 +80,8 @@ paths relative to the top directory.""",
         # not actually make any xercesc calls.  Such shared library
         # dependencies now have to be linked explicitly.
         env.Tool("xercesc")
+        env.Tool('xmlrpc')
+    
 
 def exists(env):
     return True
