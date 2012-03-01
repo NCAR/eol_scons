@@ -3,9 +3,9 @@ import SCons
 
 def generate(env):
     if env['PLATFORM'] != 'darwin':
-        env.Append (LIBS = ["boost_date_time"])
+        env.Append (LIBS = ["boost_serialization"])
     else:
-        env.Append (LIBS = ["boost_date_time-mt"])
+        env.Append (LIBS = ["boost_serialization-mt"])
     libpath = os.path.abspath(os.path.join(env['OPT_PREFIX'],'lib'))
     env.AppendUnique(LIBPATH=[libpath])
 
