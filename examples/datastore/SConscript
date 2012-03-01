@@ -1,0 +1,100 @@
+# -*- python -*-
+
+##
+# @file examples/datastore/SConscript
+
+import sys
+
+tools = Split("""
+qt4 netcdf postgres_pq logx 
+boost boost_date_time boost_serialization
+nidas
+""")
+
+env = Environment (tools = ['default']+tools)
+
+qtmodules = ['QtCore', 'QtNetwork']
+env.EnableQt4Modules(qtmodules)
+
+def datastore(env):
+    env.AppendLibrary('datastore')
+    env.AppendDoxref('datastore')
+    env.Require(tools)
+    env.EnableQt4Modules(qtmodules)
+    if env['PLATFORM'] == 'win32':
+        env.Append (LIBS = ['ws2_32',])
+
+Export('datastore')
+
+sources = Split("""
+	CompositeDataSource.cc
+	DataCache.cc
+	DataDomain.cc
+	DataSet.cc
+	DataSetBack.cc
+	DataSetFilter.cc
+        DataSetSelection.cc
+        DataSource.cc
+	DateTime.cc
+	MetaData.cc
+	SizeDistPayload.cc
+	SourceAmes.cc
+	SourceIWG1.cc
+	SourceNetCDF.cc
+	SourceSQL.cc
+	SourceSQL_UDP.cc
+	SourceSQL_SRT.cc
+	SQLextract.cc
+        DataSourceConfig.cc
+        ConfigNode.cc
+        ConfigLibrary.cc
+        ConfigLibraryRelay.cc
+        ConfigArchive.cc
+        Serialization.cc
+        PayloadPMS2d.cc
+""")
+
+headers = Split("""
+CompositeDataSource.h  DataSet.h	DataSource.h	     MetaData.h
+DataCache.h	       DataSetBack.h	DataSourceFactory.h  SourceNetCDF.h
+DataDomain.h	       DataSetFilter.h	DateTime.h	     SourceSQL.h
+SourceSQL_SRT.h        SourceSQL_UDP.h  SQLextract.h         Payload.h
+SizeDistPayload.h      CalPayload.h     DataSetList.h        SourceNIDAS.h
+DataSetSelection.h     ConfigNode.h     DataSourceConfig.h   ConfigLibrary.h
+ConfigLibraryRelay.h
+SourceAmes.h
+SourceIWG1.h
+ConfigArchive.h
+ConfigNodeT.h
+DataNotice.h
+DateTimeIO.h
+Enumeration.h
+Serialization.h
+xml_cdata.h
+PayloadPMS2d.h
+SourcePMS2d.h
+PMS2d.h
+""")
+
+# Enable with: 'scons NIDAS_PATH=<path>'
+if env.EnableNIDAS():
+    print "Enabling NIDAS source.  NIDAS_PATH=%s" % env['NIDAS_PATH']
+    sources += ["SourceNIDAS.cc"]
+    sources += ["SourcePMS2d.cc"]
+    factory = env.SharedObject("DataSourceFactory.cc",
+                               CPPDEFINES=['ENABLE_NIDAS_SOURCE'])
+else:
+    factory = ["DataSourceFactory.cc"]
+    print "NIDAS disabled."
+
+doxfiles = sources + headers + ["DataSourceFactory.cc"]
+
+libds = env.Library('datastore' , sources + factory)
+env['DOXYFILE_DICT'].update({'PROJECT_NAME' : 'AEROS datastore'})
+html = env.Apidocs (sources + headers)
+
+diagrams = [ "#/../doc/diagrams/" + d for d in
+             Split("""DataSources.png DataSet.png""") ]
+env.Install (html[0].get_dir().get_abspath(), diagrams)
+
+SConscript("tests/SConscript")

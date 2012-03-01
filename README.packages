@@ -1,0 +1,191 @@
+Automatic builds of external packages have not been supported for a while,
+so this documentation has been separated out.  It still documents the
+eol_scons.Package base class which is still used by a few tools, but the
+automatic build feature of that class is no longer being used.
+
+@section packagebuilds Automatic Builds of External Packages
+
+The eol_scons.Package class is an abstract base class for the notion of
+external software packages in the EOL SCons framework.  In particular, it
+provides a generic algorithm for automatically unpacking, building, and
+installing packages which do not appear to be installed at build time.  The
+algorithm is broken into several steps, each implemented by a particular
+method of the Package class.  Following the strategy pattern, subclasses
+need only override the methods for particular steps, rather than
+reproducing the entire algorithm in the subclass.
+
+The Package base class holds the canonical name for the package, a list of
+key files contained in the package archive, the SCons actions for building
+the package, the targets created when the package is installed, and a
+default name for the package's archive file.  For example, the netcdf
+package has the name NETCDF.  Unpacking the netcdf archive creates the file
+"src/INSTALL".  When built and installed, the netcdf package installs the
+header file "$OPT_PREFIX/include/netcdf.h", so that is one of the SCons
+targets for package's builder.  All of these steps together are a cascade
+of dependencies in SCons.  When SCons discovers source code with a
+dependency on the netcdf.h header file (through the source scanner), SCons
+will initiate the installation of the netcdf package.
+
+In the usual case, a package like netcdf would be required by a SConscript
+file somewhere, using the Require() method or by listing 'netcdf' in the
+tools.  Then the package's tool takes care of setting up the environment to
+build against the particular package.  The tool file implements the
+generate(env) function by calling into a singleton subclassed from
+eol_scons.Package.  The subclass contains the specifics for the package,
+but most of the work can be passed to the Package class through the
+checkBuild() method.  The checkBuild() method first checks whether all of
+the install targets exist.  If so, then nothing needs to be added to the
+environment to build the package.  However, if something is missing, then
+Package calls the setupBuild() method.  That method calls generate(), which
+actually creates a builder for the package archive and adds it to the
+environment.  The rest of setupBuild() adds the builder instances, one for
+unpacking the archive and another for building it.  The generated builder
+is specific to the package subclass.  It uses an emitter to emit that
+package's install files as the builder targets.
+
+As an example, following is a breakdown of the file
+site_scons/site_tools/netcdf.py:
+
+First, it establishes the targets that the package installs, usually header
+files and libraries.
+
+@code
+# Note that netcdf.inc has been left out of this list, since this
+# current setup does not install it.
+
+netcdf_headers = Split("""
+ncvalues.h netcdf.h netcdf.hh netcdfcpp.h
+""")
+
+headers = [ os.path.join("$OPT_PREFIX","include",f)
+            for f in netcdf_headers ]
+
+# We extend the standard netcdf installation slightly by also copying
+# the headers into a netcdf subdirectory, so headers can be qualified
+# with a netcdf/ path when included.  Aeros does that, for example.
+
+headers.extend ([ os.path.join("$OPT_PREFIX","include","netcdf",f)
+                  for f in netcdf_headers ])
+libs = Split("""
+$OPT_PREFIX/lib/libnetcdf.a
+$OPT_PREFIX/lib/libnetcdf_c++.a
+""")
+@endcode
+
+Then there is the list of actions used to build and install the netcdf
+source tree, after it has been extracted from the compressed archive file.
+Note the chdir.MkdirIfMissing method comes from the chdir.py module in the
+eol_scons package, while Copy is one of the standard SCons actions.  The
+copy step is only necessary to copy the netcdf headers into their own
+netcdf subdirectory, a convention that some projects started using so that
+netcdf include directives can be qualified with the "netcdf/" path.
+
+@code
+netcdf_actions = [
+    "./configure --prefix=$OPT_PREFIX FC= CC=gcc CXX=g++",
+    "make",
+    "make install",
+    chdir.MkdirIfMissing("$OPT_PREFIX/include/netcdf") ] + [
+    Copy("$OPT_PREFIX/include/netcdf", h) for h in
+    [ os.path.join("$OPT_PREFIX","include",h2) for h2 in netcdf_headers ]
+    ]
+@endcode
+
+Here is the actual definition of the NetcdfPackage subclass.  The Package
+base class is passed enough information in the constructor to know how to
+find, extract, build, and install the package.  Because it knows the list
+of installed files, the Package class also knows how to check whether
+netcdf appears to have installed or not yet.  The setupBuild() and
+require() methods extend the base class by setting up the environment as
+needed specifically for the netcdf library.  For example, there are two
+library dependencies, the C and C++ libraries.  Also, when building the
+netcdf package explicitly, then the specific library targets can be added
+to the LIBS construction variable by referring to the 'libnetcdfpp' and
+'libnetcdf' global targets.  Otherwise, as is usually the case for external
+libraries which have already been installed, only the library base names
+are added to LIBS.
+
+@code
+class NetcdfPackage(Package):
+
+    def __init__(self):
+        Package.__init__(self, "NETCDF", "src/INSTALL",
+                         netcdf_actions, libs + headers,
+                         default_package_file = "netcdf-3.6.0-p1.tar.gz")
+
+    def setupBuild(self, env):
+        installs = Package.setupBuild(self, env)
+        env.AddGlobalTarget('libnetcdf', installs[0])
+        env.AddGlobalTarget('libnetcdfpp', installs[1])
+
+    def require(self, env):
+        "Need to add both c and c++ libraries to the environment."
+        Package.checkBuild(self, env)
+        prefix = env['OPT_PREFIX']
+        env.AppendUnique(CPPPATH=[os.path.join(prefix,'include'),])
+        if self.building:
+            env.Append(LIBS=env.GetGlobalTarget('libnetcdfpp'))
+            env.Append(LIBS=env.GetGlobalTarget('libnetcdf'))
+        else:
+            env.Append(LIBS=['netcdf_c++', 'netcdf'])
+@endcode
+
+The 'default_package_file' argument to the constructor is used by the
+Package base class to find the external package.  If the netcdf package
+needs to be installed, then the Package base class looks for the name of
+package file in the SCons construction variable NETCDF_PACKAGE_FILE, and it
+looks for that file in the path given by the construction variable
+PACKAGE_DIRECTORY.  The default package directory is
+"/net/ftp/pub/archive/aeros/packages", and each package usually passes a
+default package file name to the Package constructor.  However, both of
+these can be overridden for a particular project in the global setup
+function.  For example, the raddx project could add these lines to the
+RaddSetup() function in the raddx/SConstruct file:
+
+@code
+	env['PACKAGE_DIRECTORY'] = "/net/ftp/pub/archive/spol/packages"
+	env['NETCDF_PACKAGE_FILE'] = "netcdf-3.6.1.tar.gz"
+@endcode
+
+Eventually a URL will be allowed for the package directory, and the python
+url module can be used to download the archive file from anywhere on the
+net.
+
+This final code in netcdf.py creates the singleton NetcdfPackage instance,
+and uses that instance to implement the require() functionality of the
+exported PKG_NETCDF() function.
+
+@code
+netcdf_package = NetcdfPackage()
+
+def PKG_NETCDF(env):
+    netcdf_package.require(env)
+
+Export("PKG_NETCDF")
+@endcode
+
+Any SConscript file which requires PKG_NETCDF will have its environment
+setup with the correct library and include paths for netcdf, as usual.
+However, if package builds are enabled, then the netcdf_package instance
+will check if the netcdf requirements are already installed or not.  If
+not, then it will add to the environment the targets and builders necessary
+to automatically extract and install the netcdf source.
+
+Package builds can be enabled or disabled through the package module's sole
+scons option: @p packagebuilds.  That option can be set to @p enable, @p
+disable, or @p force.  By default automatic package builds are disabled.
+They can be enabled with the @p enable option.  The @p force option does
+not force every package to be rebuilt, instead it forces the nodes for
+building the package to be added to the environment, whether the package
+needed to be built or not.  This may not result in any attempt to build the
+package if the built package is already up-to-date.
+
+So far these packages have been updated to use the Package framework and
+allow automatic installs:
+
+@li netcdf
+@li udunits
+@li Xerces-C
+@li log4cpp
+@li qwt
+
