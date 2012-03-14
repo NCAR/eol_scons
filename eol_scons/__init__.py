@@ -574,6 +574,10 @@ def _findToolFile(env, name):
                               filter(toolpattern.match, contents)])
             if '.svn' in contents:
                 contents.remove('.svn')
+            if 'site_scons' in contents:
+                contents.remove('site_scons')
+            if 'apidocs' in contents:
+                contents.remove('apidocs')
         _tool_matches = []
         os.path.walk(env.Dir('#').get_abspath(), addMatches, _tool_matches)
         # Update the cache
