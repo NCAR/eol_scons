@@ -38,7 +38,7 @@ def ldd(program_node, env):
     for k in libkeys:
         # If the library is in the dependencies, then the file will
         # be copied into the deploy lib directory
-        match = re.search(r"lib%s\..*=> (.+) \(" % env.subst(k),
+        match = re.search(r"lib%s\..*=> (.+) \(" % re.escape(env.subst(k)),
                           lddout, re.MULTILINE)
         if match:
             lib = env.File(match.group(1))
