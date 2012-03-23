@@ -22,16 +22,6 @@ def generate(env,**kw):
     env.Replace(RANLIB	= 'armbe-linux-ranlib')
     env.Replace(LEX	= 'armbe-linux-flex')
 
-    env['KERNELDIR'] = kw.get('KERNELDIR','')
-
-    # If KERNELDIR doesn't exist, issue a warning here and
-    # let it fail later.
-    if env['KERNELDIR'] != '':
-        if os.path.exists(env['KERNELDIR']):
-            print 'KERNELDIR=' + env['KERNELDIR'] + ' found'
-        else:
-            print 'Error: KERNELDIR=' + env['KERNELDIR'] + ' not found. Suggestion: install the kernel-devel or kernel-PAE-devel package, and use KERNELDIR=\'*\'.'
-
     env['KINCLUDE'] = env.Dir("#").get_abspath()
     env['KMAKE'] = "make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE ARCH=arm CROSS_COMPILE=armbe-linux-"
 

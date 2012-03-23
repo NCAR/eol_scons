@@ -23,9 +23,7 @@ from subprocess import Popen,PIPE
 
 def generate(env,**kw):
 
-    env['KERNELDIR'] = kw.get('KERNELDIR','')
-
-    if env['KERNELDIR'] == '*':
+    if env.has_key('KERNELDIR') and env['KERNELDIR'] == '*':
         krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].rstrip("\n")
         # How to build KERNELDIR from uname:
         # EL5, i686, PAE: (merlot)
@@ -54,13 +52,10 @@ def generate(env,**kw):
                 krel = krel.replace("PAE","")
                 kdir = '/usr/src/kernels/' + krel + '-' + kmach
         env['KERNELDIR'] = kdir
+        print 'KERNELDIR set to ' + env['KERNELDIR']
 
-    # If KERNELDIR doesn't exist, issue a warning here and
-    # let it fail later.
-    if env['KERNELDIR'] != '':
-        if os.path.exists(env['KERNELDIR']):
-            print 'KERNELDIR=' + env['KERNELDIR'] + ' found'
-        else:
+    # If KERNELDIR doesn't exist, issue a warning here and let it fail later.
+    if env['KERNELDIR'] != '' and not os.path.exists(env['KERNELDIR']):
             print 'Error: KERNELDIR=' + env['KERNELDIR'] + ' not found. Suggestion: install the kernel-devel or kernel-PAE-devel package, and use KERNELDIR=\'*\'.'
 
     env['KINCLUDE'] = env.Dir("#").get_abspath()
