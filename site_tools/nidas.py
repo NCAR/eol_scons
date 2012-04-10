@@ -66,7 +66,7 @@ def generate(env):
         _options.Update(env)
 
     nidas_paths = []
-    if env.has_key('NIDAS_PATH') and env['NIDAS_PATH'][0] != '':
+    if env.has_key('NIDAS_PATH') and env['NIDAS_PATH'] != '':
         paths=env['NIDAS_PATH'].split(",")
         for p in paths:
             np = env.Dir("#").Dir(env.subst(p)).get_abspath()
