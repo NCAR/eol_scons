@@ -8,6 +8,7 @@ class NidasPathNotDirectory(SCons.Warnings.Warning):
     pass
 
 _options = None
+USE_PKG_CONFIG = 'Using pkg-config'
 
 _warned_paths = {}
 
@@ -31,8 +32,9 @@ def generate(env):
     if sys.platform == 'win32' or sys.platform == 'darwin':
         return
 
-    # If NIDAS_PATH is not defined in env, check for the pkg-config file.
-    if not env.has_key('NIDAS_PATH'):
+    # If NIDAS_PATH is not defined in env or is set to value of USE_PKG_CONFIG,
+    # check for the pkg-config file.
+    if not env.has_key('NIDAS_PATH') or env['NIDAS_PATH'] == USE_PKG_CONFIG:
         try:
             env.EnableNIDAS = (lambda: (os.system('pkg-config --exists nidas') == 0))
         except:
@@ -42,7 +44,11 @@ def generate(env):
             # Don't try here to make things unique in CFLAGS; just do an append
             env.ParseConfig('pkg-config --cflags nidas', unique = False)
             env.ParseConfig('pkg-config --libs nidas', unique = False)
+            env['NIDAS_PATH'] = USE_PKG_CONFIG
             return
+        else:
+            if env.has_key('NIDAS_PATH'):
+                raise SCons.Errors.StopError, "Cannot find pkgconfig file: 'pkg-config --exists nidas' failed"
     
         # NIDAS_PATH is not defined, and pkg-config isn't found.
         global _options
@@ -54,7 +60,8 @@ def generate(env):
     This can be a comma-separated list of paths, for example to build
     against a NIDAS installation whose other dependencies are installed
     under another prefix.  Relative paths will be converted to absolute
-    paths relative to the top directory.""",
+    paths relative to the top directory.
+    NIDAS_PATH can also be set to""" + USE_PKG_CONFIG,
                         '/opt/nidas')
         _options.Update(env)
 
