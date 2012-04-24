@@ -1,3 +1,37 @@
+# SCons tool which adds a builder for Linux kernel modules.
+
+"""
+There should be a Makefile in the current directory that has the
+usual syntax for Linux module Makefiles, where the object file names
+of the desired modules are listed in the definition of obj-m.
+This example shows how a module, my_mod2, can be built from multiple
+source code files:
+
+############################################################################
+# if KERNELRELEASE is defined, we've been invoked from the
+# kernel build system and can use its language
+ifneq ($(KERNELRELEASE),)
+        obj-m := my_mod1.o my_mod2.o
+        my_mod2-objs := my_mod2_init.o mod2_other_code.o
+
+# Otherwise we were called directly from the command
+# line; invoke the kernel build system.
+else
+	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+	PWD := $(shell pwd)
+
+default:
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) CFLAGS_MODULE="-DMODULE -I$(KINCLUDE)" modules
+
+endif
+############################################################################
+
+To build the modules as .ko files:
+env.Kmake(['my_mod1.ko','my_mod2.ko'],
+          ['my_mod1.c','my_mod2_init.c','mod2_other_code.c','Makefile'])
+
+"""
+
 import os
 import re
 import subprocess
@@ -20,7 +54,26 @@ def Kmake(env,target,source):
     srcdir = os.path.dirname(source[0].abspath)
     return env.Execute('cd ' + srcdir + '; ' + env['KMAKE'])
 
-def generate(env):
+def generate(env, **kw):
+
+    # Get KERNELDIR from kw dictionary argument that is passed 
+    # with the following syntax:
+    #   env.Clone(tools=[('kmake',{'KERNELDIR': '/my/kernel/dir'})])
+
+    # If KERNELDIR is not defined or is '*', then an attempt will be
+    # made to find the location of the kernel development tree on the
+    # current system. The kernel tree is typically provided by the
+    # "kernel-devel" package. This tool will try to find the tree
+    # using the uname command and the usual path conventions used
+    # by RedHat.
+
+    # The above syntax is necessary if this generate is expected to
+    # change the value of KERNELDIR. If instead one does:
+    #   env.Clone(tools=['kmake'],KERNELDIR='*')
+    # then KERNELDIR gets reset back to '*' after this generate is called.
+
+    if kw.has_key('KERNELDIR'):
+        env['KERNELDIR'] = kw.get('KERNELDIR')
 
     if not env.has_key('KERNELDIR') or env['KERNELDIR'] == '*':
         krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].rstrip("\n")
@@ -50,12 +103,10 @@ def generate(env):
                 krel = krel.replace("xen","")
                 krel = krel.replace("PAE","")
                 kdir = '/usr/src/kernels/' + krel + '-' + kmach
-        env['KERNELDIR'] = kdir
-        print 'KERNELDIR set to ' + env['KERNELDIR']
 
-    # If KERNELDIR doesn't exist, issue a warning here and let it fail later.
-    if not os.path.exists(env['KERNELDIR']):
-            print 'Error: KERNELDIR=' + env['KERNELDIR'] + ' not found. Suggestion: install the kernel-devel or kernel-PAE-devel package, and use KERNELDIR=\'*\'.'
+        env.Replace(KERNELDIR = kdir)
+
+    print 'kmake: KERNELDIR=' + env['KERNELDIR']
 
     if not env.has_key('KINCLUDE'):
         env['KINCLUDE'] = env.Dir("#").get_abspath()

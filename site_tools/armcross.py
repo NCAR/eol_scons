@@ -40,7 +40,7 @@ def generate(env,**kw):
                   env['ENV']['PATH'])
             return
 
-    print("Found %s and %s" % 
+    print("armcross: found %s and %s" % 
           (env.WhereIs('arm-linux-gcc'), env.WhereIs('arm-linux-g++')))
 
     cxxrev = localutils.get_cxxversion(env)
