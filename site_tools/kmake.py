@@ -1,9 +1,9 @@
-# SCons tool which adds a builder for Linux kernel modules.
-
 """
-There should be a Makefile in the current directory that has the
+SCons tool which provides a builder for Linux kernel modules.
+
+You must provide a Makefile in the current directory, having the
 usual syntax for Linux module Makefiles, where the object file names
-of the desired modules are listed in the definition of obj-m.
+of the desired modules are listed in the definition of the obj-m make variable.
 This example shows how a module, my_mod2, can be built from multiple
 source code files:
 
@@ -26,8 +26,28 @@ default:
 endif
 ############################################################################
 
-To build the modules as .ko files:
-env.Kmake(['my_mod1.ko','my_mod2.ko'],
+If you know the location of the kernel source tree to build your module against, 
+set the value of KERNELDIR in the environment before loading this tool:
+
+    kenv = env.Clone(tools=['kmake'],KERNELDIR='/usr/local/linux/kernel/2.6.42')
+
+On RedHat systems, which have the kernel-devel package installed, this tool's generate
+method will try to determine the value of KERNELDIR for you, using the uname command,
+in which case you don't need to define KERNELDIR before loading the tool:
+
+    kenv = env.Clone(tools=['kmake'])
+
+The KMAKE construction variable is the command that is run to make the module. If necessary it can be customized:
+    kenv.Replace(KMAKE='make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE ARCH=arm CROSS_COMPILE=arm-linux-')
+
+The default value for KMAKE should be sufficient to build modules for the host system:
+    KMAKE: "make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE"
+
+The default value of KINCLUDE is the current source directory:
+    KINCLUDE: env.Dir("#").get_abspath()
+
+Finally, to build the .ko files of the modules, do:
+    kenv.Kmake(['my_mod1.ko','my_mod2.ko'],
           ['my_mod1.c','my_mod2_init.c','mod2_other_code.c','Makefile'])
 
 """
@@ -119,5 +139,9 @@ def generate(env, **kw):
     env.Append(BUILDERS = {'Kmake':k})
 
 def exists(env):
-    return env.Detect(['gcc','g++'])
-
+    # In scons v2.1.0, and probably all versions before that, this method is
+    # not executed when the tool is loaded, but its existence is detected,
+    # in order for kmake to recognized as a tool. Just in case it might be
+    # executed in a future version of scons, tools make an attempt to check
+    # whether they might succeed. Return the existence of make and CC.
+    return bool(env.Detect('make')) and bool(env.Detect(env['CC']))

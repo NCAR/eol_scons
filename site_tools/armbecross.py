@@ -33,7 +33,7 @@ def generate(env,**kw):
     # So, we only append /opt/arcom/bin if "which armbe-linux-gcc"
     # fails.
 
-    if not env.Detect(['armbe-linux-gcc','armbe-linux-g++']):
+    if not exists(env):
         env.AppendENVPath('PATH', '/opt/arcom/bin')
         if not exists(env):
             print("*** armbe-linux-gcc, armbe-linux-g++ not found on path: %s",
@@ -48,4 +48,4 @@ def generate(env,**kw):
         env.Replace(CXXVERSION = cxxrev)
 
 def exists(env):
-    return env.Detect(['armbe-linux-gcc'])
+    return bool(env.Detect('armbe-linux-gcc')) and bool(env.Detect('armbe-linux-g++'))
