@@ -18,6 +18,10 @@ def generate(env):
     clone = env.Clone()
     clone.Replace(LIBS=[])
     conf = clone.Configure()
+    # Disable SConf display of messages like "Checking for <x> in <y>..."
+    origPrintState = SCons.SConf.progress_display.print_it
+    SCons.SConf.progress_display.print_it = False
+    
     header = 'boost/thread/mutex.hpp'
     test_src = 'boost::mutex m; boost::mutex::scoped_lock guard(m);'
     if (not conf.CheckLibWithHeader('pthread', header, 'CXX', test_src) and
@@ -30,6 +34,9 @@ def generate(env):
     conf.Finish()
         
     env.Append(LIBS=clone['LIBS'])
+    
+    # Restore SConf's print state
+    SCons.SConf.progress_display.print_it = origPrintState
 
 def exists(env):
     return True
