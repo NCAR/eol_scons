@@ -487,6 +487,8 @@ def enable_modules(self, modules, debug=False) :
             if module == "QtDesigner":
                 self.AppendUnique(QT4_MOCFROMHFLAGS =
                                   ['-I', os.path.join(hdir, module)])
+            if module == "QtGui":
+                self.AppendUnique(CPPDEFINES = ["QT_GUI_LIB"])
         return
     if sys.platform == "win32" :
         if debug : debugSuffix = 'd'
