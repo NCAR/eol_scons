@@ -1,7 +1,7 @@
 # -*- python -*-
 
 ##
-# @file examples/logx/tool_logx.py
+# @file examples/logx/tool_logx_example.py
 #
 # This is an example of a SConscript file embedded in a source tree.  It
 # contains the SCons Environment calls which assemble the builders and
@@ -13,13 +13,13 @@ env = Environment(tools = ['default'] + tools)
 
 logxDir = Dir('.').abspath
 
-def logx(env):
+def logx_example(env):
     env.Append(LIBS=[env.GetGlobalTarget('liblogx'),])
     env.AppendUnique(CPPPATH = logxDir)
     env.AppendDoxref(doxref[0])
     env.Require(tools)
 
-Export('logx')
+Export('logx_example')
 
 sources = Split("""
  Logging.cc
@@ -47,4 +47,3 @@ env.InstallHeaders('logx', headers)
 env['DOXYFILE_DICT'].update({ "PROJECT_NAME" : "logx library" })
 doxref = env.Apidocs(sources + headers + ["private/LogLayout.h"])
 
-SConscript("tests/SConscript")

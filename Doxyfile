@@ -613,7 +613,7 @@ WARN_LOGFILE           =
 INPUT  = README 
 INPUT += eol_scons
 INPUT += site_tools
-INPUT += examples/SConstruct examples/logx/tool_logx.py
+INPUT += examples/SConstruct examples/logx/tool_logx_example.py
 INPUT += examples/datastore/SConscript examples/aeros/SConscript
 
 # This tag can be used to specify the character encoding of the source files

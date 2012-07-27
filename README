@@ -264,7 +264,7 @@ directories, or as reference examples for some of the techniques mentioned
 here.
 
 @li @ref examples/SConstruct
-@li @ref examples/logx/tool_logx.py
+@li @ref examples/logx/tool_logx_example.py
 @li @ref examples/datastore/SConscript
 @li @ref examples/aeros/SConscript
 
