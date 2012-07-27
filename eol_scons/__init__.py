@@ -54,6 +54,7 @@ _eolsconsdir = os.path.dirname(__file__)
 from SCons.Script import ARGUMENTS
 
 debug = False
+_enable_cache = False
 
 def SetDebug(enable):
     """Set the flag to enable or disable printing of debug messages."""
@@ -105,6 +106,10 @@ def GlobalVariables(cfile = None):
             BoolVariable('eolsconsdebug',
                          'Enable debug messages from eol_scons.',
                          debug))
+        global_variables.AddVariables(
+            BoolVariable('eolsconscache',
+                         'Enable tools.cache optimization.',
+                         _enable_cache))
         print "Config files: %s" % (global_variables.files)
     return global_variables
 
@@ -117,7 +122,7 @@ _cache_variables = None
 class VariableCache(SCons.Variables.Variables):
 
     def __init__(self, path):
-        SCons.Variables.Variables.__init__(self, [path])
+        SCons.Variables.Variables.__init__(self, path)
         self.cfile = path
 
     def getPath(self):
@@ -143,21 +148,31 @@ class VariableCache(SCons.Variables.Variables):
         # Update the cache
         key = self.cacheKey(name)
         env[key] = value
-        self.Save(self.getPath(), env)
+        if self.getPath():
+            self.Save(self.getPath(), env)
         Debug("Updated %s to value %s" % (key, value))
 
 
 def ToolCacheVariables():
     global _cache_variables
     if not _cache_variables:
+        global debug
+        global _enable_cache
+        Debug("creating _cache_variables: eolsconsdebug=%s, eolsconscache=%s" %
+              (debug, _enable_cache))
         cfile = "tools.cache"
         if not cfile.startswith("/"):
             # Turn relative config file path to absolute, relative
             # to top directory.
             cfile = os.path.abspath(os.path.join(__path__[0], 
                                                  "../..", cfile))
-        _cache_variables = VariableCache (cfile)
-        print "Tool settings cache: %s" % (_cache_variables.getPath())
+        if _enable_cache:
+            _cache_variables = VariableCache (cfile)
+            print("Tool settings cache: %s" % (_cache_variables.getPath()))
+        else:
+            _cache_variables = VariableCache (None)
+            print("Tool cache will not be used.  (It is now disabled by default.)  "
+                  "It can be enabled by setting eolsconscache=1")
     return _cache_variables
 
 # ================================================================
@@ -228,14 +243,20 @@ def _createDefaultEnvironment():
         _creating_default_environment = False
 
 
+def _update_variables(env):
+    GlobalVariables().Update (env)
+    if env.has_key('eolsconsdebug'):
+        eol_scons.debug = env['eolsconsdebug']
+    if env.has_key('eolsconscache'):
+        eol_scons._enable_cache = env['eolsconscache']
+
+
 def _generate (env):
     """Generate the basic eol_scons customizations for the given
     environment, especially applying the scons built-in default tool
     and the eol_scons global tools."""
     _createDefaultEnvironment()
-    GlobalVariables().Update (env)
-    if env.has_key('eolsconsdebug') and env['eolsconsdebug']:
-        eol_scons.debug = True
+    _update_variables(env)
     name = env.Dir('.').get_path(env.Dir('#'))
     Debug("Generating eol defaults for Environment(%s) @ %s" % 
           (name, env.Dir('#').get_abspath()))
@@ -554,6 +575,8 @@ _tool_matches = None
 
 def _findToolFile(env, name):
     global _tool_matches
+    # Need to know if the cache is enabled or not.
+    _update_variables(env)
     cache = ToolCacheVariables()
     toolcache = cache.getPath()
     if _tool_matches == None:
