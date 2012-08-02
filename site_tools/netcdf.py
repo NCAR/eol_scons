@@ -1,3 +1,4 @@
+# -*- python -*-
 
 import os, os.path
 import string
@@ -85,6 +86,10 @@ class NetcdfPackage(Package):
                      os.path.join(prefix,'include','netcdf'),
                      "/usr/include/netcdf-3",
                      "/usr/include/netcdf" ]
+        # Netcdf 4.2 C++ API installs a /usr/include/netcdf header file,
+        # which throws an exception in FindFile.  So cull the list of any
+        # entries which are actually files.
+        incpaths = [ p for p in incpaths if os.path.isdir(p) ]
         header = env.FindFile("netcdf.h", incpaths)
         if header:
             self.settings['CPPPATH'] = [ header.get_dir().get_abspath() ]
