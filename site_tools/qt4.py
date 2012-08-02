@@ -97,6 +97,11 @@ class _Automoc:
         # make a deep copy for the result; MocH objects will be appended
         out_sources = source[:]
 
+        if debug:
+            print("%s: scanning [%s] to add targets to [%s]." %
+                  (self.objBuilderName, 
+                   ",".join([str(s) for s in source]),
+                   ",".join([str(t) for t in target])))
         for obj in source:
             #
             # KLUGE: If the obj is not a SCons.Node.FS.Entry, it may be a list
@@ -302,7 +307,8 @@ def generate(env):
     global _options
     if not _options:
         _options = env.GlobalVariables()
-        _options.AddVariables(PathVariable('QT4DIR','Qt4 installation root.',None))
+        _options.AddVariables(PathVariable('QT4DIR',
+       'Parent directory of qt4 bin, include and lib sub-directories. The default location is determined from the path to qt4 tools and from pkg-config, so QT4DIR typically does not need to be specified.', None, PathVariable.PathAccept))
     _options.Update(env)
 
     # 
