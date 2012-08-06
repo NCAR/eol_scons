@@ -175,6 +175,14 @@ def ToolCacheVariables():
                   "It can be enabled by setting eolsconscache=1")
     return _cache_variables
 
+
+def PathToAbsolute(path, env):
+    "Convert a Path variable to an absolute path relative to top directory."
+    apath = env.Dir('#').Dir(path).get_abspath()
+    # print("Converting PREFIX=%s to %s" % (path, apath))
+    return apath
+
+
 # ================================================================
 # End of public interface
 # ================================================================
