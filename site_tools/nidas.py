@@ -104,14 +104,16 @@ def _NidasAddApp(env, node):
     name = env.subst("${TARGET.filebase}", target=node)
     _nidas_apps[(name,arch)] = node
 
-def _NidasProgram(env, target=None, source=None):
+def _NidasProgram(env, target=None, source=None, libs=None):
     "Wrapper to build a program against full nidas libs and add it to apps."
     arch = env['ARCH']
     if not source:
         source = target
         target = None
-    node = env.Program(target=target, source=source,
-                       LIBS = env['LIBS'] + env.NidasLibs())
+    if libs is None:
+        libs = _NidasLibs(env)
+    node = env.Program(target=target, source=source, 
+                       LIBS=env['LIBS'] + libs)
     inode = env.Install('$PREFIX/bin', node)
     env.Clean('install', inode)
     env.NidasAddApp(node)
@@ -119,16 +121,12 @@ def _NidasProgram(env, target=None, source=None):
 
 def _NidasUtilProgram(env, target=None, source=None):
     "Wrapper to build a program against nidas util libs and add it to apps."
-    arch = env['ARCH']
-    if not source:
-        source = target
-        target = None
-    node = env.Program(target=target, source=source,
-                       LIBS = env['LIBS'] + env.NidasUtilLibs())
-    inode = env.Install('$PREFIX/bin', node)
-    env.Clean('install', inode)
-    env.NidasAddApp(node)
-    return node
+    return _NidasProgram(env, target, source, _NidasUtilLibs(env))
+
+def _NidasPlainProgram(env, target=None, source=None):
+    "Wrapper to build a plain program but with the nidas install extras."
+    return _NidasProgram(env, target, source, [])
+
 
 # The original idea was to add the explicit library targets to the LIBS
 # construction variable, but then scons doesn't make the dependency
