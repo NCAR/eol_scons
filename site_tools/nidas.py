@@ -183,6 +183,7 @@ def generate(env):
     env.AddMethod(_NidasApp, "NidasApp")
     env.AddMethod(_NidasProgram, "NidasProgram")
     env.AddMethod(_NidasUtilProgram, "NidasUtilProgram")
+    env.AddMethod(_NidasPlainProgram, "NidasPlainProgram")
 
     # It is not (yet) possible to build against NIDAS on anything
     # except Linux, so don't even give anyone the option.
