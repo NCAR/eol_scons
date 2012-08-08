@@ -70,8 +70,7 @@ from subprocess import *
 _debug = 0
 
 def pdebug(msg):
-    if _debug:
-        print(msg)
+    if _debug: print(msg)
 
 class SubversionInfo:
 
@@ -93,6 +92,18 @@ class SubversionInfo:
         for k in self._variable_map.keys():
             self.values[k] = "unknown"
 
+    def _get_output(self, cmd):
+        "Get command output, or an empty string if the command fails."
+        output = ""
+        try:
+            pdebug("svninfo: running '%s'" % (" ".join(cmd)))
+            child = Popen(cmd, stdout=PIPE)
+            output = child.communicate()[0]
+            pdebug("svninfo output: %s" % (output))
+        except OSError, e:
+            print("Warning: svn info '%s' failed: %s" % (" ".join(cmd), str(e)))
+        return output
+
     def getExternals(self):
         """
         Return a list of svn:externals subdirectories relative to the given
@@ -100,8 +111,7 @@ class SubversionInfo:
         """
         workdir = self.workdir
         svncmd = [self.svncmd, 'status', workdir]
-        child = Popen(svncmd, stdout=PIPE)
-        svnstatus = child.communicate()[0].split('\n')
+        svnstatus = self._get_output(svncmd).split('\n')
         externals = []
         for line in svnstatus:
             # 'svn status' lines which start with 'X' are externals
@@ -122,16 +132,9 @@ class SubversionInfo:
         svndict = { "Revision":None, "Last Changed Date":None, "URL":None, 
                    "ExternalRevs":None }
         svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
-        pdebug(" ".join(svncmd))
-        child = Popen(svncmd, stdout=PIPE)
-        svninfo = child.communicate()[0]
-        pdebug(svninfo)
-
+        svninfo = self._get_output(svncmd)
         svnversioncmd = [ self.svnversioncmd, "-n", workdir ]
-        pdebug(" ".join(svnversioncmd))
-        child = Popen(svnversioncmd, stdout=PIPE)
-        svnversion = child.communicate()[0]
-        pdebug(svnversion)
+        svnversion = self._get_output(svnversioncmd)
         for k in svndict.keys():
             match = re.search(r"^%s: .*$" % (k), svninfo, re.M)
             if (match):
@@ -144,8 +147,7 @@ class SubversionInfo:
         for subdir in externals:
             subdirPath = os.path.join(workdir, subdir)
             svnversioncmd = [ self.svnversioncmd, "-n", subdirPath ]
-            child = Popen(svnversioncmd, stdout=PIPE)
-            svnversion = child.communicate()[0]
+            svnversion = self._get_output(svnversioncmd)
             if subdir != externals[0]:
                 svnExternRevs += ","
             svnExternRevs += subdir + ":" + svnversion
@@ -154,11 +156,14 @@ class SubversionInfo:
 
         # Normalize paths and urls.
         for k, v in svndict.items():
-            svndict[k] = v.replace('\\', '/').strip()
+            if v:
+                svndict[k] = v.replace('\\', '/').strip()
 
-        # Fill in the key variables from the svn info dictionary.
+        # Fill in the key variables from the svn info dictionary, but only
+        # if there is a value there.
         for k,v in self._variable_map.items():
-            self.values[k] = svndict[v]
+            if svndict[v]:
+                self.values[k] = svndict[v]
         return self
 
     def applyInfo(self, env):
