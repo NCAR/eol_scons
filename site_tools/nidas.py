@@ -2,18 +2,30 @@
 Modify an environment to build against NIDAS, inside or outside the source
 tree.
 
-This tool provides environment methods and variables useful for building NIDAS programs and for building against the NIDAS libraries. 
+This tool provides environment methods and variables useful for building
+NIDAS programs and for building against the NIDAS libraries.  The
+pseudo-builder methods create a Program builder but also add the NIDAS
+library dependencies, add the standard clean and install targets, and also
+add the program target to a global application map, so other Environments
+which must run programs (ie, tests) can retrieve the right program node for
+the current architecture using its common name.  They differ only in which
+libraries are added to the LIBS variable automatically:
 
-There are two pseudo-builder wrapper methods:
+ env.NidasProgram()       -- Link with the full set of NIDAS libraries.
+ env.NidasUtilProgram()   -- Link against only the NIDAS util library.
+ env.NidasPlainProgram()  -- Do not add any NIDAS libraries to LIBS.
 
- env.NidasProgram()       -- For linking against the full NIDAS libraries.
- env.NidasUtilProgram()   -- For linking against only the NIDAS util library.
+This tool adds methods to the environment for returning typical sets of
+library names, suitable for adding to a LIBS construction variable:
 
-These create a Program builder but also add the NIDAS library dependencies,
-add the standard clean and install targets, and also add the program target
-to a global application map, so other Environments which must run programs
-(ie, tests) can retrieve the right program node for the current
-architecture using its common name.
+ env.NidasUtilLibs()      -- Utility library and any of its dependencies.
+ env.NidasLibs()          -- Full NIDAS libraries and dependencies.
+
+The NidasProgram() method accepts a named parameter 'libs' to specify the
+libraries explicitly.  For example, the call below is equivalent to
+env.NidasUtilProgram():
+
+ env.NidasProgram('utime', libs=env.NidasUtilLibs())
 
 Program nodes can be added explicitly to the NIDAS application registry
 using the method env.NidasAddApp().
@@ -23,8 +35,8 @@ env.NidasApp():
 
  env.NidasApp('data_dump')
 
-Besides returning this program node, it also adds the program's directory
-to the PATH.  The NIDAS library directories are also added to
+Besides returning the program node, this method also adds the program's
+directory to the PATH.  The NIDAS library directories are also added to
 LD_LIBRARY_PATH in the OS environment, so the program can be run through a
 Command() builder.  So far this only works inside the source tree, but it
 would be easy to create the program node to point to an installed program
