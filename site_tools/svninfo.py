@@ -9,14 +9,14 @@ with definitions for those values.
 # which contains the version settings and depends upon key svn
 # administration files in the source tree.  The point is to avoid running
 # 'svn info' and 'svnversion' unless something has changed which would
-# change the svnversion output.  svnverion can be slow to run since it must
-# scan the whole source tree for svn version info and modified versioned
-# files.  Since the version settings need to be applied to the environment
-# when this tool is applied, and since other scons targets rely on those
-# settings being current, this tool actually runs the SCons Taskmaster to
-# update the implicit header node once it has been defined.  SCons seems to
-# be able to detect whether svnversion needs to be updated faster than
-# running svnversion by default.
+# change the svnversion output.  svnversion can be slow to run since it
+# must scan the whole source tree for svn version info and modified
+# versioned files.  Since the version settings need to be applied to the
+# environment when this tool is applied, and since other scons targets rely
+# on those settings being current, this tool actually runs the SCons
+# Taskmaster to update the implicit header node once it has been defined.
+# SCons seems to be able to detect whether svnversion needs to be updated
+# faster than running svnversion by default.
 
 # NOTE: The svn admin files change if there is an svn operation like update,
 # commit, add, or delete.  However, after an update or commit to a clean
@@ -30,6 +30,30 @@ with definitions for those values.
 # the dependencies need to be different if the tree is 'clean' or not.  If
 # it's clean, the dependencies are all the source files.  If not, the
 # dependencies are all the svn admin files.
+
+# August 8, 2012
+#
+# The caching has been abandoned, and SVN 1.7 no longer keeps .svn admin
+# directories throughout the tree, and the .svn dependency was not
+# completely correct anyway as mentioned above, so revert to always
+# retrieving the svn version information.  It is retrieved when this tool
+# is loaded so that the version information is available in the environment
+# construction variables.  The version information is also cached in this
+# module by working directory, to optimize the case where the SConscript
+# which loads the svninfo tool is in the working directory as a target
+# header file.  There is no point in caching the info between scons runs
+# because there is no way to tell if it needs to be updated or not, thus it
+# needs to be refreshed each time.  However, any nodes which depend on the
+# version information, such as header files, should not be rebuilt unless
+# the version information this run is different than the last run.  For
+# that we rely on scons caching of Value nodes whose content is the header
+# file.
+#
+# Some source trees (aeros) use the revision value from the environment
+# even if a header is not generated, thus the version info must be
+# retrieved and loaded into the environment even if there is not a header
+# target.  The source for this version information is implicitly the
+# directory of the SConscript file.
 
 import os
 import re
@@ -45,166 +69,152 @@ from subprocess import *
 
 _debug = 0
 
-def _find_svn_files(path):
-    found = []
-    for root, dirs, files in os.walk(path):
-        # Look for the svn subdir first.
-        svndirs = [ d for d in dirs if d in ['.svn', '_svn'] ]
-        for d in svndirs:
-            dirs.remove(d)
-            for f in [ 'entries', 'all-wcprops' ]:
-                path = os.path.normpath(os.path.join(root, d, f))
-                if os.path.exists(path):
-                    found.append(path)
-    return found
+def pdebug(msg):
+    if _debug:
+        print(msg)
+
+class SubversionInfo:
+
+    # Map construction variable name to the svn info keys.
+    _variable_map = {
+        'SVNREVISION' : "Revision",
+        'SVNEXTERNALREVS' : "ExternalRevs",
+        'SVNLASTCHANGEDDATE' : "Last Changed Date",
+        'SVNURL' : "URL",
+        'SVNWORKDIRSPEC' : "Working Directory",
+        'SVNWORKDIR' : "workdir"
+        }
+
+    def __init__(self, env, workdir):
+        self.workdir = workdir
+        self.values = {}
+        self.svncmd = env.subst("$SVN")
+        self.svnversioncmd = env.subst("$SVNVERSION")
+        for k in self._variable_map.keys():
+            self.values[k] = "unknown"
+
+    def getExternals(self):
+        """
+        Return a list of svn:externals subdirectories relative to the given
+        working directory.
+        """
+        workdir = self.workdir
+        svncmd = [self.svncmd, 'status', workdir]
+        child = Popen(svncmd, stdout=PIPE)
+        svnstatus = child.communicate()[0].split('\n')
+        externals = []
+        for line in svnstatus:
+            # 'svn status' lines which start with 'X' are externals
+            if re.match('^X', line):
+                subdir = re.sub('^X +', '', line)
+                # remove the working directory from the subdir
+                relativeSubdir = subdir.replace(workdir, '', 1)
+                # remove the trailing cr, found on windows systems
+                relativeSubdir = re.sub('\r','',relativeSubdir)
+                # then remove leading directory separator character, if any
+                relativeSubdir = re.sub('^\\' + os.sep, '', relativeSubdir)
+                externals += [relativeSubdir]
+        return externals
+
+    def loadInfo(self):
+        workdir = self.workdir
+        svncmd = [ self.svncmd, "info", workdir ]
+        svndict = { "Revision":None, "Last Changed Date":None, "URL":None, 
+                   "ExternalRevs":None }
+        svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
+        pdebug(" ".join(svncmd))
+        child = Popen(svncmd, stdout=PIPE)
+        svninfo = child.communicate()[0]
+        pdebug(svninfo)
+
+        svnversioncmd = [ self.svnversioncmd, "-n", workdir ]
+        pdebug(" ".join(svnversioncmd))
+        child = Popen(svnversioncmd, stdout=PIPE)
+        svnversion = child.communicate()[0]
+        pdebug(svnversion)
+        for k in svndict.keys():
+            match = re.search(r"^%s: .*$" % (k), svninfo, re.M)
+            if (match):
+                svndict[k] = match.group()
+        svndict.update ( {'workdir':workdir} )
+        svndict['Revision'] = svnversion
+
+        externals = self.getExternals()
+        svnExternRevs = ""
+        for subdir in externals:
+            subdirPath = os.path.join(workdir, subdir)
+            svnversioncmd = [ self.svnversioncmd, "-n", subdirPath ]
+            child = Popen(svnversioncmd, stdout=PIPE)
+            svnversion = child.communicate()[0]
+            if subdir != externals[0]:
+                svnExternRevs += ","
+            svnExternRevs += subdir + ":" + svnversion
+            pdebug(svnExternRevs)
+        svndict['ExternalRevs'] = svnExternRevs
+
+        # Normalize paths and urls.
+        for k, v in svndict.items():
+            svndict[k] = v.replace('\\', '/').strip()
+
+        # Fill in the key variables from the svn info dictionary.
+        for k,v in self._variable_map.items():
+            self.values[k] = svndict[v]
+        return self
+
+    def applyInfo(self, env):
+        "Apply info values to the environment."
+        pdebug("Applying svn info from %s..." % (self.workdir))
+        for k,v in self.values.items():
+            env[k] = v
+
+    def generateHeader(self):
+        svnheader = """
+#ifndef SVNINFOINC
+#define SVNINFOINC
+#define SVNREVISION \"%(SVNREVISION)s\"
+#define SVNEXTERNALREVS \"%(SVNEXTERNALREVS)s\"
+#define SVNLASTCHANGEDDATE \"%(SVNLASTCHANGEDDATE)s\"
+#define SVNURL \"%(SVNURL)s\"
+#define SVNWORKDIRSPEC \"%(SVNWORKDIRSPEC)s\"
+#define SVNWORKDIR \"%(SVNWORKDIR)s\"
+#endif
+"""
+        svnheader = svnheader % self.values
+        pdebug(svnheader)
+        return svnheader
 
 
 def _get_workdir(source):
-    if _debug: print "_get_workdir source=" + str(['%s' % d for d in source])
+    pdebug("_get_workdir source=" + str(['%s' % d for d in source]))
     workdir = source[0]
     if workdir.isfile():
         workdir = workdir.get_dir()
     if workdir.name in ['.svn', '_svn']:
         workdir = workdir.get_dir()
-    if _debug: 
-        print ("get_workdir(%s) ==> %s" % 
-               (str(source[0]), workdir.get_abspath()))
+    pdebug("get_workdir(%s) ==> %s" % (str(source[0]), workdir.get_abspath()))
     return workdir.get_abspath()
 
-# Return a list of svn:externals subdirectories relative to the given working
-# directory
-def _getExternals(env, workdir):
-    svncmd = [env.subst("$SVN"), 'status', workdir]
-    child = Popen(svncmd, stdout=PIPE)
-    svnstatus = child.communicate()[0].split('\n')
-    externals = []
-    for line in svnstatus:
-        # 'svn status' lines which start with 'X' are externals
-        if re.match('^X', line):
-            subdir = re.sub('^X +', '', line)
-            # remove the working directory from the subdir
-            relativeSubdir = subdir.replace(workdir, '', 1)
-            # remove the trailing cr, found on windows systems
-            relativeSubdir = re.sub('\r','',relativeSubdir)
-            # then remove leading directory separator character, if any
-            relativeSubdir = re.sub('^\\' + os.sep, '', relativeSubdir)
-            externals += [relativeSubdir]
-    return externals
 
-def svninfo_emitter_svnfiles(target, source, env):
-    """
-    Given an argument for svn info in the first source, return the svn
-    admin files as sources, so that svn info and svnversion do not need to
-    be run unless something in the svn admin files has changed.
-    """
-    if _debug: print "svninfo_emitter source=" + str(['%s' % d for d in source])
+_svninfomap = {}
 
-    workdir = _get_workdir(source)
-    cache = env.CacheVariables()
-    key = "svninfo_files" + re.sub(r'[^\w]', '_', workdir)
-    svnfiles = cache.lookup(env, key)
-    if not svnfiles:
-        svnfiles = _find_svn_files(workdir)
-        cache.store(env, key, "\n".join(svnfiles))
-    else:
-        svnfiles = svnfiles.split("\n")
-    if _debug:
-        print("svninfo_emitter: found %d svn admin files" % (len(svnfiles)))
-    if _debug: sys.stdout.writelines(traceback.format_stack())
-    return target, svnfiles
-
-
-def _generateHeader(env, workdir):
-    """Run svn info and svnversion to generate the header text."""
-    if _debug: print("_generateHeader()")
-    svncmd = [ env.subst("$SVN"), "info", workdir ]
-    svndict = { "Revision":None, "Last Changed Date":None, "URL":None, 
-               "ExternalRevs":None }
-    svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
-    if _debug: print " ".join(svncmd)
-    child = Popen(svncmd, stdout=PIPE)
-    svninfo = child.communicate()[0]
-    if _debug: print svninfo
-    
-    svnversioncmd = [ env.subst("$SVNVERSION"), "-n", workdir ]
-    if _debug: print " ".join(svnversioncmd)
-    child = Popen(svnversioncmd, stdout=PIPE)
-    svnversion = child.communicate()[0]
-    if _debug: print svnversion
-    for k in svndict.keys():
-        match = re.search(r"^%s: .*$" % (k), svninfo, re.M)
-        if (match):
-            svndict[k] = match.group()
-    svndict.update ( {'workdir':workdir} )
-    svndict['Revision'] = svnversion
-    
-    externals = _getExternals(env, workdir)
-    svnExternRevs = ""
-    for subdir in externals:
-        subdirPath = os.path.join(workdir, subdir)
-        svnversioncmd = [ env.subst("$SVNVERSION"), "-n", subdirPath ]
-        child = Popen(svnversioncmd, stdout=PIPE)
-        svnversion = child.communicate()[0]
-        if subdir != externals[0]:
-            svnExternRevs += ","
-        svnExternRevs += subdir + ":" + svnversion
-        if _debug: print svnExternRevs
-    svndict['ExternalRevs'] = svnExternRevs
-    
-    for k, v in svndict.items():
-        svndict[k] = v.replace('\\', '/').strip()
-    svnheader = """
-#ifndef SVNINFOINC
-#define SVNINFOINC
-#define SVNREVISION \"%(Revision)s\"
-#define SVNEXTERNALREVS \"%(ExternalRevs)s\"
-#define SVNLASTCHANGEDDATE \"%(Last Changed Date)s\"
-#define SVNURL \"%(URL)s\"
-#define SVNWORKDIRSPEC \"%(Working Directory)s\"
-#define SVNWORKDIR \"%(workdir)s\"
-#endif
-""" % svndict
-    if _debug: print svnheader
-    return svnheader
-
-def _generateCluelessHeader(env):
-    """If there is no svn information, generate header with
-       all macros defined as "unknown". """
-    return """
-#ifndef SVNINFOINC
-#define SVNINFOINC
-/* Sorry, no subversion information was available for scons build. */
-/*
-    #define SVNREVISION "unknown"
-    #define SVNEXTERNALREVS "unknown"
-    #define SVNLASTCHANGEDDATE "unknown"
-    #define SVNURL "unknown"
-    #define SVNWORKDIRSPEC "unknown"
-    #define SVNWORKDIR "unknown"
-*/
-#endif
-"""
-
-def _apply_header(env, header):
-    "Apply settings in the header to the environment."
-    print("Applying svn variables from %s" % (header))
-    hin = open(header, "r")
-    lines = hin.readlines()
-    hin.close()
-    for line in lines:
-        match = re.search(r"^#define (\w+) \"(.*)\"$", line)
-        if (match):
-            k = match.group(1)
-            v = match.group(2)
-            env[k] = v
-            if _debug: print("  %s = %s" % (k, v))
+def _load_svninfo(env, workdir):
+    """Run svn info and svnversion and load the info into a dictionary."""
+    global _svninfomap
+    if _svninfomap.has_key(workdir):
+        pdebug("_load_svninfo: returning cached svninfo for %s" % (workdir))
+        return _svninfomap[workdir]
+    pdebug("_load_svninfo(%s): creating svninfo" % (workdir))
+    sinfo = SubversionInfo(env, workdir)
+    _svninfomap[workdir] = sinfo.loadInfo()
+    return sinfo
 
 
 def svninfo_emitter_value(target, source, env):
     """Given an argument for svn info in the first source, replace that
     source with a Value() node with the svn info contents."""
     workdir = _get_workdir(source)
-    return target, [Value(_generateHeader(env, workdir))]
+    svninfo = _load_svninfo(env, workdir)
+    return target, [Value(svninfo.generateHeader())]
 
 def svninfo_build_value(env, target, source):
     "Build header based on contents in the source."
@@ -213,99 +223,14 @@ def svninfo_build_value(env, target, source):
     out.write("\n")
     out.close()
 
-def svninfo_build_svnfiles(env, target, source):
-    "Build header by generating it now."
-    if _debug:
-        print "source len=" + str(len(source))
-        print "target[0]=" + target[0].get_abspath()
-        print "target exists=" + str(os.path.exists(target[0].get_abspath()))
-    # If len(source) is 0 then no svn files have been found
-    # which could be if we're building in an exported directory, 
-    # or from a tar ball with the svn stuff excluded.
-    # In that case don't update the target if it exists and no svn files
-    # are found.
-    if len(source) == 0 and os.path.exists(target[0].get_abspath()): return
-    out = open(target[0].get_abspath(), "w")
-    # If no source, and target doesn't exist, create empty target file.
-    # We could be more thorough and fill the target with lines like
-    #   #define SVNREVISION "unknown"
-    # As it is, by generating an empty header file, a compiler will find
-    # the macros to be undefined.
-    if len(source) > 0:
-        workdir = _get_workdir(source)
-        out.write(_generateHeader(env, workdir))
-    else:
-        out.write(_generateCluelessHeader(env))
-    out.write("\n")
-    out.close()
-
-# svninfobuilder = Builder(
-#     action = Action(svninfo_build_value, lambda t,s,e: "Generating %s"%t[0]),
-#     source_factory = FS.default_fs.Entry,
-#     emitter = svninfo_emitter_value)
-
-
 svninfobuilder = Builder(
-    action = Action(svninfo_build_svnfiles,
-                    lambda t,s,e: "Generating %s"%t[0]),
+    action = Action(svninfo_build_value, lambda t,s,e: "Generating %s" % (t[0])),
     source_factory = FS.default_fs.Entry,
-    emitter = svninfo_emitter_svnfiles)
+    emitter = svninfo_emitter_value)
 
 
 class SvnInfoWarning(SCons.Warnings.Warning):
     pass
-
-
-_svninfonode = None
-
-
-def SvnInfo(env, target, source):
-    """Wrapper method to create a builder for the target header."""
-    # A top-level svnInfo.h file is generated implicitly by the svninfo
-    # tool, and usually this is enough.  Call this builder from a
-    # SConscript file to create additional header files which perhaps
-    # depend only upon a subdirectory of the project.  However, to set
-    # those variables correctly, the header file must be generated
-    # immediately in case svnversion and svn info need to be run.  All this
-    # is to avoid running 'svn info' and 'svnversion' unless really
-    # necessary.
-    #
-    # As a special porting case, ignore any explicit requests to build the
-    # same file as the implicit header.
-    global _svninfonode
-    if _debug: print("SvnInfo(%s,%s)" % (str(target), str(source)))
-    if _debug:
-        print("target=%s, svninfonode=%s" % (str(target), str(_svninfonode)))
-    if _debug: sys.stdout.writelines(traceback.format_stack())
-    if _svninfonode and str(target) == str(_svninfonode):
-        print("SvnInfo: %s is already an implicit target." % str(target))
-        return [_svninfonode]
-    node = env.SvnInfoBuilder(target, source)[0]
-    # In building this node, scons calls
-    # SCons.Defaults.DefaultEnvironment(), which creates a default
-    # Environment, which recursively enters eol_scons._generate() and may
-    # require this module again.  Therefore we need to guard against that
-    # by updating _svninfonode here, before running the build.
-    if not _svninfonode:
-        _svninfonode = node
-    tm = SCons.Taskmaster.Taskmaster([node], SCons.Script.Main.BuildTask)
-    SCons.Script.Main.BuildTask.options = SCons.Script.Main.OptionsParser.values
-    jobs = SCons.Job.Jobs(1, tm)
-    jobs.run()
-    # node.make_ready()
-    # if node.changed():
-    #     print("%s needs to be rebuilt..." % (node.get_abspath()))
-    #     print(node.explain())
-    #     node.prepare()
-    #     node.build()
-    #     node.built()
-    # else:
-    #     print("%s has no changes" % (str(node)))
-
-    # Now update the environment with whatever settings are in that header
-    # file.
-    _apply_header(env, node.get_abspath())
-    return [node]
 
 
 def generate(env):
@@ -320,8 +245,8 @@ def generate(env):
     # applications of the svninfo tool, we use a single implicit builder
     # for a top-level header file.
 
-    if _debug: print("svninfo: generate()")
-    env['BUILDERS']['SvnInfoBuilder'] = svninfobuilder
+    pdebug("svninfo: generate()")
+    env['BUILDERS']['SvnInfo'] = svninfobuilder
     env['SVN'] = "svn"
     env['SVNVERSION'] = "svnversion"
     # Use the default location for the subversion Windows installer.
@@ -329,18 +254,10 @@ def generate(env):
         svnbin=r'c:\Program Files\Svn'
         env['SVN'] = os.path.join(svnbin, "svn")
         env['SVNVERSION'] = os.path.join(svnbin, "svnversion")
-    env.AddMethod(SvnInfo, 'SvnInfo')
 
-    global _svninfonode
-    if _svninfonode == None:
-        if _debug: print("svninfo: creating implicit svnInfo.h")
-        _svninfonode = env.SvnInfo('svnInfo.h', '#')[0]
-
-    else:
-        if _debug: print("svninfo: applying existing svnInfo.h")
-        # The header has already been created and updated,
-        # so just update the environment with the settings.
-        _apply_header(env, _svninfonode.get_abspath())
+    workdir = env.Dir('.').get_abspath()
+    svninfo = _load_svninfo(env, workdir)
+    svninfo.applyInfo(env)
 
 
 def exists(env):
