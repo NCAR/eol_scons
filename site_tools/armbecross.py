@@ -3,10 +3,7 @@
 Customize an environment to use the GCC ARM cross-compiler tools.
 """
 
-import os
-import kmake
 import localutils
-import SCons.Tool
 
 def generate(env,**kw):
     """
