@@ -10,6 +10,7 @@ def generate(env):
     # The change was necessary because the new (and common) xmlrpc-c package
     # contains a /usr/lib/libxmlrpc++.so that supports a different API than
     # the xmlrpc++ package.
+    prefix = env.get('OPT_PREFIX')
     if (os.system('rpm -V --quiet xmlrpc++') == 0):
         # Check for libxmlrpcpp.so in both /usr/lib and /usr/lib64, so
         # we're covered for both 32-bit and 64-bit installations.
@@ -22,13 +23,17 @@ def generate(env):
             env.Append(LIBS=['xmlrpc++'])
             env.AppendUnique(CPPPATH = ['/usr/include/xmlrpc++'])
                          
-    # If no RPM, then assume headers are under OPT_PREFIX/include, and
-    # the library is in OPT_PREFIX/lib/libXmlRpc.a.
-    else:
-        env.AppendUnique(CPPPATH=[os.path.join(env['OPT_PREFIX'],'include')])
-        env.AppendUnique(LIBPATH=[os.path.join(env['OPT_PREFIX'],'lib')])
-        env.Append(LIBS=['XmlRpc',])
-
+    # If no RPM, then assume headers are under OPT_PREFIX/include, and the
+    # library is in OPT_PREFIX/lib/libXmlRpc.a, but only if OPT_PREFIX has
+    # been enabled and set.
+    elif prefix:
+        cpppath = os.path.join(prefix, 'include')
+        libpath = os.path.join(prefix, 'lib')
+        if (os.path.exists(libpath + "/lib/libxmlrpcpp.so") or 
+            os.path.exists(libpath + "/lib64/libxmlrpcpp.so")):
+            env.AppendUnique(CPPPATH=[cppath])
+            env.AppendUnique(LIBPATH=[libpath])
+            env.Append(LIBS=['XmlRpc',])
 
 
 def exists(env):
