@@ -67,19 +67,20 @@ class NetcdfPackage(Package):
 
     def require(self, env):
         "Need to add both c and c++ libraries to the environment."
-        # The netcdf tool avails itself of the settings in the
-        # prefixoptions tool, so make sure it gets required first.
-        env.Require('prefixoptions')
+
+        # The netcdf tool can avail itself of the settings in the
+        # prefixoptions tool, but only if that tool has been required
+        # elsewhere first.  This tool does not require it automatically in
+        # case that would introduce a default /opt/local that interferes
+        # with building a project.
+        # env.Require('prefixoptions')
         if not self.settings:
             self.calculate_settings(env)
         self.apply_settings(env)
 
     def calculate_settings(self, env):
         Package.checkBuild(self, env)
-        if env.has_key('OPT_PREFIX'):
-            prefix = env['OPT_PREFIX']
-        else:
-            prefix = '/usr/local'
+        prefix = env.subst(env.get('OPT_PREFIX', '/usr/local'))
         # Look in the typical locations for the netcdf headers, and see
         # that the location gets added to the CPP paths.
         incpaths = [ os.path.join(prefix,'include'),
@@ -91,45 +92,59 @@ class NetcdfPackage(Package):
         # entries which are actually files.
         incpaths = [ p for p in incpaths if os.path.isdir(p) ]
         header = env.FindFile("netcdf.h", incpaths)
+        headerdir = None
+        self.settings['CPPPATH'] = [ ]
         if header:
-            self.settings['CPPPATH'] = [ header.get_dir().get_abspath() ]
+            headerdir = header.get_dir().get_abspath()
+            self.settings['CPPPATH'] = [ headerdir ]
+
         if self.building:
             self.settings['LIBS'] = [ env.File(libs[0]), env.File(libs[1]) ]
+            # These refer to the nodes for the actual built libraries,
+            # so there is no LIBPATH manipulation needed.
+            return
+
+        # Now try to find the libraries, using the header as a hint.
+        if not headerdir or headerdir.startswith("/usr/include"):
+            # only check system install dirs since the header was not found
+            # anywhere else.
+            self.settings['LIBPATH'] = []
         else:
+            # the header must have been found under OPT_PREFIX
             self.settings['LIBPATH'] = [os.path.join(prefix,'lib')]
-            self.settings['RPATH'] = [os.path.join(prefix,'lib')]
-            self.settings['LIBPATH'].append('/usr/lib/netcdf-3')
 
-            # Now try to check whether the HDF libraries are needed
-            # explicitly when linking with netcdf.  Use a cloned
-            # Environment so Configure does not modify the original
-            # Environment.  Also, reset the LIBS so that libraries in
-            # the original Environment do not affect the linking.  All
-            # the library link check needs is the netcdf-related
-            # libraries.
+        if headerdir and headerdir.startswith("/usr/include/netcdf-3"):
+            self.settings['LIBPATH'] = ['/usr/lib/netcdf-3']
 
-            clone = env.Clone()
-            libs = ['netcdf_c++', 'netcdf']
+        # Now check whether the HDF libraries are needed explicitly when
+        # linking with netcdf.  Use a cloned Environment so Configure does
+        # not modify the original Environment.  Also, reset the LIBS so
+        # that libraries in the original Environment do not affect the
+        # linking.  All the library link check needs is the netcdf-related
+        # libraries.
+
+        clone = env.Clone()
+        libs = ['netcdf_c++', 'netcdf']
+        clone.Replace(LIBS=libs)
+        clone.Replace(CPPPATH=self.settings['CPPPATH'])
+        clone.Replace(LIBPATH=self.settings['LIBPATH'])
+        conf = clone.Configure()
+        if not conf.CheckLib('netcdf'):
+            # First attempt without HDF5 failed, so try with HDF5
+            libs.append(['hdf5_hl', 'hdf5', 'bz2'])
             clone.Replace(LIBS=libs)
-            conf = clone.Configure()
             if not conf.CheckLib('netcdf'):
-                libs.append(['hdf5_hl', 'hdf5', 'bz2'])
-                clone.Replace(LIBS=libs)
-                if not conf.CheckLib('netcdf'):
-                    msg = "Failed to link to netcdf both with and without"
-                    msg += " explicit HDF libraries.  Check config.log."
-                    raise SCons.Errors.StopError, msg
-            self.settings['LIBS'] = libs
-            conf.Finish()
+                msg = "Failed to link to netcdf both with and without"
+                msg += " explicit HDF libraries.  Check config.log."
+                raise SCons.Errors.StopError, msg
+        self.settings['LIBS'] = libs
+        conf.Finish()
+
 
     def apply_settings(self, env):
-        if self.settings.has_key('CPPPATH'):
-            env.AppendUnique(CPPPATH=self.settings['CPPPATH'])
-
+        env.AppendUnique(CPPPATH=self.settings['CPPPATH'])
         env.Append(LIBS=self.settings['LIBS'])
-        if not self.building:
-            env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
-            env.AppendUnique(RPATH=self.settings['RPATH'])
+        env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
 
 
 
