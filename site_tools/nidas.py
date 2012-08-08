@@ -174,8 +174,15 @@ def _NidasAppFindFile(env, name):
 
 
 def generate(env):
-    eol_scons.Debug("applying nidas tool to %s, PREFIX=%s" %
-                    (env.Dir('.').abspath, env.get('PREFIX')))
+    # It is not (yet) possible to build against NIDAS on anything
+    # except Linux, so don't even give anyone the option.
+    if sys.platform == 'win32' or sys.platform == 'darwin':
+        return
+
+    inside = _applyInsideSource(env)
+    eol_scons.Debug("applying nidas tool to %s, PREFIX=%s, %s source tree" %
+                    (env.Dir('.').abspath, env.get('PREFIX'),
+                     ['outside','inside'][int(inside)]))
     env.EnableNIDAS = (lambda: 0)
     env.AddMethod(_NidasLibs, "NidasLibs")
     env.AddMethod(_NidasUtilLibs, "NidasUtilLibs")
@@ -185,12 +192,7 @@ def generate(env):
     env.AddMethod(_NidasUtilProgram, "NidasUtilProgram")
     env.AddMethod(_NidasPlainProgram, "NidasPlainProgram")
 
-    # It is not (yet) possible to build against NIDAS on anything
-    # except Linux, so don't even give anyone the option.
-    if sys.platform == 'win32' or sys.platform == 'darwin':
-        return
-
-    if _applyInsideSource(env):
+    if inside:
         env.EnableNIDAS = (lambda: 1)
         return
 
