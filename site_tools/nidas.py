@@ -86,7 +86,11 @@ def _applyInsideSource(env):
             libmap[k] = lib
             env[k] = lib
             libpath.append(lib.Dir(''))
-    env.Append(LIBPATH = libpath)
+
+    # Inside the  source tree, the build dir  paths have to come  first, to take
+    # precedence over any  other library paths (ie OTHER_PREFIX)  added by other
+    # tools or for third-party libraries.
+    env.Prepend(LIBPATH = libpath)
     env.Tool("xercesc")
     env.Tool('xmlrpc')
 
