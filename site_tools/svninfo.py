@@ -57,15 +57,13 @@ with definitions for those values.
 
 import os
 import re
-import SCons
-import traceback
-import sys
 
 from SCons.Builder import Builder
 from SCons.Action import Action
 from SCons.Node import FS
 from SCons.Node.Python import Value
 from subprocess import *
+import SCons.Warnings
 
 _debug = 0
 
