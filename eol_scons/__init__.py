@@ -27,11 +27,61 @@ private.  See the README file for the documenation for this module.
 """
 
 import os
+
 import re
 import glob
-import traceback
 
-import SCons
+# It seems like the below is all that should be needed to subclass
+# SConsEnvironment and replace the default Environment class, according to
+# a comment in SCons.Environment where the Environment variable is
+# assigned.  SCons.Script.SConscript then defines a class SConsEnvironment
+# and assigns it to SCons.Environment.Environment.  So this code subclasses
+# SConsEnvironment (so SCons.Script.SConscript must be imported first),
+# then replaces the setting in SCons.Environment.  This works for the first
+# environment created through DefaultEnvironment(), but not for the first
+# Environment created in the SConstruct file.  Presumably that's because
+# the Environment symbol in the SConstruct scope has already been bound to
+# SConsEnvironment even though scons hasn't given the site_init.py a chance
+# to replace it.  Replacing the DefaultEnvironment() at least means that
+# later default calls to SConscript() (ie, not through an env method) will
+# go through the DebugEnvironment.  But any SConscript or Clone method calls 
+# will use the original SConsEnvironment instance.
+#
+# In summary, the goal was to tap into all SConscript() calls and allow
+# things like printing a debug message to trace the evolution of
+# troublesome construction variables.  However that does not appear to be
+# feasible.  It does not work to replace the SConscript method as is done
+# for _ExtendEnvironment, because the _SConscript implementation relies on
+# tricky access to the stack frames.  It did seem to work for subclassing,
+# but that's what I didn't find a way to make stick.  The other goal was to
+# tap the creation of an Environment.  Again that doesn't work using
+# subclassing, since the subclass cannot be put in place.  Maybe it would
+# work by replacing the __init__ method, but it has not been tried.
+# Liekwsei the Clone() method would need to be extended.
+#
+if False:
+    from SCons.Script.SConscript import SConsEnvironment
+    import SCons.Environment
+
+    class DebugEnvironment(SConsEnvironment):
+
+        def __init__(self, **kw):
+            SConsEnvironment.__init__(self, **kw)
+            print("Created environment: %s" % (self.Dir('.').get_path(self.Dir('#'))))
+
+        def SConscript(self, *ls, **kw):
+            Debug("calling SConscript(%s,%s)" % (str(ls), str(kw)))
+            SConsEnvironment.SConscript(self, *ls, **kw)
+            Debug("called SConscript(%s,%s)" % (str(ls), str(kw)))
+
+        def Clone(self, tools=[], toolpath=None, parse_flags = None, **kw):
+            print("Cloning ")
+            return SConsEnvironment.Clone(self, tools, toolpath, parse_flags, **kw)
+
+    SCons.Environment.Environment = DebugEnvironment
+    SCons.Script.Environment = DebugEnvironment
+
+
 import SCons.Tool
 import SCons.Variables
 
@@ -49,10 +99,6 @@ from SCons.Builder import _null
 import string
 import eol_scons.chdir
 
-_eolsconsdir = os.path.dirname(__file__)
-
-from SCons.Script import ARGUMENTS
-
 debug = False
 _enable_cache = False
 
@@ -67,8 +113,12 @@ def Debug(msg):
     if debug:
         print msg
 
+_eolsconsdir = os.path.dirname(__file__)
+
 # I wish this would work, but apparently ARGUMENTS has not been populated
 # yet when eol_scons is loaded.
+# 
+# from SCons.Script import ARGUMENTS
 #
 # print("ARGUMENTS=%s" % (ARGUMENTS))
 # SetDebug(ARGUMENTS.get('eolsconsdebug', 0))
@@ -110,7 +160,7 @@ def GlobalVariables(cfile = None):
             BoolVariable('eolsconscache',
                          'Enable tools.cache optimization.',
                          _enable_cache))
-        print "Config files: %s" % (global_variables.files)
+        print("Config files: %s" % (global_variables.files))
     return global_variables
 
 # Alias for temporary backwards compatibility
@@ -150,7 +200,7 @@ class VariableCache(SCons.Variables.Variables):
         env[key] = value
         if self.getPath():
             self.Save(self.getPath(), env)
-        Debug("Updated %s to value %s" % (key, value))
+        Debug("Updated %s to value: %s" % (key, value))
 
 
 def ToolCacheVariables():
@@ -263,8 +313,8 @@ def _generate (env):
     """Generate the basic eol_scons customizations for the given
     environment, especially applying the scons built-in default tool
     and the eol_scons global tools."""
-    _createDefaultEnvironment()
     _update_variables(env)
+    _createDefaultEnvironment()
     name = env.Dir('.').get_path(env.Dir('#'))
     Debug("Generating eol defaults for Environment(%s) @ %s" % 
           (name, env.Dir('#').get_abspath()))
@@ -348,13 +398,13 @@ def _generate (env):
 
     # Debug("After wrapping Library: %s" % (_library_builder_str(env)))
 
+    if _creating_default_environment:
+        Debug("Limiting DefaultEnvironment to standard scons tools.")
+        return env
+
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
     env.PassEnv(r'CVS.*|SSH_.*')
-
-    if _creating_default_environment:
-        print("Limiting DefaultEnvironment to standard scons tools.")
-        return env
 
     # The global tools will be keyed by directory path, so they will only
     # be applied to Environments contained within that path.  Make the path
