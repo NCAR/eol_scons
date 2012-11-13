@@ -99,12 +99,18 @@ class QwtPackage(Package):
 
         if (qwt_dir == USE_PKG_CONFIG):
             return
-
-        if self.building:
-            self.settings['LIBS'] = [env.File(libqwt)]
+            
+        if env['PLATFORM'] != 'darwin':
+        	if self.building:
+        		self.settings['LIBS'] = [env.File(libqwt)]
+        	else:
+        		self.settings['LIBS'] = ['qwt']
+        		self.settings['LIBPATH'] = [qwt_libdir]
         else:
-            self.settings['LIBS'] = ['qwt']
-            self.settings['LIBPATH'] = [qwt_libdir]
+          if env['PLATFORM'] == 'darwin':
+        	env.Require('qt4')
+        	env.AppendUnique(FRAMEWORKPATH=['/usr/local/lib',])
+        	env.AppendUnique(FRAMEWORKS='qwt')      
 
         self.settings['RPATH'] = [qwt_libdir]
         self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
@@ -126,15 +132,16 @@ class QwtPackage(Package):
             env.ParseConfig('pkg-config --libs Qwt', unique = False)
             return
 
-        env.Append(LIBS=self.settings['LIBS'])
-        if not self.building:
-            env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
+        if env['PLATFORM'] != 'darwin':
+	        env.Append(LIBS=self.settings['LIBS'])
+	        if not self.building:
+	            env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
 
         env.AppendUnique(RPATH=self.settings['RPATH'])
         env.Append(CPPPATH=self.settings['CPPPATH'])
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
-
+        
 
 qwt_package = QwtPackage()
 

@@ -506,6 +506,17 @@ def enable_modules(self, modules, debug=False) :
         self.AppendUnique(CPPPATH=[ '$QT4DIR/include/'+module
             for module in modules])
         self.AppendUnique(LIBPATH=['$QT4DIR/lib'])
+        
+    if sys.platform == "darwin" :
+        # Use the frameworks on OSX 
+        # Homebrew installs the frameworks in /usr/local/lib.
+        self.AppendUnique(FRAMEWORKPATH=['/usr/local/lib',])
+        self.AppendUnique(FRAMEWORKS=modules)
+        # Add include paths for the modules. One would think that the frameworks
+        # would do this, but apparently not.
+        for m in modules:
+        	self.AppendUnique(CPPPATH=['/usr/local/lib/' + m + '.framework/Headers',])
+        
 
 
 def exists(env):
