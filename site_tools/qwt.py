@@ -81,7 +81,8 @@ class QwtPackage(Package):
 
         qwt_dir = find_qwtdir(env)
         if not qwt_dir:
-            raise SCons.Errors.StopError, "Qwt not found"
+            return
+
         # The actual QWTDIR value to use depends upon whether qwt is being
         # built internally or not.  Check here to see if the QWTDIR option
         # points to an existing library, and if not then resort to the
@@ -121,7 +122,11 @@ class QwtPackage(Package):
 
     def apply_settings(self, env):
 
-        env['QWTDIR'] = self.settings['QWTDIR']
+        try:
+            env['QWTDIR'] = self.settings['QWTDIR']
+        except KeyError:
+            return
+
         if not env.has_key('QWT_DOXREF'):
             env['QWT_DOXREF'] = self.settings['QWT_DOXREF']
         env.AppendDoxref(env['QWT_DOXREF'])
