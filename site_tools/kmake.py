@@ -50,6 +50,23 @@ Finally, to build the .ko files of the modules, do:
     kenv.Kmake(['my_mod1.ko','my_mod2.ko'],
           ['my_mod1.c','my_mod2_init.c','mod2_other_code.c','Makefile'])
 
+TODO:
+    The names of exported symbols in modules are written to Module.symvers files in each
+    build directory during the module build.  If the Module.symvers files could be
+    referred to in the builds of other modules that use the exported symbols we could
+    avoid these warnings about undefined symbols:
+    WARNING: "register_irig_callback" [.../build_arm/build_linux/build_ncar_a2d_titan/ncar_a2d.ko] undefined!
+
+    See "6.3 Symbols From Another External Module" in the linux kernel docs: Documentation/kbuild/modules.txt
+
+    One of the ways to refer to Module.symvers files is with the KBUILD_EXTRA_SYMBOLS env variable,
+    containing a space separated list of Module.symvers files. 
+
+    Within scons, it would be optimal if the the Module.symvers from one module would be a dependency
+    for the other modules that use its exported symbols.
+
+    Or we could build all the modules from one Makefile or Kbuild, but that would prevent scons from
+    choosing what to build.
 """
 
 import os
