@@ -8,6 +8,7 @@ import SCons.Tool
 import SCons.Util
 from SCons.Variables import PathVariable
 from SCons.Script import Scanner
+from SCons.Script import Configure
 
 from eol_scons.parseconfig import RunConfig
 from eol_scons.parseconfig import CheckConfig
@@ -439,8 +440,7 @@ def enable_modules(self, modules, debug=False) :
                     if (prefix == ''):
                         print('Unable to build Qt header dir for adding module ' +
                               module)
-                        print('Exiting!')
-                        sys.exit(1)
+                        return False
                     hdir = os.path.join(prefix, 'include')
 
                 if (CheckConfig(self, 'pkg-config --exists ' + module) == 0):
@@ -495,7 +495,18 @@ def enable_modules(self, modules, debug=False) :
                                   ['-I', os.path.join(hdir, module)])
             if module == "QtGui":
                 self.AppendUnique(CPPDEFINES = ["QT_GUI_LIB"])
-        return
+
+            # For QtCore at least, check that compiler can find the library
+            if module == "QtCore":
+                conf = Configure(self)
+                hasQt = conf.CheckLibWithHeader('QtCore','QtCore/Qt','c++')
+                conf.Finish()
+                if not hasQt:
+                    # This print is a bit verbose, and not really a debug thing, so it's commented out.
+                    # print "QtCore/Qt header file not found. Do \"scons --config=force\" to redo the check. See config.log for more information"
+                    return hasQt
+        return True
+
     if sys.platform == "win32" :
         if debug : debugSuffix = 'd'
         else : debugSuffix = ''
@@ -517,7 +528,7 @@ def enable_modules(self, modules, debug=False) :
         for m in modules:
         	self.AppendUnique(CPPPATH=['/usr/local/lib/' + m + '.framework/Headers',])
         
-
+    return True
 
 def exists(env):
     return _detect(env)

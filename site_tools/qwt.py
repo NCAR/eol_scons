@@ -2,10 +2,12 @@
 import os
 import SCons
 from SCons.Variables import PathVariable
+from SCons.Script import Configure
 import eol_scons.chdir
 from eol_scons.package import Package
 import string
 import platform
+
 
 _options = None
 myKey = 'HAS_PACKAGE_QWT'
@@ -73,9 +75,10 @@ class QwtPackage(Package):
         env.Tool('download')
         env.Tool('unpack')
         if not self.settings:
+            import new
+            env.EnableQwt = new.instancemethod(enable_qwt, env, type(env))
             self.calculate_settings(env)
         self.apply_settings(env)
-      
 
     def calculate_settings(self, env):
 
@@ -146,7 +149,21 @@ class QwtPackage(Package):
         env.Append(CPPPATH=self.settings['CPPPATH'])
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
-        
+
+def enable_qwt(env):
+    # This configure test for qwt must be delayed, and not done
+    # by the generate() function when this qwt tool is loaded.
+    # This is because the qt4 build environment is not fully setup
+    # when qt tool is loaded via its generate() function. The
+    # user must call env.EnableQt4Modules(['QtCore',...]) after the
+    # qt tool is loaded to setup the Qt build environment.
+    # Then call env.EnableQwt(), and this Configure check has
+    # a chance of succeeding.
+
+    conf = Configure(env)
+    hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++')
+    conf.Finish()
+    return hasQwt
 
 qwt_package = QwtPackage()
 
