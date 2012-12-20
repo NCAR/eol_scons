@@ -344,9 +344,18 @@ def generate(env):
             env['QT4DIR'] = '/usr/lib64/qt4';
         elif os.path.exists('/usr/lib/qt4'):
             env['QT4DIR'] = '/usr/lib/qt4';
+
+    import new
+    env.EnableQt4Modules = new.instancemethod(enable_modules, env, type(env))
+
     if not env.has_key('QT4DIR'):
+	# Dont stop, just print a warning. Later, a user call of
+	# EnableQtModules() will return False if QT4DIR is not found.
+
         errmsg = "Qt4 not found, try setting QT4DIR."
-        raise SCons.Errors.StopError, errmsg
+        # raise SCons.Errors.StopError, errmsg
+	print errmsg
+	return
 
     # the basics
     env['QT4_MOC'] = _locateQt4Command(env, 'moc')
@@ -417,15 +426,19 @@ def generate(env):
                      SHLIBEMITTER=[AutomocShared],
                      LIBEMITTER  =[AutomocStatic])
 
-    import new
-    env.EnableQt4Modules = new.instancemethod(enable_modules, env, type(env))
     env[myKey] = True
 
 no_pkgconfig_warned = []
 def enable_modules(self, modules, debug=False) :
+
+    # Return False if a module cannot be enabled, otherwise True
     import sys
 
     if sys.platform == "linux2" :
+
+	if not self.has_key('QT4DIR'):
+            return False
+
         if debug : modules = [module + "_debug" for module in modules]
         for module in modules:
             if (self['QT4DIR'] == USE_PKG_CONFIG):
@@ -508,6 +521,9 @@ def enable_modules(self, modules, debug=False) :
         return True
 
     if sys.platform == "win32" :
+	if not self.has_key('QT4DIR'):
+            return False
+
         if debug : debugSuffix = 'd'
         else : debugSuffix = ''
         self.Append(LIBS=[lib+'4'+debugSuffix for lib in modules])
