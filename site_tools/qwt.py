@@ -160,8 +160,8 @@ def enable_qwt(env):
     # Then call env.EnableQwt(), and this Configure check has
     # a chance of succeeding.
 
-    conf = Configure(env)
-    hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++')
+    conf = Configure(env,clean=False,Help=False)
+    hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++',autoadd=False)
     conf.Finish()
     return hasQwt
 

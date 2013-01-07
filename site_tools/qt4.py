@@ -511,8 +511,8 @@ def enable_modules(self, modules, debug=False) :
 
             # For QtCore at least, check that compiler can find the library
             if module == "QtCore":
-                conf = Configure(self)
-                hasQt = conf.CheckLibWithHeader('QtCore','QtCore/Qt','c++')
+                conf = Configure(self,clean=False,help=False)
+                hasQt = conf.CheckLibWithHeader('QtCore','QtCore/Qt','c++',autoadd=False)
                 conf.Finish()
                 if not hasQt:
                     # This print is a bit verbose, and not really a debug thing, so it's commented out.
