@@ -17,7 +17,7 @@ def generate(env):
     # to see if any combination will work. If not, complain and quit.
     clone = env.Clone()
     clone.Replace(LIBS=[])
-    conf = clone.Configure()
+    conf = clone.Configure(clean=False, help=False)
     # Disable SConf display of messages like "Checking for <x> in <y>..."
     origPrintState = SCons.SConf.progress_display.print_it
     SCons.SConf.progress_display.print_it = False
