@@ -481,7 +481,12 @@ def _Test (self, sources, actions):
     xtest = self.Command("xtest", sources, actions)
     self.Precious(xtest)
     self.AlwaysBuild(xtest)
-    DefaultEnvironment().Alias('test', xtest)
+    defenv = DefaultEnvironment()
+    defenv.Alias('test', xtest)
+    defenv.Clean(['test', xtest], xtest)
+    # If cleaning, then we want test targets to be cleaned by default.
+    if self.GetOption('clean'):
+        self.Default(xtest)
     return xtest
 
 
