@@ -123,8 +123,13 @@ class NetcdfPackage(Package):
         # linking.  All the library link check needs is the netcdf-related
         # libraries.
 
-        clone = env.Clone()
         libs = ['netcdf_c++', 'netcdf']
+        self.settings['LIBS'] = libs
+
+        if env.GetOption('clean') or env.GetOption('help'):
+            return
+
+        clone = env.Clone()
         clone.Replace(LIBS=libs)
         clone.Replace(CPPPATH=self.settings['CPPPATH'])
         clone.Replace(LIBPATH=self.settings['LIBPATH'])
