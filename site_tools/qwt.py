@@ -159,9 +159,8 @@ def enable_qwt(env):
     # qt4 tool is loaded to setup the Qt build environment.
     # Then call env.EnableQwt(), and this Configure check has
     # a chance of succeeding.
-
     conf = Configure(env,clean=False,help=False)
-    hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++',autoadd=False)
+    hasQwt = conf.CheckCXXHeader('qwt.h')
     conf.Finish()
     return hasQwt
 
