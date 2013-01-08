@@ -116,7 +116,10 @@ class QwtPackage(Package):
         	env.AppendUnique(FRAMEWORKS='qwt')      
 
         self.settings['RPATH'] = [qwt_libdir]
-        self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
+        if qwt_dir != "/usr":
+            self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
+        else:
+            self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
         plugindir='$QWTDIR/designer/plugins/designer'
         self.settings['QT_UICIMPLFLAGS'] = ['-L', plugindir]
         self.settings['QT_UICDECLFLAGS'] = ['-L', plugindir]
@@ -191,6 +194,8 @@ def find_qwtdir(env):
     elif (env.has_key('OPT_PREFIX') and 
           os.path.exists(os.path.join(env['OPT_PREFIX'], lib_, 'libqwt.so'))):
         qwtdir = env['OPT_PREFIX']
+    else:
+        qwtdir = "/usr"
     print("qwtdir set to '%s'" % (qwtdir))
     return qwtdir
 
