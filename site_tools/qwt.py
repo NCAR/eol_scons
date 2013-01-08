@@ -161,9 +161,22 @@ def enable_qwt(env):
     # qt4 tool is loaded to setup the Qt build environment.
     # Then call env.EnableQwt(), and this Configure check has
     # a chance of succeeding.
-    qtlibs = [ lib for lib in env['LIBS'] if lib.startswith('Qt') ]
-    conf = env.Clone(LIBS=qtlibs).Configure(clean=False, help=False)
-    hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++',autoadd=False)
+
+    if False:
+        # When doing a CheckLibWithHeader one must clean out LIBS
+        # so that it doesn't contain any target libraries that are built
+        # by this run of scons. Otherwise those libraries will be built
+        # as part of the check, which leads to major confusion.
+        # We need the Qt libraries, however.
+        qtlibs = [ lib for lib in env['LIBS'] if str(lib).startswith('Qt') ]
+        conf = env.Clone(LIBS=qtlibs).Configure(clean=False, help=False)
+        hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++',autoadd=False)
+    else:
+        # Do a simple CheckCXXHeader('qwt.h') instead of the more complete
+        # CheckLibWithHeader(...), above.
+        conf = env.Configure(clean=False, help=False)
+        hasQwt = conf.CheckCXXHeader('qwt.h')
+
     conf.Finish()
     return hasQwt
 
