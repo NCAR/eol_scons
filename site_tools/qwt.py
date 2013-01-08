@@ -2,7 +2,6 @@
 import os
 import SCons
 from SCons.Variables import PathVariable
-from SCons.Script import Configure
 import eol_scons.chdir
 from eol_scons.package import Package
 import string
@@ -159,8 +158,9 @@ def enable_qwt(env):
     # qt4 tool is loaded to setup the Qt build environment.
     # Then call env.EnableQwt(), and this Configure check has
     # a chance of succeeding.
-    conf = Configure(env,clean=False,help=False)
-    hasQwt = conf.CheckCXXHeader('qwt.h')
+    qtlibs = [ lib for lib in env['LIBS'] if lib.startswith('Qt') ]
+    conf = env.Clone(LIBS=qtlibs).Configure(clean=False, help=False)
+    hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++',autoadd=False)
     conf.Finish()
     return hasQwt
 

@@ -8,7 +8,6 @@ import SCons.Tool
 import SCons.Util
 from SCons.Variables import PathVariable
 from SCons.Script import Scanner
-from SCons.Script import Configure
 
 from eol_scons.parseconfig import RunConfig
 from eol_scons.parseconfig import CheckConfig
@@ -509,14 +508,23 @@ def enable_modules(self, modules, debug=False) :
             if module == "QtGui":
                 self.AppendUnique(CPPDEFINES = ["QT_GUI_LIB"])
 
-            # For QtCore at least, check that compiler can find the library
+            # For QtCore at least, check that compiler can find the
+            # library.  Do not propagate any current LIBS, since the
+            # configure check does not depend on those, only on the current
+            # paths and the compiler.  Otherwise scons will try to build
+            # the library targets as part of the configure check, and that
+            # causes all kinds of unexpected build behavior...
             if module == "QtCore":
-                conf = Configure(self,clean=False,help=False)
-                hasQt = conf.CheckCXXHeader('Qt')
+                conf = self.Clone(LIBS=[]).Configure(clean=False, help=False)
+                hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')
                 conf.Finish()
                 if not hasQt:
-                    # This print is a bit verbose, and not really a debug thing, so it's commented out.
-                    # print "QtCore/Qt header file not found. Do \"scons --config=force\" to redo the check. See config.log for more information"
+                    # This print is a bit verbose, and not really a debug
+                    # thing, so it's commented out.  
+                    #
+                    # print "QtCore/Qt header file not found. Do \"scons
+                    # --config=force\" to redo the check. See config.log
+                    # for more information"
                     return hasQt
         return True
 
