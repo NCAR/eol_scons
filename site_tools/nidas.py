@@ -54,6 +54,7 @@ both cases, so that the same SConscript can work either way.
 import sys
 import os
 import eol_scons
+import sharedlibrary
 from SCons.Variables import EnumVariable
 import SCons.Warnings
 from SCons.Script.SConscript import global_exports
@@ -65,18 +66,6 @@ _options = None
 USE_PKG_CONFIG = 'Using pkg-config'
 
 _warned_paths = {}
-
-_libsubdir = None
-
-def _get_libsubdir(env):
-    global _libsubdir
-    if not _libsubdir:
-        sconf = env.Configure()
-        _libsubdir = 'lib'
-        if sconf.CheckTypeSize('void *',expect=8,language='C'):
-            _libsubdir = 'lib64'
-        sconf.Finish()
-    return _libsubdir
 
 
 def _applyInsideSource(env):
@@ -267,7 +256,7 @@ def generate(env):
         env.EnableNIDAS = (lambda: 1)
         env.Append(CPPPATH=[os.path.join(p,'include') 
                             for p in nidas_paths])
-        libdir = _get_libsubdir(env)
+        libdir = sharedlibrary.GetArchLibDir(env)
         env.Append(LIBPATH=[os.path.join(p,libdir) 
                             for p in nidas_paths])
         # The nidas library contains nidas_util already, so only the nidas

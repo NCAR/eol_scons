@@ -2,9 +2,26 @@ import os
 import re
 from symlink import MakeSymLink
 from SCons.Node.FS import Dir,File
-from SCons.Script import Configure,Builder,Execute
+from SCons.Script import Builder,Execute
 import SCons.Defaults
 import SCons.Scanner.Prog
+
+
+def GetArchLibDir(env):
+    # ARCHLIBDIR can be used if the user wants to install libraries
+    # to a special directory for the architecture, like lib64
+    #
+    # It is tempting to pass clean=False and help=False to this Configure
+    # context, but that might change the paths to targets which need to be
+    # cleaned or are specified in help variables.
+    sconf = env.Clone(LIBS=[]).Configure()
+    libdir = 'lib'
+    if sconf.CheckTypeSize('void *',expect=8,language='C'):
+        libdir = 'lib64'
+    env['ARCHLIBDIR'] = libdir
+    sconf.Finish()
+    return libdir
+
 
 def SharedLibrary3Emitter(target,source,env):
 
@@ -254,17 +271,9 @@ def generate(env):
             src_builder='SharedObject'
             )
     env.Append(BUILDERS = {"SharedLibrary3": builder})
-
     env.AddMethod(SharedLibrary3Install)
+    GetArchLibDir(env)
 
-    # ARCHLIBDIR can be used if the user wants to install libraries
-    # to a special directory for the architecture, like lib64
-    sconf = Configure(env)
-    libdir = 'lib'
-    if sconf.CheckTypeSize('void *',expect=8,language='C'):
-        libdir = 'lib64'
-    sconf.env.Append( ARCHLIBDIR = libdir)
-    env = sconf.Finish()
 
 def exists(env):
     return 1
