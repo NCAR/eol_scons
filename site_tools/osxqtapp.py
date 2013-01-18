@@ -204,7 +204,12 @@ def OsxQtApp(env, destdir, appexe, appicon, *args, **kw):
     source = [appexe, appicon]
     bundleit = env.MakeBundle(target, source)
 
-    # Run macdeployqt on the bundle.
+    # Run macdeployqt on the bundle. 
+    # Tried using qt.conf as the target, but as usual with scons it caused
+    # obscure scons cyclic dependency errors. So just use a bogus
+    # target for now.
+    #qtconf = File(str(appdir) + '/Contents/Resources/qt.conf')
+    #macit = env.MacDeployQt(qtconf, bundleit[3])
     bogustarget = 'osx_qt_app_'+appname
     macit = env.MacDeployQt(bogustarget, bundleit[3])
     
