@@ -128,6 +128,7 @@ def _create_bundle(target, source, env):
     Parameters:
     target[0] -- The destination in the bundle for the executable file.
     target[1] -- The destination in the bundle for the icon file.
+    target[2] -- The bundle directory path.
     source[0] -- The source of the executable file.
     source[1] -- The source of the icon file.
     """
@@ -159,7 +160,14 @@ def OsxQtApp(env, destdir, appexe, appicon, *args, **kw):
     other artifacts are copied in. The macdeployqt application is run on
     the bundle in order to bring in supporting frameworks and libraries.
     
-    The bundle name will be the application executable name + '.app'
+    The bundle name will be the application executable name + '.app'. Thus
+    if the executable is #/code/proxy, and the destination directory is '.',
+    the bundle will be built in './proxy.app'. 
+    
+    This restriction on naming is due to the macdeployqt requirement that the 
+    bundle name prefix (proxy of proxy.app) and the executable file within 
+    must be exactly the same. There may be some artful way to work around this,
+    left for later development.
     
     NOTE: The bundle must not be created in the same directory as where the 
     the executable is located. For some reason, in this situation SCons
@@ -173,29 +181,30 @@ def OsxQtApp(env, destdir, appexe, appicon, *args, **kw):
     
     """
             
+    # Establish some useful attributes.
     appname = str(os.path.basename(appexe))
     appdir = Dir(str(destdir) + '/' + appname + '.app')
     exe  = File(str(appdir) + '/Contents/MacOS/' + appname)
     icon = File(str(appdir) + '/Contents/Resources/' + str(os.path.basename(appicon)))
     info = File(str(appdir) + '/Contents/Info.plist')
-    target = [exe, icon, info, appdir]
-    source = [appexe, appicon]
     
-    # Delete existing app
+    # Delete existing app.
     Execute(Delete(appdir))
     
-    # Define the bundle builder
+    # Define the bundle builder.
     bldr = Builder(action = _create_bundle);
     env.Append(BUILDERS = {'MakeBundle' : bldr})
     
-    # Define the macqtdeploy builder
+    # Define the macqtdeploy builder.
     mdqt = Builder(action = env['MACDEPLOYQT'] + ' $SOURCE')
     env.Append(BUILDERS = {'MacDeployQt' : mdqt})
     
-    # Create the bundle
+    # Create the bundle.
+    target = [exe, icon, info, appdir]
+    source = [appexe, appicon]
     bundleit = env.MakeBundle(target, source)
 
-    # Run macdeployqt on the bundle
+    # Run macdeployqt on the bundle.
     bogustarget = 'osx_qt_app_'+appname
     macit = env.MacDeployQt(bogustarget, bundleit[3])
     
