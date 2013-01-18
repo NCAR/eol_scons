@@ -48,7 +48,8 @@ def _make_info_plist(bundle_name, appexe_filename, icon_filename):
     
     Parameters:
        bundle_name -- The bundle name.
-       appexe_filename -- The name that the executable will have in the MacOS directory.
+       appexe_filename -- The name that the executable will have in the 
+          MacOS directory. Just used to set the bundle identifier.
        icon_filename -- The name that the icon will have in the Resources directory.
        
     """
@@ -59,7 +60,6 @@ def _make_info_plist(bundle_name, appexe_filename, icon_filename):
     bundleIdentifier  = "ncar.eol.cds." + str(appexe_filename)
     bundleVersion     = "0.9"
     bundleSignature   = "ncar_eol_cds_qt_app"
-    bundleExecutable  = str(appexe_filename)
     bundleIconFile    = str(icon_filename)
     
     info = r"""
@@ -80,7 +80,7 @@ def _make_info_plist(bundle_name, appexe_filename, icon_filename):
 	<key>CFBundleSignature</key>
 	<string>%s</string>
 	<key>CFBundleExecutable</key>
-	<string>%s</string>
+	<string>launch_app</string>
 	<key>CFBundleIconFile</key>
 	<string>%s</string>
 </dict>
@@ -91,11 +91,34 @@ def _make_info_plist(bundle_name, appexe_filename, icon_filename):
         bundleIdentifier, 
         bundleVersion, 
         bundleSignature, 
-        bundleExecutable, 
         bundleIconFile
     )
     
     return info
+    
+def _make_launch_app(appexe_filename):
+    """
+    Create the text for a script which sets DYLD_LIBRARY_PATH and DYLD_FRAMEWORK_PATH
+    and then exec's the program
+    
+    Parameters:
+    appexe_filename -- The executable name, which will be found in Contents/MacOS
+    """
+
+    script = r"""#!/bin/sh
+ 
+DIR=$(cd "$(dirname "$0")"; pwd)
+TOPDIR=$DIR/..
+RESDIR=$TOPDIR/Resources
+FRAMEDIR=$TOPDIR/Frameworks
+
+export DYLD_LIBRARY_PATH="$FRAMEDIR:$DIR:$RESDIR"
+export DYLD_FRAMEWORK_PATH="$FRAMEDIR"
+env | grep DYLD
+exec $DIR/%s
+    """ % (str(appexe_filename))
+
+    return script
     
 def _detect(env):
     """ 
@@ -128,9 +151,11 @@ def _create_bundle(target, source, env):
     Parameters:
     target[0] -- The destination in the bundle for the executable file.
     target[1] -- The destination in the bundle for the icon file.
-    target[2] -- The bundle directory path.
+    target[2] -- The path for the Info.plist file.
+    target[3] -- The bundle directory path.
     source[0] -- The source of the executable file.
     source[1] -- The source of the icon file.
+    
     """
     
     # Copy the executable and icon
@@ -151,6 +176,15 @@ def _create_bundle(target, source, env):
     info = _make_info_plist('Proxy', exename, iconname)
     infoplistfile = file(str(target[2]),"w")
     infoplistfile.write(info)
+    
+    # Create launch_app
+    exename = os.path.basename(str(source[0]))
+    script = _make_launch_app(exename)
+    filepath = str(target[3])+ '/Contents/MacOS/launch_app'
+    launchappfile = file(filepath,"w")
+    launchappfile.write(script)
+    os.chmod(filepath, 0775)
+    
 	
 def OsxQtApp(env, destdir, appexe, appicon, *args, **kw):
     """
@@ -159,6 +193,11 @@ def OsxQtApp(env, destdir, appexe, appicon, *args, **kw):
     An OSX application bundle hierarchy is created, and the executable and 
     other artifacts are copied in. The macdeployqt application is run on
     the bundle in order to bring in supporting frameworks and libraries.
+    
+    A script (launch_app) is created which sets environment values such as
+    DYLD_LIBRARY_PATH and DYLD_FRAMEWORK_PATH to the locations within
+    the bundle, and then runs the application. This script is named as
+    the application executable in the Info.plist file.
     
     The bundle name will be the application executable name + '.app'. Thus
     if the executable is #/code/proxy, and the destination directory is '.',
