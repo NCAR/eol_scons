@@ -36,6 +36,9 @@ class ToolOsxQtAppWarning(SCons.Warnings.Warning):
 class MacdeployqtNotFound(ToolOsxQtAppWarning):
     pass
 
+class NotAnOsxSystem(ToolOsxQtAppWarning):
+    pass
+
 SCons.Warnings.enableWarningClass(ToolOsxQtAppWarning)
 
 
@@ -207,5 +210,11 @@ def generate(env):
     env.AddMethod(OsxQtApp, "OsxQtApp")
 
 def exists(env):
+    if (sys.platform != 'darwin'):
+        raise SCons.Errors.StopError(
+            NotAnOsxSystem,
+            "Trying to create an application bundle on a non-OSX system")
+        return None
+
     return _detect(env) 
     
