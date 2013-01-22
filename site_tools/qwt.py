@@ -154,8 +154,20 @@ class QwtPackage(Package):
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
 
-    def setPkgConfigName(self, val):
-        self.pkgConfigName = val
+    def findPkgConfig(self):
+        #
+        # See if pkg-config knows about Qwt on this system
+        #
+        # as of Fedora 18, qwt-devel-6.0 is distributed with /usr/lib*/pkgconfig/qwt.pc
+        # In the absence of pkg-config files, we've created Qwt.pc on local systems
+        for qname in ['qwt','Qwt']:
+            try:
+                if (os.system('pkg-config --exists ' + qname) == 0):
+                    self.pkgConfigName = qname
+                    return True
+            except:
+                return False
+        return False
 
 def enable_qwt(env):
     # This configure test for qwt must be delayed, and not done
@@ -189,19 +201,8 @@ qwt_package = QwtPackage()
 
 def find_qwtdir(env):
     qwtdir = None
-    #
-    # See if pkg-config knows about Qwt on this system
-    #
-    # as of Fedora 18, qwt-devel-6.0 is distributed with /usr/lib*/pkgconfig/qwt.pc
-    # In the absence of pkg-config files, we've created Qwt.pc on local systems
-    for qname in ['qwt','Qwt']:
-        try:
-            pkgConfigKnowsQwt = (os.system('pkg-config --exists ' + qname) == 0)
-            if pkgConfigKnowsQwt:
-                qwt_package.setPkgConfigName(qname)
-                break
-        except:
-            pkgConfigKnowsQwt = 0
+
+    pkgConfigKnowsQwt = qwt_package.findPkgConfig()
 
     # 
     # Try to find the Qwt installation location, trying in order:
