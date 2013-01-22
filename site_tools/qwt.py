@@ -12,6 +12,7 @@ _options = None
 myKey = 'HAS_PACKAGE_QWT'
 USE_PKG_CONFIG = 'Using pkg-config'
 
+
 # The header files are unpacked directly into the QWTDIR/include
 # directory, and thus are listed as targets of the Unpack builder.
 # Otherwise, if they are emitted as targets of the qwt_builder, scons will
@@ -57,6 +58,7 @@ class QwtPackage(Package):
                          qwt_actions, libs,
                          default_package_file = "qwt-4.2.0.zip")
         self.settings = {}
+        self.pkgConfigName = ''
 
     def checkBuild(self, env):
         if env['PLATFORM'] == 'win32':
@@ -138,8 +140,8 @@ class QwtPackage(Package):
 
         if (self.settings['QWTDIR'] == USE_PKG_CONFIG):
             # Don't try here to make things unique in CFLAGS; just do an append
-            env.ParseConfig('pkg-config --cflags Qwt', unique = False)
-            env.ParseConfig('pkg-config --libs Qwt', unique = False)
+            env.ParseConfig('pkg-config --cflags ' + self.pkgConfigName, unique = False)
+            env.ParseConfig('pkg-config --libs ' + self.pkgConfigName, unique = False)
             return
 
         if env['PLATFORM'] != 'darwin':
@@ -151,6 +153,9 @@ class QwtPackage(Package):
         env.Append(CPPPATH=self.settings['CPPPATH'])
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
+
+    def setPkgConfigName(self, val):
+        self.pkgConfigName = val
 
 def enable_qwt(env):
     # This configure test for qwt must be delayed, and not done
@@ -187,10 +192,16 @@ def find_qwtdir(env):
     #
     # See if pkg-config knows about Qwt on this system
     #
-    try:
-        pkgConfigKnowsQwt = (os.system('pkg-config --exists Qwt') == 0)
-    except:
-        pkgConfigKnowsQwt = 0
+    # as of Fedora 18, qwt-devel-6.0 is distributed with /usr/lib*/pkgconfig/qwt.pc
+    # In the absence of pkg-config files, we've created Qwt.pc on local systems
+    for qname in ['qwt','Qwt']:
+        try:
+            pkgConfigKnowsQwt = (os.system('pkg-config --exists ' + qname) == 0)
+            qwt_package.setPkgConfigName(qname)
+            break
+        except:
+            pkgConfigKnowsQwt = 0
+
     # 
     # Try to find the Qwt installation location, trying in order:
     #    o command line QWTDIR option (or otherwise set in the environment)
