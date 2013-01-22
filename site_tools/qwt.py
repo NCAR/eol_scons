@@ -197,8 +197,9 @@ def find_qwtdir(env):
     for qname in ['qwt','Qwt']:
         try:
             pkgConfigKnowsQwt = (os.system('pkg-config --exists ' + qname) == 0)
-            qwt_package.setPkgConfigName(qname)
-            break
+            if pkgConfigKnowsQwt:
+                qwt_package.setPkgConfigName(qname)
+                break
         except:
             pkgConfigKnowsQwt = 0
 
