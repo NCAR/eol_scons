@@ -10,6 +10,7 @@ process:
  - Remove the existing bundle, if present.
  - Populate the bundle directory tree with the executable and icon files.
  - create Info.plist and copy to Contents/
+ - create the launch_app script and copy to Contents/
  - run macdeployqt on the bundle, which copies in needed frameworks and libraries.
  
 Info.plist is an XML description of the application.
@@ -21,6 +22,7 @@ apname.app/
          frameworks and libraries
       MacOS/
          executable
+         launch_app
       Resources/
          icon file
       Info.plist
@@ -42,7 +44,7 @@ class NotAnOsxSystem(ToolOsxQtAppWarning):
 SCons.Warnings.enableWarningClass(ToolOsxQtAppWarning)
 
 
-def _make_info_plist(bundle_name, appexe_filename, icon_filename):
+def _make_info_plist(bundle_name, appexe_filename, icon_filename, bundle_version):
     """
     Return a customized Info.plist.
     
@@ -58,7 +60,7 @@ def _make_info_plist(bundle_name, appexe_filename, icon_filename):
     bundleName        = str(bundle_name)
     bundleDisplayName = str(bundle_name)
     bundleIdentifier  = "ncar.eol.cds." + str(appexe_filename)
-    bundleVersion     = "0.9"
+    bundleVersion     = bundle_version
     bundleSignature   = "ncar_eol_cds_qt_app"
     bundleIconFile    = str(icon_filename)
     
@@ -172,8 +174,11 @@ def _create_bundle(target, source, env):
     # Create Info.plist
     exename = os.path.basename(str(source[0]))
     iconname = os.path.basename(str(source[1]))
+    appname = 'AppName'
+    appversion = '1'
+    
     # @todo Need to find a way to pass the bundle name to the builder.
-    info = _make_info_plist('Proxy', exename, iconname)
+    info = _make_info_plist(appname, exename, iconname, appversion)
     infoplistfile = file(str(target[2]),"w")
     infoplistfile.write(info)
     
@@ -185,8 +190,7 @@ def _create_bundle(target, source, env):
     launchappfile.write(script)
     os.chmod(filepath, 0775)
     
-	
-def OsxQtApp(env, destdir, appexe, appicon, *args, **kw):
+def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     """
     A pseudo-builder to create an OSX application bundle for a Qt application.
     
@@ -214,9 +218,11 @@ def OsxQtApp(env, destdir, appexe, appicon, *args, **kw):
     @todo Detect this situation and raise an error.
     
     Parameters:
-    destdir -- The directory where the bundle will be created.
-    appexe  -- The path to the application executable.
-    appicon -- The path to the application icon.
+    destdir    -- The directory where the bundle will be created.
+    appexe     -- The path to the application executable.
+    appicon    -- The path to the application icon.
+    appname    -- The final name of the app, without '.app. E.g. 'Proxy-6457'
+    appversion -- The version number to be included in Info.plist
     
     """
             
