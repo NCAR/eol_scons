@@ -108,21 +108,26 @@ def _make_launch_app(appexe_filename):
     """
 
     script = r"""#!/bin/sh
- 
+
+# Locate important directories 
 DIR=$(cd "$(dirname "$0")"; pwd)
 TOPDIR=$DIR/..
 RESDIR=$TOPDIR/Resources
 FRAMEDIR=$TOPDIR/Frameworks
 
+# Set the locations for frameworks and libraries
 export DYLD_LIBRARY_PATH="$FRAMEDIR:$DIR:$RESDIR"
 export DYLD_FRAMEWORK_PATH="$FRAMEDIR"
 env | grep DYLD
+
+# Run the app
 exec $DIR/%s
     """ % (str(appexe_filename))
 
+    # Return the text of the customized script
     return script
     
-def _detect(env):
+def _find_mdqt(env):
     """ 
     Look for macdeployqt.
     
@@ -225,16 +230,16 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     appversion -- The version number to be included in Info.plist
     
     """
-            
+    
     # Establish some useful attributes.
-    appname = str(os.path.basename(appexe))
-    appdir = Dir(str(destdir) + '/' + appname + '.app')
-    exe  = File(str(appdir) + '/Contents/MacOS/' + appname)
-    icon = File(str(appdir) + '/Contents/Resources/' + str(os.path.basename(appicon)))
-    info = File(str(appdir) + '/Contents/Info.plist')
+    bundlename = str(os.path.basename(appexe))
+    bundledir = Dir(str(destdir) + '/' + bundlename + '.app')
+    exe  = File(str(bundledir) + '/Contents/MacOS/' + bundlename)
+    icon = File(str(bundledir) + '/Contents/Resources/' + str(os.path.basename(appicon)))
+    info = File(str(bundledir) + '/Contents/Info.plist')
     
     # Delete existing app.
-    Execute(Delete(appdir))
+    Execute(Delete(bundledir))
     
     # Define the bundle builder.
     bldr = Builder(action = _create_bundle);
@@ -245,7 +250,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     env.Append(BUILDERS = {'MacDeployQt' : mdqt})
     
     # Create the bundle.
-    target = [exe, icon, info, appdir]
+    target = [exe, icon, info, bundledir]
     source = [appexe, appicon]
     bundleit = env.MakeBundle(target, source)
 
@@ -255,7 +260,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     # target for now.
     #qtconf = File(str(appdir) + '/Contents/Resources/qt.conf')
     #macit = env.MacDeployQt(qtconf, bundleit[3])
-    bogustarget = 'osx_qt_app_'+appname
+    bogustarget = 'osx_qt_app_'+bundlename
     macit = env.MacDeployQt(bogustarget, bundleit[3])
     
     return macit
@@ -264,7 +269,7 @@ def generate(env):
     """Add Builders and construction variables to the Environment."""
 
     # find macdeployqt command
-    env['MACDEPLOYQT'] = _detect(env)
+    env['MACDEPLOYQT'] = _find_mdqt(env)
 
     env.AddMethod(OsxQtApp, "OsxQtApp")
 
@@ -275,5 +280,5 @@ def exists(env):
             "Trying to create an application bundle on a non-OSX system")
         return None
 
-    return _detect(env) 
+    return _find_mdqt(env) 
     
