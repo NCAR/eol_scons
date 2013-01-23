@@ -34,7 +34,6 @@ def ldd(program_node, env):
     # Get the list of library keys to include
     libkeys = env['DEPLOY_SHARED_LIBS']
     # print("Looking for these libraries:\n"+ "\n".join(libkeys))
-    libdir = os.path.join(env['DEPLOY_DIRECTORY'],"lib")
     for k in libkeys:
         # If the library is in the dependencies, then the file will
         # be copied into the deploy lib directory
@@ -64,8 +63,12 @@ def deploy_program(target, source, env):
 
     """Copy a program target into a deploy tree along with all of its
     dynamic dependencies."""
-    bindir = os.path.join(env['DEPLOY_DIRECTORY'],"bin")
-    libdir = os.path.join(env['DEPLOY_DIRECTORY'],"lib")
+    # Resolve any # notation in the deploy directory setting before using
+    # it.  The str() is in case the setting is a scons node and not a
+    # string.
+    dpath = env.Dir(str(env['DEPLOY_DIRECTORY'])).get_path()
+    bindir = os.path.join(dpath, "bin")
+    libdir = os.path.join(dpath, "lib")
     actions = [ Mkdir(bindir), Mkdir(libdir) ]
     progdest = target[0]
     libraries = ldd(source[0], env)
@@ -103,7 +106,7 @@ def generate(env):
     if not env.has_key('DEPLOY_SHARED_LIBS'):
         env['DEPLOY_SHARED_LIBS'] = []
     if not env.has_key('DEPLOY_DIRECTORY'):
-        env['DEPLOY_DIRECTORY'] = str(env.Dir("#deploy"))
+        env['DEPLOY_DIRECTORY'] = "#deploy"
     env['BUILDERS']['DeployProgram'] = deploy_program_builder
 
 
