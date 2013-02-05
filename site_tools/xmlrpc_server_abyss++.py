@@ -10,6 +10,7 @@ def generate(env):
         status = env.ParseConfig(cmd)
     except OSError as err:
         print "Error loading tool xmlrpc_server_abyss++:", err
+        print "Have you installed package 'xmlrpc-c-devel' (or similar)?"
         raise SCons.Errors.StopError
 
 def exists(env):
