@@ -277,6 +277,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     # Create the bundle.
     bundle = env.MakeBundle(bundledir,  [appexe, appicon], APPNAME=appname, APPVERSION=appversion)
     env.AlwaysBuild(bundle)
+    env.Clean(bundle, bundle)
 
     # Run macdeployqt on the bundle. 
     bogustarget = str(bundledir) + '_bogus'
