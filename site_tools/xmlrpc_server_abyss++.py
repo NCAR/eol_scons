@@ -6,7 +6,11 @@ import SCons.Errors
 def generate(env):
     # Use pkg-config to get C flags and libraries
     cmd = 'pkg-config --cflags --libs xmlrpc_server_abyss++'
-    status = env.ParseConfig(cmd)
+    try:
+        status = env.ParseConfig(cmd)
+    except OSError as err:
+        print "Error loading tool xmlrpc_server_abyss++:", err
+        raise SCons.Errors.StopError
 
 def exists(env):
     status = os.system('pkg-config --exists xmlrpc_server_abyss++')

@@ -5,7 +5,11 @@ import SCons.Errors
 
 def generate(env):
     cmd = 'pkg-config --libs --cflags xmlrpc_client++'
-    env.ParseConfig(cmd)
+    try:
+        env.ParseConfig(cmd)
+    except OSError as err:
+        print "Error loading tool xmlrpc_client++:", err
+        raise SCons.Errors.StopError
 
 def exists(env):
     status = os.system('pkg-config --exists xmlrpc_client++')
