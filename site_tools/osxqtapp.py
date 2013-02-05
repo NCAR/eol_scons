@@ -3,10 +3,9 @@ SCons.Tool.osxqtapp
 
 Create an OSX application bundle from a qt executable
 
-sources: the qt executable and the application icon.
-targets: the directory that the bundle will be created in.
+See OsxQtApp() for the parameter descriptions.
 
-process:
+Process:
  - Remove the existing bundle, if present.
  - Populate the bundle directory tree with the executable and icon files.
  - create Info.plist and copy to Contents/
@@ -30,6 +29,8 @@ apname.app/
 """
 
 import os
+import subprocess
+
 from SCons.Script import *
 
 class ToolOsxQtAppWarning(SCons.Warnings.Warning):
@@ -44,25 +45,21 @@ class NotAnOsxSystem(ToolOsxQtAppWarning):
 SCons.Warnings.enableWarningClass(ToolOsxQtAppWarning)
 
 
-def _make_info_plist(bundle_name, appexe_filename, icon_filename, bundle_version):
+def _make_info_plist(bundle_name, bundle_identifier, bundle_signature, bundle_version, icon_filename):
     """
-    Return a customized Info.plist.
+    Return a customized Info.plist. This is a manifest that is found in Contents/ in the bundle.
     
     Parameters:
-       bundle_name -- The bundle name.
-       appexe_filename -- The name that the executable will have in the 
-          MacOS directory. Just used to set the bundle identifier.
-       icon_filename -- The name that the icon will have in the Resources directory.
-       
+		Should be self evident       
     """
     
     
-    bundleName        = str(bundle_name)
-    bundleDisplayName = str(bundle_name)
-    bundleIdentifier  = "ncar.eol.cds." + str(appexe_filename)
+    bundleName        = bundle_name
+    bundleDisplayName = bundle_name
+    bundleIdentifier  = bundle_identifier
     bundleVersion     = bundle_version
-    bundleSignature   = "ncar_eol_cds_qt_app"
-    bundleIconFile    = str(icon_filename)
+    bundleSignature   = bundle_signature
+    bundleIconFile    = icon_filename
     
     info = r"""
 <?xml version="1.0" encoding="UTF-8"?>
@@ -149,52 +146,103 @@ def _find_mdqt(env):
     return None
 
 #
-# Builder
+# Builder to run macdeployqt on a bundle
+#
+def _macdeployqt(target, source, env):
+    """
+    Run macdepoyqt on the bundle.
+    
+    Parameters:
+    target[0] -- bogus
+    
+    source[0] -- The bundle directory, e.g. RICProxy-6454.app.
+    
+    env['EXENAME']    -- e.g. ric_proxy
+    
+    Since macdeployqt requires the bundle to be have the same name as the executable
+    inside of it, the bundle directory is first renamed, macdeployqt is applied,
+    and then the bundle is renamed to the original.
+    """
+    bundle = source[0]
+    exename = env['EXENAME']
+    
+    d = os.path.dirname(str(bundle))
+    tmpbundle = d + '/' + exename + '.app'
+    
+    # Get rid of the temporary bundle, if it has been left lying around
+    Execute(Delete(tmpbundle))
+    
+    # Move the existing bundle
+    Execute(Move(tmpbundle, bundle))
+    
+    # Run macdeployqt
+    # For some reason, I couldn't get Execute(Command)) to work, so
+    # fall back to using subprocess.
+    subprocess.check_call([env['MACDEPLOYQT'], tmpbundle,'-verbose=2'], stderr=subprocess.STDOUT, bufsize=1)
+    
+    # Move temporary bundle back
+    Execute(Move(bundle, tmpbundle))
+    
+#
+# Builder to create a bundle.
 #
 def _create_bundle(target, source, env):
     """
     Create and populate an OSX application bundle.
     
     Parameters:
-    target[0] -- The destination in the bundle for the executable file.
-    target[1] -- The destination in the bundle for the icon file.
-    target[2] -- The path for the Info.plist file.
-    target[3] -- The bundle directory path.
-    source[0] -- The source of the executable file.
-    source[1] -- The source of the icon file.
+    target[0] -- The bundle directory
     
+    source[0] -- The application executable file, e.g. #/proxy/ric_proxy.
+    source[1] -- The application icon file, e.g. #/Resources/proxy/proxyIcons.icns.
+    
+    Environment values:
+    env['APPNAME']    -- The final application bundle name, e.g. RICProxy-5467M
+    env['APPVERSION'] -- The version number to be included in the manifest, e.g. 5467M
     """
     
+    appname      = env['APPNAME']
+    appversion   = env['APPVERSION']
+    exename      = os.path.basename(str(source[0]))
+    iconname     = os.path.basename(str(source[1]))
+    bundle       = target[0]
+    bundledir    = bundle.get_abspath()
+    contentsdir  = Dir(bundledir + '/Contents')
+    macosdir     = Dir(bundledir + '/Contents/MacOS')
+    resourcesdir = Dir(bundledir + '/Contents/Resources')
+
+    # Get rid of the existing bundle. Otherwise macdeployqt gets bent out of shape 
+    # when it finds its products already there.
+    Execute(Delete(bundle))
+
+    # Buid the basic bundle structure
+    Execute(Mkdir(bundledir))    
+    Execute(Mkdir(contentsdir))    
+    Execute(Mkdir(macosdir))    
+    Execute(Mkdir(resourcesdir))    
+     
     # Copy the executable and icon
-    for t, s in zip(target[0:2], source):
-        # Create the directory.
-        dir = os.path.dirname(str(t))
-        try:
-           os.makedirs(dir)
-        except:
-            if not os.access(dir, os.W_OK): throw
-        # Copy the file
-        Execute(Copy(t, s))
-        
-    # Create Info.plist
-    exename = os.path.basename(str(source[0]))
-    iconname = os.path.basename(str(source[1]))
-    appname = 'AppName'
-    appversion = '1'
-    
-    # @todo Need to find a way to pass the bundle name to the builder.
-    info = _make_info_plist(appname, exename, iconname, appversion)
-    infoplistfile = file(str(target[2]),"w")
+    Execute(Copy(macosdir, source[0]))
+    Execute(Copy(resourcesdir, source[1]))
+            
+    # Create Info.plist in the Contents/ directory
+    info =  _make_info_plist(
+        bundle_name=appname, 
+        bundle_identifier=exename, 
+        bundle_signature='ncar-eol-cds-qt-app', 
+        bundle_version=appversion, 
+        icon_filename=iconname)
+    infofilepath = contentsdir.get_abspath() + '/Info.plist'
+    infoplistfile = file(infofilepath,"w")
     infoplistfile.write(info)
     
-    # Create launch_app
-    exename = os.path.basename(str(source[0]))
-    script = _make_launch_app(exename)
-    filepath = str(target[3])+ '/Contents/MacOS/launch_app'
+    # Create launch_app script in the MacOS directory.
+    scripttext = _make_launch_app(exename)
+    filepath = macosdir.get_abspath() + '/launch_app'
     launchappfile = file(filepath,"w")
-    launchappfile.write(script)
+    launchappfile.write(scripttext)
     os.chmod(filepath, 0775)
-    
+        
 def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     """
     A pseudo-builder to create an OSX application bundle for a Qt application.
@@ -205,72 +253,55 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     
     A script (launch_app) is created which sets environment values such as
     DYLD_LIBRARY_PATH and DYLD_FRAMEWORK_PATH to the locations within
-    the bundle, and then runs the application. This script is named as
+    the bundle, and then runs the application. This script is designated as
     the application executable in the Info.plist file.
     
-    The bundle name will be the application executable name + '.app'. Thus
-    if the executable is #/code/proxy, and the destination directory is '.',
-    the bundle will be built in './proxy.app'. 
-    
-    This restriction on naming is due to the macdeployqt requirement that the 
-    bundle name prefix (proxy of proxy.app) and the executable file within 
-    must be exactly the same. There may be some artful way to work around this,
-    left for later development.
-    
-    NOTE: The bundle must not be created in the same directory as where the 
-    the executable is located. For some reason, in this situation SCons
-    will erase the executable. 
-    @todo Detect this situation and raise an error.
+    The final bundle name will be appname + '.app'. 
     
     Parameters:
     destdir    -- The directory where the bundle will be created.
     appexe     -- The path to the application executable.
     appicon    -- The path to the application icon.
-    appname    -- The final name of the app, without '.app. E.g. 'Proxy-6457'
+    appname    -- The final name of the app, without '.app'. E.g. 'Proxy-6457'
     appversion -- The version number to be included in Info.plist
     
     """
     
     # Establish some useful attributes.
-    bundlename = str(os.path.basename(appexe))
-    bundledir = Dir(str(destdir) + '/' + bundlename + '.app')
-    exe  = File(str(bundledir) + '/Contents/MacOS/' + bundlename)
-    icon = File(str(bundledir) + '/Contents/Resources/' + str(os.path.basename(appicon)))
-    info = File(str(bundledir) + '/Contents/Info.plist')
-    
-    # Delete existing app.
-    Execute(Delete(bundledir))
-    
-    # Define the bundle builder.
-    bldr = Builder(action = _create_bundle);
-    env.Append(BUILDERS = {'MakeBundle' : bldr})
-    
-    # Define the macqtdeploy builder.
-    mdqt = Builder(action = env['MACDEPLOYQT'] + ' $SOURCE')
-    env.Append(BUILDERS = {'MacDeployQt' : mdqt})
-    
+    exename    = str(os.path.basename(appexe))
+    bundledir  = Dir(str(destdir) + '/' + appname + '.app')
+    exe        = File(str(bundledir) + '/Contents/MacOS/' + exename)
+    icon       = File(str(bundledir) + '/Contents/Resources/' + str(os.path.basename(appicon)))
+    info       = File(str(bundledir) + '/Contents/Info.plist')
+
     # Create the bundle.
-    target = [exe, icon, info, bundledir]
-    source = [appexe, appicon]
-    bundleit = env.MakeBundle(target, source)
+    bundle = env.MakeBundle(bundledir,  [appexe, appicon], APPNAME=appname, APPVERSION=appversion)
+    env.AlwaysBuild(bundle)
 
     # Run macdeployqt on the bundle. 
-    # Tried using qt.conf as the target, but as usual with scons it caused
-    # obscure scons cyclic dependency errors. So just use a bogus
-    # target for now.
-    #qtconf = File(str(appdir) + '/Contents/Resources/qt.conf')
-    #macit = env.MacDeployQt(qtconf, bundleit[3])
-    bogustarget = 'osx_qt_app_'+bundlename
-    macit = env.MacDeployQt(bogustarget, bundleit[3])
-    
-    return macit
+    bogustarget = str(bundledir) + '_bogus'
+    mdqt = env.MacDeployQt(bogustarget, bundle, EXENAME=exename)
+    env.AlwaysBuild(mdqt)
+
+    return mdqt
     
 def generate(env):
     """Add Builders and construction variables to the Environment."""
 
+    # Define the bundle builder. It takes the executable and other aritifacts
+    # as sources, and populates a new bundle hierarchy.
+    bldr = Builder(action = _create_bundle);
+    env.Append(BUILDERS = {'MakeBundle' : bldr})
+    
+    # Define the macqtdeploy builder. It takes a bundle directory
+    # as a source, and runs macdeployqt on it.
+    mdqt = Builder(action = _macdeployqt)
+    env.Append(BUILDERS = {'MacDeployQt' : mdqt})
+    
     # find macdeployqt command
     env['MACDEPLOYQT'] = _find_mdqt(env)
 
+    # Define the important method.
     env.AddMethod(OsxQtApp, "OsxQtApp")
 
 def exists(env):
