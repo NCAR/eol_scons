@@ -7,8 +7,8 @@ def generate(env):
     cmd = 'pkg-config --libs --cflags xmlrpc_client++'
     try:
         env.ParseConfig(cmd)
-    except OSError as err:
-        print "Error loading tool xmlrpc_client++:", err
+    except OSError:
+        print "Error loading tool xmlrpc_client++:", sys.exc_info()[0]
         print "Have you installed package 'xmlrpc-c-devel' (or similar)?"
         raise SCons.Errors.StopError
 

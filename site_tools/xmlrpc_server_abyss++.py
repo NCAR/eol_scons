@@ -8,8 +8,8 @@ def generate(env):
     cmd = 'pkg-config --cflags --libs xmlrpc_server_abyss++'
     try:
         status = env.ParseConfig(cmd)
-    except OSError as err:
-        print "Error loading tool xmlrpc_server_abyss++:", err
+    except OSError:
+        print "Error loading tool xmlrpc_server_abyss++:", sys.exc_info()[0]
         print "Have you installed package 'xmlrpc-c-devel' (or similar)?"
         raise SCons.Errors.StopError
 
