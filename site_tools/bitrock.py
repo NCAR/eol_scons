@@ -39,13 +39,13 @@ def _find_bitrock(env):
 #
 # Builder to run bitrock and create an installer.
 #
-def _bitrock(target, sources, env):
+def _bitrock(target, source, env):
     """
     Parameters:
     
     target[0]   -- The generated installer path name. We don't use it.
-    sources[0]  -- The bitrock xml definition.
-    sources[1:] -- Other source dependencies.
+    source[0]   -- The bitrock xml definition.
+    source[1:]  -- Other source dependencies.
     
     Environment values:
     env['SVNVERSION'] -- The version number to be passed to bitrock.
