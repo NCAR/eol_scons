@@ -259,7 +259,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     The final bundle name will be appname + '.app'. 
     
     Parameters:
-    destdir    -- The directory where the bundle will be created.
+    destdir    -- The directory where the bundle will be created. Must end with '.app'
     appexe     -- The path to the application executable.
     appicon    -- The path to the application icon.
     appname    -- The final name of the app, without '.app'. E.g. 'Proxy-6457'
@@ -269,7 +269,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     
     # Establish some useful attributes.
     exename    = str(os.path.basename(appexe))
-    bundledir  = Dir(str(destdir) + '/' + appname + '.app')
+    bundledir  = Dir(str(destdir))
     exe        = File(str(bundledir) + '/Contents/MacOS/' + exename)
     icon       = File(str(bundledir) + '/Contents/Resources/' + str(os.path.basename(appicon)))
     info       = File(str(bundledir) + '/Contents/Info.plist')
