@@ -28,7 +28,7 @@ def _find_bitrock(env):
         node = env.FindFile('builder-cli.exe', ['C:/Tools/BitRock/bin/'])
         return node
     
-    if sys.platform == 'dawrin':
+    if sys.platform == 'darwin':
     	node = env.FindFile(
     	    'installbuilder.sh',
     	    ['/Applications/BitRock/bin/Builder.app/Contents/MacOS/'])
