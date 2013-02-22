@@ -60,7 +60,6 @@ import SCons
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-
 class ValgrindWarning(SCons.Warnings.Warning):
     pass
 
@@ -86,11 +85,61 @@ def findValgrind(env):
     extra_paths.extend([ "/net/opt_lnx/local_%s/bin" % o for o in opts])
     return env.WhereIs('valgrind', extra_paths)
 
+
 def getValgrindPath(env):
     valgrind = findValgrind(env)
     if not valgrind:
         valgrind = "valgrind"
     return valgrind
+
+
+def _parseValgrindOutput(log):
+    # Parse valgrind error summary lines
+
+    rxmap = { 'nerrors' : re.compile(r"ERROR SUMMARY: *([\d,]+) *"),
+              'dlost' : re.compile(r"definitely lost: *([\d,]+) bytes"),
+              'plost' : re.compile(r"possibly lost: *([\d,]+) bytes"),
+              'ilost' : re.compile(r"indirectly lost: *([\d,]+) bytes") }
+    results = {}
+    l = log.readline()
+    while l:
+        print(l)
+        for vname, rx in rxmap.items():
+            match = rx.search(l)
+            if match:
+                print("found %s in %s" % (vname, l))
+                results[vname] = int(match.group(1).replace(',',''))
+        l = log.readline()
+
+    return results
+        
+
+_valgrind_example = """
+==19284== LEAK SUMMARY:
+==19284==    definitely lost: 408 bytes in 1 blocks
+==19284==    indirectly lost: 3,854 bytes in 36 blocks
+==19284==      possibly lost: 191,841 bytes in 2,586 blocks
+==19284==    still reachable: 74,503,382 bytes in 9,568 blocks
+==19284==         suppressed: 102,158 bytes in 1,871 blocks
+==19284== Reachable blocks (those to which a pointer was found) are not shown.
+==19284== To see them, rerun with: --leak-check=full --show-reachable=yes
+==19284== 
+==19284== For counts of detected and suppressed errors, rerun with: -v
+==19284== ERROR SUMMARY: 16 errors from 5 contexts (suppressed: 4 from 4)
+"""
+
+# Run this test like so:
+#
+# env PYTHONPATH=/usr/lib/scons py.test -v valgrind.py
+
+def test_parsevalgrind():
+    import io
+    log = io.StringIO(_valgrind_example.decode('ascii'))
+    results = _parseValgrindOutput(log)
+    assert results['dlost'] == 408
+    assert results['ilost'] == 3854
+    assert results['plost'] == 191841
+    assert results['nerrors'] == 16
 
 
 def generate(env):
