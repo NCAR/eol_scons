@@ -40,6 +40,8 @@ import sys
 import re
 
 from SCons.Script import DefaultEnvironment
+from SCons.Action import Action
+from SCons.Action import ListAction
 
 
 _rxpatterns = [ r'^\d+ checks\.',
@@ -62,12 +64,28 @@ def _pass_filter(line):
     return False
 
 
-def _testing_spawn(sh, escape, cmd, args, env):
-    # Run a subprocess but tee the output to a file and filter the stdout.
-    logfile = env['TESTING_LOGFILE']
-    cmd = [sh, '-c', ' '.join(args)]
-    with open(logfile, "w") as lf:
-        print("Writing test log '%s', filtering stdout and stderr." % (logfile))
+class _SpawnerLogger:
+
+    def __init__(self):
+        self.logpath = None
+        self.logfile = None
+
+    def open(self, logpath):
+        self.logpath = logpath
+        self.logfile = open(self.logpath, "w")
+        print("Writing test log '%s', filtering stdout and stderr." % 
+              (self.logpath))
+
+    def close(self):
+        if self.logfile:
+            print("Closing test log '%s'." % (self.logpath))
+            self.logfile.close()
+            self.logfile = None
+            self.logpath = None
+
+    def spawn(self, sh, escape, cmd, args, env):
+        cmd = [sh, '-c', ' '.join(args)]
+        # print("Running SpawnerLogger.spawn(%s)" % (cmd))
         pipe = subprocess.Popen(cmd, env=env,
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
                                 stderr=subprocess.STDOUT,
@@ -76,7 +94,7 @@ def _testing_spawn(sh, escape, cmd, args, env):
         output = pipe.stdout.readline()
         flines = 0
         while output:
-            lf.write(output)
+            self.logfile.write(output)
             if _pass_filter(output):
                 if flines >= 50:
                     sys.stdout.write("\n")
@@ -89,23 +107,41 @@ def _testing_spawn(sh, escape, cmd, args, env):
             output = pipe.stdout.readline()
         pipe.wait()
         return pipe.returncode
-    return 0
 
 
-def _TestAction(env, actions):
-    "Log output from actions (usually one) to a log file and filter the output."
-    pass
 
+class LogAction(ListAction):
+
+    def __init__(self, actionlist):
+        ListAction.__init__(self, actionlist)
+
+    def __call__(self, target, source, env, **kw):
+        # Replace the SPAWN variable with our own instance of _SpawnerLogger.
+        spawner = _SpawnerLogger()
+        spawner.open(str(env['TESTING_LOGFILE']))
+        spawnsave = env['SPAWN']
+        env['SPAWN'] = spawner.spawn
+        try:
+            status = ListAction.__call__(self, target, source, env, **kw)
+        finally:
+            spawner.close()
+            env['SPAWN'] = spawnsave
+        return status
 
 
 def _TestLog(env, alias, sources, actions):
     "Wrap a pseudo-builder test with an output filter."
     if not alias:
         alias = 'xtest'
+    # Set the logfile in a cloned environment, so this pseudo-builder does
+    # not interfere with the log settings for another TestLog
+    # pseudo-builder.
     logfile = env.File(alias + '.log')
-    env = env.Clone(SPAWN=_testing_spawn, TESTING_LOGFILE=logfile)
-    env['ENV']['TESTING_LOGFILE'] = logfile
-    xtest = env.Command(alias, sources, actions)
+    env = env.Clone(TESTING_LOGFILE=logfile)
+    # Use the Action() factory to create the action instance, which may
+    # itself be a ListAction, then wrap the action/s in a LogAction
+    # instance.
+    xtest = env.Command([alias, logfile], sources, LogAction([Action(actions)]))
     env.AlwaysBuild(xtest)
     defenv = DefaultEnvironment()
     defenv.Clean([xtest], xtest)
@@ -113,10 +149,6 @@ def _TestLog(env, alias, sources, actions):
     if env.GetOption('clean'):
         env.Default(xtest)
     return xtest
-
-
-def _XTestLog(env, sources, actions):
-    return env.TestLog(None, sources, actions)
 
 
 def _DefaultTest(env, xtest):
@@ -132,7 +164,6 @@ def _DefaultTest(env, xtest):
 
 def generate(env):
     env.AddMethod(_TestLog, "TestLog")
-    env.AddMethod(_XTestLog, "XTestLog")
     env.AddMethod(_DefaultTest, "DefaultTest")
 
 
