@@ -116,7 +116,6 @@ class _SpawnerLogger:
         cmd = [sh, '-c', ' '.join(args)]
         if _echo_only:
             cmd = [sh, '-c', 'echo "*** Skipping test: %s"' % (" ".join(args))]
-        # print("Running SpawnerLogger.spawn(%s)" % (cmd))
         pipe = subprocess.Popen(cmd, env=env,
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
                                 stderr=subprocess.STDOUT,
@@ -217,9 +216,6 @@ def _test_builder(env, alias, sources, actions, logfile=None):
     # target (ie, xtest) as the default does not clean the test targets,
     # but it does work to add all the aliases as default targets.
     if env.GetOption('clean'):
-        top = env.Dir('#')
-        print("adding %s to default for clean" %
-              (",".join([str(x) for x in xtest])))
         env.Default(xtest)
 
     return xtest
