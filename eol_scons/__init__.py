@@ -475,19 +475,12 @@ def _Test (self, sources, actions):
     sources as its dependencies.
 
     Tests within a particular directory can be run using the xtest name, as
-    in 'scons datastore/tests/xtest', or 'scons -u xtest' to run the tests
-    for the current directory.  Tests created with this method will also be
-    added to the global 'test' alias."""
-    xtest = self.Command("xtest", sources, actions)
-    self.Precious(xtest)
-    self.AlwaysBuild(xtest)
-    defenv = DefaultEnvironment()
-    defenv.Alias('test', xtest)
-    defenv.Clean(['test', xtest], xtest)
-    # If cleaning, then we want test targets to be cleaned by default.
-    if self.GetOption('clean'):
-        self.Default(xtest)
-    return xtest
+    in 'scons datastore/tests/xtest', or 'scons -u xtest' to run all the
+    tests with the alias xtest, or 'scons test' to run all default
+    tests."""
+    # This implementation has been moved into a separate testing tool.
+    self.Tool("testing")
+    return self.DefaultTest(self.TestRun("xtest", sources, actions))
 
 
 def _ChdirActions (self, actions, dir = None):
