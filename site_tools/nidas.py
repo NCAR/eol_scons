@@ -63,7 +63,7 @@ class NidasPathNotDirectory(SCons.Warnings.Warning):
     pass
 
 _options = None
-USE_PKG_CONFIG = 'Using pkg-config'
+USE_PKG_CONFIG = 'pkg-config'
 
 _warned_paths = {}
 
@@ -205,9 +205,28 @@ def generate(env):
     # Default ARCH to native when outside the source tree.
     env['ARCH'] = ''
 
-    # If NIDAS_PATH is not defined in env or is set to value of USE_PKG_CONFIG,
-    # check for the pkg-config file.
-    if not env.has_key('NIDAS_PATH') or env['NIDAS_PATH'] == USE_PKG_CONFIG:
+    global _options
+    if not _options:
+        _options = env.GlobalVariables()
+        _options.Add('NIDAS_PATH',
+"""Set the NIDAS prefix paths, and enable builds of components
+which use NIDAS. Setting it to empty disables NIDAS components.
+This can be a comma-separated list of paths, for example to build
+against a NIDAS installation whose other dependencies are installed
+under another prefix.  Relative paths will be converted to absolute
+paths relative to the top directory.
+Set NIDAS_PATH to '""" + USE_PKG_CONFIG + """', the default, to use the settings from the system pkg-config.""",
+                     USE_PKG_CONFIG)
+    _options.Update(env)
+
+    nidas_paths = []
+    nidas_libs = ['nidas','nidas_dynld','nidas_util']
+    env['LIBNIDAS'] = 'nidas'
+    env['LIBNIDAS_DYNLD'] = 'nidas_dynld'
+    env['LIBNIDAS_UTIL'] = 'nidas_util'
+    env.AppendUnique(DEPLOY_SHARED_LIBS=nidas_libs)
+
+    if env['NIDAS_PATH'] == USE_PKG_CONFIG:
         try:
             env.EnableNIDAS = (lambda: (os.system('pkg-config --exists nidas') == 0))
         except:
@@ -218,28 +237,11 @@ def generate(env):
             env.ParseConfig('pkg-config --cflags nidas', unique = False)
             env.ParseConfig('pkg-config --libs nidas', unique = False)
             env['NIDAS_PATH'] = USE_PKG_CONFIG
-            return
         else:
-            if env.has_key('NIDAS_PATH'):
-                raise SCons.Errors.StopError, "Cannot find pkgconfig file: 'pkg-config --exists nidas' failed"
-    
-        # NIDAS_PATH is not defined, and pkg-config isn't found.
-        global _options
-        if not _options:
-            _options = env.GlobalVariables()
-            _options.Add('NIDAS_PATH',
-    """Set the NIDAS prefix paths, and enable builds of components
-    which use NIDAS. Setting it to empty disables NIDAS components.
-    This can be a comma-separated list of paths, for example to build
-    against a NIDAS installation whose other dependencies are installed
-    under another prefix.  Relative paths will be converted to absolute
-    paths relative to the top directory.
-    NIDAS_PATH can also be set to""" + USE_PKG_CONFIG,
-                        '/opt/nidas')
-        _options.Update(env)
+            # NIDAS_PATH explicitly requested it, but pkg-config wasn't found.
+            raise SCons.Errors.StopError, "Cannot find pkgconfig file: 'pkg-config --exists nidas' failed"
 
-    nidas_paths = []
-    if env.has_key('NIDAS_PATH') and env['NIDAS_PATH'] != '':
+    elif env['NIDAS_PATH'] != '':
         paths=env['NIDAS_PATH'].split(",")
         for p in paths:
             np = env.Dir("#").Dir(env.subst(p)).get_abspath()
@@ -259,16 +261,12 @@ def generate(env):
         libdir = sharedlibrary.GetArchLibDir(env)
         env.Append(LIBPATH=[os.path.join(p,libdir) 
                             for p in nidas_paths])
+
         # The nidas library contains nidas_util already, so only the nidas
         # and nidas_dynld libraries need to be linked.  Linking nidas_util
         # causes static constructors to run multiple times (and
         # subsequently multiple deletes).
-        nidas_libs = ['nidas','nidas_dynld','nidas_util']
         env.Append(LIBS=nidas_libs)
-        env['LIBNIDAS'] = 'nidas'
-        env['LIBNIDAS_DYNLD'] = 'nidas_dynld'
-        env['LIBNIDAS_UTIL'] = 'nidas_util'
-        env.AppendUnique(DEPLOY_SHARED_LIBS=nidas_libs)
         env.AppendUnique(RPATH=[os.path.join(p,libdir)
                                 for p in nidas_paths])
         # Anything using nidas is almost guaranteed now to have to link
@@ -278,6 +276,14 @@ def generate(env):
         # dependencies now have to be linked explicitly.
         env.Tool("xercesc")
         env.Tool('xmlrpc')
+
+    else:
+        # NIDAS_PATH explicitly disabled by setting it to the empty string.
+        # No NIDAS dependencies will be added to the environment, and
+        # EnableNIDAS() stays false.
+        env.EnableNIDAS = (lambda: 0)
+
+
 
 def exists(env):
     return True
