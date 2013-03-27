@@ -1,9 +1,18 @@
 """
 SCons.Tool.osxqtapp
 
-Create an OSX application bundle from a qt executable
+Create an OSX application bundle from a qt executable.
 
 See OsxQtApp() for the parameter descriptions.
+
+Example:
+  switchappname = 'RICSwitch-' + apprevision
+  switchappdir = Dir(switchappname+'.app')
+  switchapp = env.OsxQtApp(switchappdir, 
+                           '#/switch/ric_switch', 
+                           '#/Resources/proxy/proxyIcon.icns', 
+                           switchappname, 
+                           apprevision)
 
 Process:
  - Remove the existing bundle, if present.
