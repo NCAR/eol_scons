@@ -1,9 +1,15 @@
 """
 SCons.Tool.osxqtapp
 
-Create an OSX application bundle from a qt executable
+Create a BitRock installer from an application and a BitRock configuration. Currently
+only runs on Windows and OSX.
 
-See OsxQtApp() for the parameter descriptions.
+See BitRock() for the parameter descriptions.
+
+Example usage (OSX):
+    installerdir = Dir('RIC-' + svnrevision + '.app')
+    sources = Dir('#/installers/mac/RICProxy-' + svnrevision + '.app')
+    installer = env.BitRock(installerdir, bitrockxml, [sources], svnrevision)
 
 """
 
