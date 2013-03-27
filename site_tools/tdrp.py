@@ -40,6 +40,7 @@ tdrpParamsBuilder = Builder(generator = tdrpGenerator,
                             emitter = tdrpModifyTargetAndSource)
 
 def generate(env):
+    # Add builder 'tdrpParamFiles' to the environment.
     env.Append(BUILDERS = {'tdrpParamFiles' : tdrpParamsBuilder})
 
 def exists(env):
