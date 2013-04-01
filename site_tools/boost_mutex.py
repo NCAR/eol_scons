@@ -17,7 +17,11 @@ def generate(env):
     # to see if any combination will work. If not, complain and quit.
     clone = env.Clone()
     clone.Replace(LIBS=[])
-    conf = clone.Configure(clean=False, help=False)
+    # Don't go any further if they're cleaning or asked for help
+    if env.GetOption('clean') or env.GetOption('help'):
+        return
+
+    conf = clone.Configure()
     # Disable SConf display of messages like "Checking for <x> in <y>..."
     origPrintState = SCons.SConf.progress_display.print_it
     SCons.SConf.progress_display.print_it = False
