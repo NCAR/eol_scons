@@ -8,6 +8,7 @@
 # to cause Params.cc and Params.hh to be generated for app 'foo' from
 # file paramdef.foo.
 import os
+import SCons
 from SCons.Builder import Builder
 
 # Modify target and source to their real values. The incoming target should be 
@@ -21,6 +22,18 @@ def tdrpModifyTargetAndSource(target, source, env):
     # The *real* targets of this builder are always 'Params.cc' and 'Params.hh'
     target = ['Params.cc', 'Params.hh']
     return target, source
+
+tdrpcom = "cd ${TARGET.dir}; ${TDRPGEN} -f ${SOURCE} -c++ -prog ${SOURCE.filebase}"
+tdrpAction = SCons.Action.Action(tdrpcom)
+
+
+def tdrpEmitter(target, source, env):
+    # When invoked on a file with the .paramdef suffix, the derivation of the
+    # output files is a little different.
+    sourceBase, sourceExt = os.path.splitext(SCons.Util.to_String(source[0]))
+    target = [ "Params.cc", "Params.hh" ]
+    return target, source
+
 
 # Assemble the command to build Params.cc and Params.hh files from the 
 # specified source file, which should be something like 'paramdef.<appname>'.
@@ -40,9 +53,20 @@ tdrpParamsBuilder = Builder(generator = tdrpGenerator,
                             emitter = tdrpModifyTargetAndSource)
 
 def generate(env):
+    # Add construction variables to the environment
+    env["TDRPGEN"] = "tdrp_gen"
+
     # Add builder 'tdrpParamFiles' to the environment.
     env.Append(BUILDERS = {'tdrpParamFiles' : tdrpParamsBuilder})
     env.Append(LIBS=['tdrp'])
+
+    # Also associate a .paramdef suffix with this builder.
+    c_file, cxx_file = SCons.Tool.createCFileBuilders(env)
+
+    # C++
+    cxx_file.add_action(".paramdef", tdrpAction)
+    cxx_file.add_emitter(".paramdef", tdrpEmitter)
+
 
 def exists(env):
     return True
