@@ -188,13 +188,16 @@ def enable_qwt(env):
         qtlibs = [ lib for lib in env['LIBS'] if str(lib).startswith('Qt') ]
         conf = env.Clone(LIBS=qtlibs).Configure(clean=False, help=False)
         hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++',autoadd=False)
-    else:
+        conf.Finish()
+
+    hasQwt = True
+    skipconfig = env.GetOption('help') or env.GetOption('clean')
+    if not skipconfig:
         # Do a simple CheckCXXHeader('qwt.h') instead of the more complete
         # CheckLibWithHeader(...), above.
-        conf = env.Configure(clean=False, help=False)
+        conf = env.Configure()
         hasQwt = conf.CheckCXXHeader('qwt.h')
-
-    conf.Finish()
+        conf.Finish()
     return hasQwt
 
 qwt_package = QwtPackage()

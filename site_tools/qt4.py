@@ -514,8 +514,9 @@ def enable_modules(self, modules, debug=False) :
             # paths and the compiler.  Otherwise scons will try to build
             # the library targets as part of the configure check, and that
             # causes all kinds of unexpected build behavior...
-            if module == "QtCore":
-                conf = self.Clone(LIBS=[]).Configure(clean=False, help=False)
+            skipconfig = self.GetOption('help') or self.GetOption('clean')
+            if module == "QtCore" and not skipconfig:
+                conf = self.Clone(LIBS=[]).Configure()
                 hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')
                 conf.Finish()
                 if not hasQt:
