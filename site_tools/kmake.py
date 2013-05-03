@@ -21,7 +21,7 @@ else
 	PWD := $(shell pwd)
 
 default:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) CFLAGS_MODULE="-DMODULE -I$(KINCLUDE)" modules
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) CFLAGS_MODULE="-DMODULE $(KCFLAGS)" modules
 
 endif
 ############################################################################
@@ -37,14 +37,15 @@ in which case you don't need to define KERNELDIR before loading the tool:
 
     kenv = env.Clone(tools=['kmake'])
 
-The KMAKE construction variable is the command that is run to make the module. If necessary it can be customized:
-    kenv.Replace(KMAKE='make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE ARCH=arm CROSS_COMPILE=arm-linux-')
+The KMAKE construction variable is the command that is run to make the module.
+If necessary it can be customized:
+    kenv.Replace(KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=arm-linux-')
 
 The default value for KMAKE should be sufficient to build modules for the host system:
-    KMAKE: "make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE"
+    KMAKE: "make KERNELDIR=$KERNELDIR KCFLAGS=$KCFLAGS"
 
-The default value of KINCLUDE is the current source directory:
-    KINCLUDE: env.Dir("#").get_abspath()
+The default value of KCFLAGS is the current source directory:
+    KCFLAGS: '-I' + env.Dir("#").get_abspath()
 
 Finally, to build the .ko files of the modules, do:
     kenv.Kmake(['my_mod1.ko','my_mod2.ko'],
@@ -145,11 +146,11 @@ def generate(env, **kw):
 
     print 'kmake: KERNELDIR=' + env['KERNELDIR']
 
-    if not env.has_key('KINCLUDE'):
-        env['KINCLUDE'] = env.Dir("#").get_abspath()
+    if not env.has_key('KCFLAGS'):
+        env['KCFLAGS'] = '-I' + env.Dir("#").get_abspath()
 
     if not env.has_key('KMAKE'):
-        env['KMAKE'] = "make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE"
+        env['KMAKE'] = "make KERNELDIR=$KERNELDIR KCFLAGS=\"$KCFLAGS\""
 
     k = env.Builder(action=Kmake,
                     source_scanner=SCons.Tool.SourceFileScanner)

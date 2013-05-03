@@ -18,7 +18,7 @@ def generate(env,**kw):
     env.Replace(LINK	= 'armbe-linux-g++')
     env.Replace(RANLIB	= 'armbe-linux-ranlib')
     env.Replace(LEX	= 'armbe-linux-flex')
-    env.Replace(KMAKE   = 'make KERNELDIR=$KERNELDIR KINCLUDE=$KINCLUDE ARCH=arm CROSS_COMPILE=armbe-linux-')
+    env.Replace(KMAKE   = 'make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=armbe-linux-')
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if armbe-linux-gcc is
