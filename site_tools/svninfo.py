@@ -57,6 +57,7 @@ with definitions for those values.
 
 import os
 import re
+import string
 
 from SCons.Builder import Builder
 from SCons.Action import Action
@@ -79,7 +80,8 @@ class SubversionInfo:
         'SVNLASTCHANGEDDATE' : "Last Changed Date",
         'SVNURL' : "URL",
         'SVNWORKDIRSPEC' : "Working Directory",
-        'SVNWORKDIR' : "workdir"
+        'SVNWORKDIR' : "workdir",
+        'SVNERROR' : "Subversion error"
         }
 
     def __init__(self, env, workdir):
@@ -89,18 +91,25 @@ class SubversionInfo:
         self.svnversioncmd = env.subst("$SVNVERSION")
         for k in self._variable_map.keys():
             self.values[k] = "unknown"
+        self.values['SVNERROR'] = ""
 
     def _get_output(self, cmd):
-        "Get command output, or an empty string if the command fails."
+        "Get command output or stderr if it fails"
         output = ""
         try:
             pdebug("svninfo: running '%s'" % (" ".join(cmd)))
-            child = Popen(cmd, stdout=PIPE)
-            output = child.communicate()[0]
-            pdebug("svninfo output: %s" % (output))
+            child = Popen(cmd, stdout=PIPE,stderr=PIPE)
+            output = child.communicate()
+            pdebug("svninfo output: %s" % (output[0]))
+            pdebug("svninfo error: %s" % (output[1]))
+            pdebug("svninfo returncode:" + str(child.returncode))
+            if child.returncode != 0:
+                print("Warning: '%s' failed: %s" % (" ".join(cmd), output[1]))
+                return "Subversion error: " + output[1]
         except OSError, e:
-            print("Warning: svn info '%s' failed: %s" % (" ".join(cmd), str(e)))
-        return output
+            print("Warning: '%s' failed: %s" % (" ".join(cmd), str(e)))
+            return "Subversion error: " + str(e)
+        return output[0]
 
     def getExternals(self):
         """
@@ -128,7 +137,7 @@ class SubversionInfo:
         workdir = self.workdir
         svncmd = [ self.svncmd, "info", workdir ]
         svndict = { "Revision":None, "Last Changed Date":None, "URL":None, 
-                   "ExternalRevs":None }
+                "ExternalRevs":None, "Subversion error":None }
         svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
         svninfo = self._get_output(svncmd)
         svnversioncmd = [ self.svnversioncmd, "-n", workdir ]
@@ -172,6 +181,7 @@ class SubversionInfo:
 
     def generateHeader(self):
         svnheader = """
+/* %(SVNERROR)s */
 #ifndef SVNINFOINC
 #define SVNINFOINC
 #define SVNREVISION \"%(SVNREVISION)s\"
@@ -185,7 +195,6 @@ class SubversionInfo:
         svnheader = svnheader % self.values
         pdebug(svnheader)
         return svnheader
-
 
 def _get_workdir(source):
     pdebug("_get_workdir source=" + str(['%s' % d for d in source]))
@@ -217,17 +226,36 @@ def svninfo_emitter_value(target, source, env):
     source with a Value() node with the svn info contents."""
     workdir = _get_workdir(source)
     svninfo = _load_svninfo(env, workdir)
+    # If the svn info command fails with an error, we don't
+    # update the target it if exists.  Have to mark the
+    # target as Precious so that scons doesn't delete it 
+    # before the check for existence in the action.
+    # I suppose the correct thing to do if subversion fails
+    # and the file exists, is to return a source Value
+    # equal to the current contents of the target. Nah
+    env.Precious(target)
     return target, [Value(svninfo.generateHeader())]
+
+def svninfo_do_update_target(target, source):
+    # If a subversion error, don't overwrite existing file
+    return string.find(source[0].get_contents(),"Subversion error:") < 0 or not os.path.exists(target[0].path)
+
+def svninfo_action_print(target, source, env):
+    if svninfo_do_update_target(target,source):
+        return "Generating %s" % target[0]
+    else:
+        return "Not updating %s" % target[0] + " due to subversion error"
 
 def svninfo_build_value(env, target, source):
     "Build header based on contents in the source."
-    out = open(target[0].path, "w")
-    out.write(source[0].get_contents())
-    out.write("\n")
-    out.close()
+    if svninfo_do_update_target(target,source):
+        out = open(target[0].path, "w")
+        out.write(source[0].get_contents())
+        out.write("\n")
+        out.close()
 
 svninfobuilder = Builder(
-    action = Action(svninfo_build_value, lambda t,s,e: "Generating %s" % (t[0])),
+    action = Action(svninfo_build_value, svninfo_action_print),
     source_factory = FS.default_fs.Entry,
     emitter = svninfo_emitter_value)
 
