@@ -326,12 +326,30 @@ REFERENCES_RELATION = NO
                 try:
                     print("mkdir %s" % toptagdir)
                     os.makedirs(toptagdir)
-                except:
-                    if not os.access(toptagdir, os.W_OK): raise
-                os.symlink (docpath, "%s/html" % tagdir)
+                except os.error, e:
+                    if not os.access(toptagdir, os.W_OK): 
+                        print("%s does not exist or not writable "
+                              "after exception: %s" % (toptagdir, str(e)))
+                        raise
+                htmllink = "%s/html" % (tagdir)
+                print("symlink %s %s" % (docpath, htmllink))
+                try:
+                    os.unlink(htmllink)
+                except os.error, e:
+                    if ddebug():
+                        print("exception: %s" % (str(e)))
+                try:
+                    os.symlink (docpath, htmllink)
+                except os.error, e:
+                    print("exception creating %s: %s" % (htmllink, str(e)))
                 doxytag = "doxytag -t %s %s" % (tagpath, docpath)
                 print(doxytag)
-                os.system (doxytag)
+                try:
+                    os.system (doxytag)
+                except os.error, e:
+                    # Note the problem but continue anyway since the tag
+                    # file is not critical.
+                    print("exception: %s" % (str(e)))
         
     if len(tagfiles) > 0:
         dfile.write("TAGFILES = %s\n" % string.join(tagfiles.values()))
