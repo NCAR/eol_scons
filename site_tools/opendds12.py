@@ -187,7 +187,7 @@ def taoIdlFiles(idlFile):
     root     = idlFile.split('.')[0]
     cppFiles = [root+'C.cpp', root+'S.cpp']
     hFiles   = [root+'C.h', root+'S.h']
-    inlFiles = [root+'C.inl', root+'S.inl']
+    inlFiles = [root+'C.inl']
     return [cppFiles, hFiles, inlFiles]
 
 # Create the filenames that are produced by dcps_ts.pl processing.
