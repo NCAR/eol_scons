@@ -111,17 +111,19 @@ class QwtPackage(Package):
         	else:
         		self.settings['LIBS'] = ['qwt']
         		self.settings['LIBPATH'] = [qwt_libdir]
-        else:
-          if env['PLATFORM'] == 'darwin':
-        	env.Require('qt4')
-        	env.AppendUnique(FRAMEWORKPATH=['/usr/local/lib',])
-        	env.AppendUnique(FRAMEWORKS='qwt')      
+        if env['PLATFORM'] == 'darwin':
+            self.settings['FRAMEWORKPATH'] = '/usr/local/lib'
+            self.settings['FRAMEWORKS']    = 'qwt'
 
         self.settings['RPATH'] = [qwt_libdir]
-        if qwt_dir != "/usr":
-            self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
+        if env['PLATFORM'] != 'darwin':
+            if qwt_dir != "/usr":
+                self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
+            else:
+                self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
         else:
-            self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
+                self.settings['CPPPATH'] = '/usr/local/lib/qwt.framework/Headers'
+
         plugindir='$QWTDIR/designer/plugins/designer'
         self.settings['QT_UICIMPLFLAGS'] = ['-L', plugindir]
         self.settings['QT_UICDECLFLAGS'] = ['-L', plugindir]
@@ -145,9 +147,12 @@ class QwtPackage(Package):
             return
 
         if env['PLATFORM'] != 'darwin':
-	        env.Append(LIBS=self.settings['LIBS'])
-	        if not self.building:
-	            env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
+            env.Append(LIBS=self.settings['LIBS'])
+            if not self.building:
+                env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
+        else:
+            env.AppendUnique(FRAMEWORKPATH=self.settings['FRAMEWORKPATH'])
+            env.AppendUnique(FRAMEWORKS=self.settings['FRAMEWORKS'])
 
         env.AppendUnique(RPATH=self.settings['RPATH'])
         env.Append(CPPPATH=self.settings['CPPPATH'])
