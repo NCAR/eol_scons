@@ -3,6 +3,7 @@
 import os, os.path
 import string
 import SCons
+import eol_scons
 
 netcdf_headers = string.split("""
 ncvalues.h netcdf.h netcdf.hh netcdfcpp.h
@@ -56,6 +57,22 @@ except ImportError:
 
 # Note that netcdf.inc has been left out of this list, since this
 # current setup does not install it.
+
+_netcdf_source_file = """
+#include <netcdf.h>
+int main(int argc, char **argv)
+{
+    const char* ncv = nc_inq_libvers();
+    return 0;
+}
+"""
+
+def CheckNetCDF(context):
+    context.Message('Checking for netcdf linking...')
+    result = context.TryLink(_netcdf_source_file, '.c')
+    context.Result(result)
+    return result
+
 
 class NetcdfPackage(Package):
 
@@ -118,10 +135,12 @@ class NetcdfPackage(Package):
 
         # Now check whether the HDF libraries are needed explicitly when
         # linking with netcdf.  Use a cloned Environment so Configure does
-        # not modify the original Environment.  Also, reset the LIBS so
-        # that libraries in the original Environment do not affect the
-        # linking.  All the library link check needs is the netcdf-related
-        # libraries.
+        # not modify the original Environment.  Reset the LIBS so that
+        # libraries in the original Environment do not break the linking,
+        # ie, missing libraries or libraries with missing dependencies.
+        # The CPPPATH and LIBPATH are preserved, since they will be in
+        # effect when a program is built with this environment, and they
+        # can change which netcdf library gets linked.
 
         libs = ['netcdf_c++', 'netcdf']
         self.settings['LIBS'] = libs
@@ -129,22 +148,26 @@ class NetcdfPackage(Package):
         if env.GetOption('clean') or env.GetOption('help'):
             return
 
+        eol_scons.Debug("checking whether netcdf uses hdf...")
         clone = env.Clone()
         clone.Replace(LIBS=libs)
-        clone.Replace(CPPPATH=self.settings['CPPPATH'])
-        clone.Replace(LIBPATH=self.settings['LIBPATH'])
-        conf = clone.Configure()
-        if not conf.CheckLib('netcdf'):
+        clone.AppendUnique(CPPPATH=self.settings['CPPPATH'])
+        clone.AppendUnique(LIBPATH=self.settings['LIBPATH'])
+        conf = clone.Configure(custom_tests = { "CheckNetCDF" : CheckNetCDF })
+        if not conf.CheckNetCDF():
+            eol_scons.Debug("netcdf link failed, trying with hdf...")
             # First attempt without HDF5 failed, so try with HDF5
             libs.append(['hdf5_hl', 'hdf5', 'bz2'])
             clone.Replace(LIBS=libs)
-            if not conf.CheckLib('netcdf'):
+            if not conf.CheckNetCDF():
                 msg = "Failed to link to netcdf both with and without"
                 msg += " explicit HDF libraries.  Check config.log."
                 raise SCons.Errors.StopError, msg
         self.settings['LIBS'] = libs
         conf.Finish()
-
+        eol_scons.Debug("netcdf settings: %s" %
+                        (",".join(["%s=%s" % (k, str(self.settings[k])) 
+                                   for k in self.settings])))
 
     def apply_settings(self, env):
         env.AppendUnique(CPPPATH=self.settings['CPPPATH'])
