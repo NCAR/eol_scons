@@ -76,7 +76,7 @@ def generate(env):
     env['PROTOCPROTOPATH'] = SCons.Util.CLVar('')
     env['PROTOCCOM']     = '$PROTOC ${["-I%s"%x for x in PROTOCPROTOPATH]} $PROTOCFLAGS --cpp_out=$PROTOCCPPOUTFLAGS$PROTOCOUTDIR ${PROTOCPYTHONOUTDIR and ("--python_out="+PROTOCPYTHONOUTDIR) or ""} ${PROTOCFDSOUT and ("-o"+PROTOCFDSOUT) or ""} ${SOURCES}'
     env['PROTOCOUTDIR'] = '${SOURCE.dir}'
-    env['PROTOCPYTHONOUTDIR'] = None
+    env['PROTOCPYTHONOUTDIR'] = '${SOURCE.dir}'
     env['PROTOCSRCSUFFIX']  = '.proto'
 
 def exists(env):
