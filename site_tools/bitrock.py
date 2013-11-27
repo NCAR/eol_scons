@@ -57,15 +57,19 @@ def _bitrock(target, source, env):
     env['SVNVERSION'] -- The version number to be passed to bitrock.
     """
     
+    sources = source
+    if type(sources) != type(list()):
+        sources = [source]
+
     bitrock = str(env['BITROCK'])
     svnversion = env['SVNVERSION']
-    xml = str(source[0])
+    xml = str(sources[0])
     
     # Run bitrock.
     subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+svnversion,], 
         stderr=subprocess.STDOUT, bufsize=1)
 
-def BitRock(env, destfile, bitrockxml, sources, svnversion, *args, **kw):
+def BitRock(env, destfile, bitrockxml, source, svnversion, *args, **kw):
     """
     A psuedo-builder for creating BitRock installers. 
     
@@ -92,6 +96,10 @@ def BitRock(env, destfile, bitrockxml, sources, svnversion, *args, **kw):
  	 
     """
     
+    sources = source
+    if type(sources) != type(list()):
+        sources = [source]
+
     # Create the installer dependencies and actions.
     installer = env.RunBitRock(destfile,  [bitrockxml] + sources, SVNVERSION=svnversion)
     env.AlwaysBuild(installer)
