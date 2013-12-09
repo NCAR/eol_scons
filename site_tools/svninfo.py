@@ -196,9 +196,13 @@ class SubversionInfo:
         pdebug(svnheader)
         return svnheader
 
-def _get_workdir(source):
+def _get_workdir(env, source):
     pdebug("_get_workdir source=" + str(['%s' % d for d in source]))
-    workdir = source[0]
+    workdir = source
+    if type(source) == type(""):
+        workdir = env.Dir(source)
+    elif type(source) == type([]):
+        workdir = source[0]
     if workdir.isfile():
         workdir = workdir.get_dir()
     if workdir.name in ['.svn', '_svn']:
@@ -224,7 +228,7 @@ def _load_svninfo(env, workdir):
 def svninfo_emitter_value(target, source, env):
     """Given an argument for svn info in the first source, replace that
     source with a Value() node with the svn info contents."""
-    workdir = _get_workdir(source)
+    workdir = _get_workdir(env, source)
     svninfo = _load_svninfo(env, workdir)
     # If the svn info command fails with an error, we don't
     # update the target it if exists.  Have to mark the
@@ -286,7 +290,12 @@ def generate(env):
         env['SVN'] = os.path.join(svnbin, "svn")
         env['SVNVERSION'] = os.path.join(svnbin, "svnversion")
 
-    workdir = env.Dir('.').get_abspath()
+    env.AddMethod(LoadSvnInfo, "LoadSvnInfo")
+    env.LoadSvnInfo('#')
+
+
+def LoadSvnInfo(env, source):
+    workdir = _get_workdir(env, source)
     svninfo = _load_svninfo(env, workdir)
     svninfo.applyInfo(env)
 
