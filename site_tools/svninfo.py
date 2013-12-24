@@ -147,7 +147,9 @@ class SubversionInfo:
             if (match):
                 svndict[k] = match.group()
         svndict.update ( {'workdir':workdir} )
-        svndict['Revision'] = svnversion
+        # Do not set the revision number if svnversioncommand returned an error.
+        if ('error' not in svnversion):
+        	svndict['Revision'] = svnversion
 
         externals = self.getExternals()
         svnExternRevs = ""
