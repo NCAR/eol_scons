@@ -34,13 +34,16 @@ load-plugins=
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
-disable=R0201,I0011,C0111
+disable=R0201,I0011,C0111,C0303,W1201,C1001
 
 # W0403 relative import
 # R0201 method could be a function
 # W0613 unused argument
 # [I0011] Locally disabling W0612
 # [C0111] Missing docstring
+# C0303 trailing whitespace
+# W1201 logging-not-lazy
+# C1001 old-style-class
 
 [REPORTS]
 
