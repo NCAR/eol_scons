@@ -8,6 +8,10 @@ def generate(env):
         env.ParseConfig('pkg-config --cflags --libs xmlrpcpp')
         return
 
+    # There are some older packages with the newer library file name
+    # but without the pkg-config files, so those must be found by
+    # explicitly searching for them under /usr.
+
     # grope around for the XMLRPC C++ libraries.
     # In xmlrpc++ RPMs up to 0.7-3:
     #    o headers are under /usr/include/xmlrpc++
@@ -27,26 +31,22 @@ def generate(env):
     # with debian systems.
 
     # if pkg-config file doesn't exist, look in the usual places
+    paths = [ '/usr/lib64', '/usr/lib' ]
     prefix = env.get('OPT_PREFIX')
-    if not prefix:
-        prefix = '/usr'
+    found = False
+    if prefix:
+        paths[:0] = [ prefix + '/lib64', prefix + '/lib' ]
+    for libpath in paths:
+        prefix = os.path.dirname(libpath)
+        if (os.path.exists(os.path.join(libpath,'libxmlrpcpp.so'))):
+            env.AppendUnique(CPPPATH = [os.path.join(prefix,'include','xmlrpcpp')])
+            if prefix != '/usr':
+                env.AppendUnique(LIBPATH=[libpath])
+            env.Append(LIBS=['xmlrpcpp'])
+            found = True
+            break
 
-    libpath = os.path.join(prefix, 'lib')
-    libpath64 = os.path.join(prefix, 'lib64')
-    if (os.path.exists(os.path.join(libpath,'libxmlrpcpp.so'))):
-        env.AppendUnique(CPPPATH = [os.path.join(prefix,'include','xmlrpcpp')])
-        if prefix != '/usr':
-            env.AppendUnique(LIBPATH=[libpath])
-        env.Append(LIBS=['xmlrpcpp'])
-
-    elif (os.path.exists(os.path.join(libpath64,'libxmlrpcpp.so'))):
-
-        env.AppendUnique(CPPPATH = [os.path.join(prefix,'include','xmlrpcpp')])
-        if prefix != '/usr':
-            env.AppendUnique(LIBPATH=[libpath64])
-        env.Append(LIBS=['xmlrpcpp'])
-
-    else:
+    if not found:
         # if built and installed from the original source, the library
         # is called libXmlRpc.a
         env.AppendUnique(CPPPATH=[os.path.join(prefix, 'include','XmlRpc')])
