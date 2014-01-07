@@ -35,8 +35,8 @@ def generate(env):
  OPT_PREFIX.""",
     env.FindPackagePath('BOOST_DIR', '$OPT_PREFIX/boost*'))
   _options.Update(env)
-  env.Append(DEPLOY_SHARED_LIBS=['boost_date_time'])
-  env.Append(DEPLOY_SHARED_LIBS=['boost_serialization'])
+  # env.Append(DEPLOY_SHARED_LIBS=['boost_date_time'])
+  # env.Append(DEPLOY_SHARED_LIBS=['boost_serialization'])
   if not env.has_key('BOOST_LIBRARY_SUFFIX'):
     if env['PLATFORM'] == 'win32':
       env['BOOST_LIBRARY_SUFFIX'] = '-vc71-mt-gd-1_33_1'
