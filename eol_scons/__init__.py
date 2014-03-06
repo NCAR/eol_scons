@@ -107,11 +107,20 @@ def SetDebug(enable):
     global debug
     debug = enable
 
-def Debug(msg):
+def GetSubdir(env):
+    subdir = str(env.Dir('.').get_path(env.Dir('#')))
+    if subdir == '.':
+        subdir = 'root'
+    return subdir
+
+def Debug(msg, env=None):
     """Print a debug message if the global debugging flag is true."""
     global debug
     if debug:
-        print msg
+        context = ""
+        if env:
+            context = GetSubdir(env) + ": "
+        print("%s%s" % (context, msg))
 
 _eolsconsdir = os.path.dirname(__file__)
 
@@ -189,9 +198,9 @@ class VariableCache(SCons.Variables.Variables):
         value = None
         if env.has_key(key):
             value = env[key]
-            Debug("returning %s cached value: %s" % (key, value))
+            Debug("returning %s cached value: %s" % (key, value), env)
         else:
-            Debug("no value cached for %s" % (key))
+            Debug("no value cached for %s" % (key), env)
         return value
         
     def store(self, env, name, value):
@@ -200,7 +209,7 @@ class VariableCache(SCons.Variables.Variables):
         env[key] = value
         if self.getPath():
             self.Save(self.getPath(), env)
-        Debug("Updated %s to value: %s" % (key, value))
+        Debug("Updated %s to value: %s" % (key, value), env)
 
 
 def ToolCacheVariables():
@@ -263,12 +272,12 @@ class _LibraryBuilder(BuilderBase):
 
     def __call__(self, env, target=None, source=None, chdir=_null, **kw):
         "Override __call__ from the base class to register the target library."
-        Debug("_LibraryBuilder.__call__ for target(%s)" % (target))
+        Debug("_LibraryBuilder.__call__ for target(%s)" % (target), env)
         ret = BuilderBase.__call__(self, env, target, source, chdir, **kw)
         if target:
             env.AddLibraryTarget(target, ret)
         else:
-            Debug("library builder returned None!")
+            Debug("library builder returned None!", env)
         return ret
 
 def _library_builder_str(env):
@@ -317,7 +326,7 @@ def _generate (env):
     _createDefaultEnvironment()
     name = env.Dir('.').get_path(env.Dir('#'))
     Debug("Generating eol defaults for Environment(%s) @ %s" % 
-          (name, env.Dir('#').get_abspath()))
+          (name, env.Dir('#').get_abspath()), env)
 
     # Apply the built-in default tool before applying the eol_scons
     # customizations and tools.  We only need to find the tools once, so
@@ -387,7 +396,7 @@ def _generate (env):
 
     # Debug("Before wrapping Library: %s" % (_library_builder_str(env)))
 
-    Debug("Replacing standard library builders with subclass")
+    Debug("Replacing standard library builders with subclass", env)
     builder = SCons.Tool.createStaticLibBuilder(env)
     builder = _LibraryBuilder(builder)
     env['BUILDERS']['StaticLibrary'] = builder
@@ -399,7 +408,7 @@ def _generate (env):
     # Debug("After wrapping Library: %s" % (_library_builder_str(env)))
 
     if _creating_default_environment:
-        Debug("Limiting DefaultEnvironment to standard scons tools.")
+        Debug("Limiting DefaultEnvironment to standard scons tools.", env)
         return env
 
     # Pass on certain environment variables, especially those needed
@@ -421,7 +430,7 @@ def _generate (env):
 
     if env.has_key('GLOBAL_TOOLS'):
         newtools = env['GLOBAL_TOOLS']
-        Debug("Adding global tools @ %s: %s" % (gkey, str(newtools)))
+        Debug("Adding global tools @ %s: %s" % (gkey, str(newtools)), env)
         _global_tools[gkey].extend(newtools)
     # Now find every global tool list for parents of this directory.  Sort
     # them so that parent directories will appear before subdirectories.
@@ -433,7 +442,7 @@ def _generate (env):
             if t not in gtools:
                 gtools.append(t)
     Debug("Applying global tools @ %s: %s" %
-          (gkey, ",".join([str(x) for x in gtools])))
+          (gkey, ",".join([str(x) for x in gtools])), env)
     env.Require(gtools)
     return env
 
@@ -462,7 +471,7 @@ def _Require(env, tools):
     applied = []
     if not isinstance(tools,type([])):
         tools = [ tools ]
-    Debug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]))
+    Debug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]), env)
     for t in tools:
         tool = env.Tool(t)
         if tool:
@@ -513,12 +522,12 @@ def _AddGlobalTarget(env, name, target):
     except (TypeError, AttributeError):
         node = target
     if not _global_targets.has_key(name):
-        Debug("AddGlobalTarget: " + name + "=" + node.get_abspath())
+        Debug("AddGlobalTarget: " + name + "=" + node.get_abspath(), env)
         _global_targets[name] = node
     else:
         Debug(("%s global target already set to %s, " +
                "not changed to %s.") % (name, _global_targets[name], 
-                                        node.get_abspath()))
+                                        node.get_abspath()), env)
     # The "local" targets is a dictionary of target strings mapped to their
     # node.  The dictionary is assigned to a construction variable.  That
     # way anything can be used as a key, while environment construction
@@ -527,11 +536,11 @@ def _AddGlobalTarget(env, name, target):
         env["LOCAL_TARGETS"] = {}
     locals = env["LOCAL_TARGETS"]
     if not locals.has_key(name):
-        Debug("local target: " + name + "=" + str(node))
+        Debug("local target: " + name + "=" + str(node), env)
         locals[name] = node
     else:
         Debug(("%s local target already set to %s, " +
-               "not changed to %s.") % (name, locals[name], node))
+               "not changed to %s.") % (name, locals[name], node), env)
     return node
 
 
@@ -552,11 +561,11 @@ def _GetGlobalTarget(env, name):
 
 def _AppendLibrary (env, name, path = None):
     "Add this library either as a local target or a link option."
-    Debug("AppendLibrary wrapper looking for %s" % name)
+    Debug("AppendLibrary wrapper looking for %s" % name, env)
     env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
     if target:
-        Debug("appending library node: %s" % str(target))
+        Debug("appending library node: %s" % str(target), env)
         env.Append(LIBS=[target])
     else:
         env.Append(LIBS=[name])
@@ -567,7 +576,7 @@ def _AppendSharedLibrary (env, name, path=None):
     "Add this shared library either as a local target or a link option."
     env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
-    Debug("appending shared library node: %s" % str(target))
+    Debug("appending shared library node: %s" % str(target), env)
     if target and not path:
         path = target.dir.get_abspath()
     env.Append(LIBS=[name])
@@ -609,7 +618,7 @@ def _Create (env,
 
 
 def _LogDebug(env, msg):
-    Debug(msg)
+    Debug(msg, env)
 
 def _GlobalVariables(env):
     return GlobalVariables()
@@ -623,7 +632,7 @@ def _GlobalTools(env):
     gtools = None
     if gkey and _global_tools.has_key(gkey):
         gtools = _global_tools[gkey]
-    Debug("GlobalTools(%s) returns: %s" % (gkey, gtools))
+    Debug("GlobalTools(%s) returns: %s" % (gkey, gtools), env)
     return gtools
 
 
@@ -682,7 +691,7 @@ def _loadToolFile(env, name):
                   str(matchList) + ", using the first one")
         # Load the first match
         toolScript = matchList[0]
-        Debug("Loading %s to get tool %s..." % (toolScript, name))
+        Debug("Loading %s to get tool %s..." % (toolScript, name), env)
         env.SConscript(toolScript)
         # After loading the script, make sure the tool appeared 
         # in the global exports list.
@@ -706,7 +715,7 @@ def _loadToolFile(env, name):
 tool_dict = {}
 
 def _Tool(env, tool, toolpath=None, **kw):
-    Debug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)))
+    Debug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)), env)
     name = str(tool)
     # Debug("...before loading tool %s: %s" % (name, _library_builder_str(env)))
 
@@ -720,11 +729,12 @@ def _Tool(env, tool, toolpath=None, **kw):
 
         # Is the tool already in our tool dictionary?
         if tool_dict.has_key(name):
-            Debug("Found tool %s already loaded" % name)
+            Debug("Found tool %s already loaded" % name, env)
             if not kw:
                 tool = tool_dict[name]
             else:
-                Debug("Existing tool not used because keywords were given.")
+                Debug("Existing tool not used because keywords were given.", 
+                      env)
 
         # Check if this tool is actually an exported tool function, in
         # which case return the exported function.  First check for the
@@ -741,7 +751,8 @@ def _Tool(env, tool, toolpath=None, **kw):
                     break
 
             if tool:
-                Debug("Found tool %s in global_exports (as %s)" % (name, tname))
+                Debug("Found tool %s in global_exports (as %s)" % (name, tname),
+                      env)
 
         # Try to find and load a tool file named "tool_<tool>.py".
         if not tool:
@@ -764,21 +775,21 @@ def _Tool(env, tool, toolpath=None, **kw):
         # is *not* stashed in the local tool dictionary if there are
         # keyword parameters.
         if not tool:
-            Debug("Loading tool: %s" % name)
+            Debug("Loading tool: %s" % name, env)
             if toolpath is None:
                 toolpath = env.get('toolpath', [])
             toolpath = map(env._find_toolpath_dir, toolpath)
             tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
-            Debug("Tool loaded: %s" % name)
+            Debug("Tool loaded: %s" % name, env)
             # If the tool is not specialized with keywords, then we can 
             # stash this particular instance and avoid reloading it.
             if tool and not kw:
                 tool_dict[name] = tool
             elif kw:
                 Debug("Tool %s not cached because it has keyword parameters."
-                      % (name))
+                      % (name), env)
 
-    Debug("Applying tool %s" % name)
+    Debug("Applying tool %s" % name, env)
     tool(env)
     # Debug("...after applying tool %s: %s" % (name, _library_builder_str(env)))
     return tool
@@ -807,7 +818,7 @@ def _AppendDoxref(env, ref):
         env['DOXREF'] = [ref]
     else:
         env['DOXREF'].append(ref)
-    Debug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])))
+    Debug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])), env)
 
 
 def _ExtendEnvironment(envclass):

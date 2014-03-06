@@ -11,6 +11,8 @@ from SCons.Script import Scanner
 
 from eol_scons.parseconfig import RunConfig
 from eol_scons.parseconfig import CheckConfig
+import eol_scons
+from eol_scons import Debug
 
 _options = None
 USE_PKG_CONFIG = "Using pkg-config"
@@ -76,6 +78,9 @@ class _Automoc:
             debug = int(env.subst('$QT_DEBUG'))
         except ValueError:
             debug = 0
+        if debug and not eol_scons.debug:
+            eol_scons.SetDebug(True)
+
         # some shortcuts used in the scanner
         FS = SCons.Node.FS.default_fs
         objBuilder = getattr(env, self.objBuilderName)
@@ -97,11 +102,10 @@ class _Automoc:
         # make a deep copy for the result; MocH objects will be appended
         out_sources = source[:]
 
-        if debug:
-            print("%s: scanning [%s] to add targets to [%s]." %
-                  (self.objBuilderName, 
-                   ",".join([str(s) for s in source]),
-                   ",".join([str(t) for t in target])))
+        Debug("%s: scanning [%s] to add targets to [%s]." %
+              (self.objBuilderName, 
+               ",".join([str(s) for s in source]),
+               ",".join([str(t) for t in target])), env)
         for obj in source:
             #
             # KLUGE: If the obj is not a SCons.Node.FS.Entry, it may be a list
@@ -121,14 +125,14 @@ class _Automoc:
 
             if not obj.has_builder():
                 # binary obj file provided
-                if debug:
-                    print "scons: qt4: '%s' seems to be a binary. Discarded." % str(obj)
+                Debug("scons: qt4: '%s' seems to be a binary. Discarded." % 
+                      str(obj), env)
                 continue
 
             cpp = obj.sources[0]
             if not SCons.Util.splitext(str(cpp))[1] in cxx_suffixes:
-                if debug:
-                    print "scons: qt4: '%s' is not a C++ file. Discarded." % str(cpp) 
+                Debug("scons: qt4: '%s' is not a C++ file. Discarded." % 
+                      str(cpp), env)
                 # c or fortran source
                 continue
             #cpp_contents = comment.sub('', cpp.get_contents())
@@ -142,28 +146,28 @@ class _Automoc:
                               (cpp.get_dir(),),
                               FS.File)
                 if h:
-                    if debug:
-                        print "scons: qt4: Scanning '%s' (header of '%s')" % (str(h), str(cpp))
+                    Debug("scons: qt4: Scanning '%s' (header of '%s')" % 
+                          (str(h), str(cpp)), env)
                     #h_contents = comment.sub('', h.get_contents())
                     h_contents = h.get_contents()
                     break
-            if not h and debug:
-                print "scons: qt4: no header for '%s'." % (str(cpp))
+            if not h:
+                Debug("scons: qt4: no header for '%s'." % (str(cpp)), env)
             if h and q_object_search.search(h_contents):
                 # h file with the Q_OBJECT macro found -> add moc_cpp
                 moc_cpp = env.Moc4(h)
                 moc_o = objBuilder(moc_cpp)
                 out_sources.append(moc_o)
                 #moc_cpp.target_scanner = SCons.Defaults.CScan
-                if debug:
-                    print "scons: qt4: found Q_OBJECT macro in '%s', moc'ing to '%s'" % (str(h), str(moc_cpp))
+                Debug("scons: qt4: found Q_OBJECT macro in '%s', "
+                      "moc'ing to '%s'" % (str(h), str(moc_cpp)), env)
             if cpp and q_object_search.search(cpp_contents):
                 # cpp file with Q_OBJECT macro found -> add moc
                 # (to be included in cpp)
                 moc = env.Moc4(cpp)
                 env.Ignore(moc, moc)
-                if debug:
-                    print "scons: qt4: found Q_OBJECT macro in '%s', moc'ing to '%s'" % (str(cpp), str(moc))
+                Debug("scons: qt4: found Q_OBJECT macro in '%s', "
+                      "moc'ing to '%s'" % (str(cpp), str(moc)), env)
                 #moc.source_scanner = SCons.Defaults.CScan
         # restore the original env attributes (FIXME)
         objBuilder.env = objBuilderEnv
@@ -438,9 +442,11 @@ def enable_modules(self, modules, debug=False) :
 	if not self.has_key('QT4DIR'):
             return False
 
-        if debug : modules = [module + "_debug" for module in modules]
+        if debug:
+            modules = [module + "_debug" for module in modules]
         for module in modules:
             if (self['QT4DIR'] == USE_PKG_CONFIG):
+                Debug("enabling module %s through pkg-config" % (module), self)
                 # Starting directory for headers.  First try 
                 # 'pkg-config --variable=headerdir Qt'. If that's empty 
                 # (this happens on CentOS 5 systems...), try 
@@ -471,7 +477,11 @@ def enable_modules(self, modules, debug=False) :
                     self.Append(LIBS = [module])
                     # Add -I<Qt4HeaderDir>/<module>
                     self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
+                    Debug("qt4.enable_modules appended %s to CPPPATH" %
+                          os.path.join(hdir, module), self)
             else:
+                Debug("enabling module %s with QT4DIR=%s" %
+                      (module, env['QT4DIR']), self)
                 # Module library directory can apparently be either
                 # <QT4DIR>/lib/<module> or just <QT4DIR>/lib.  Use the
                 # longer one if the directory exists, otherwise the shorter
@@ -523,9 +533,9 @@ def enable_modules(self, modules, debug=False) :
                     # This print is a bit verbose, and not really a debug
                     # thing, so it's commented out.  
                     #
-                    # print "QtCore/Qt header file not found. Do \"scons
-                    # --config=force\" to redo the check. See config.log
-                    # for more information"
+                    Debug("QtCore/Qt header file not found. "
+                          "Do \"scons --config=force\" to redo the check. "
+                          "See config.log for more information", self)
                     return hasQt
         return True
 
