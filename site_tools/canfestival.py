@@ -46,12 +46,11 @@ def _calculate_settings(env, settings):
 
     # Now try to find the libraries, using the header as a hint.
     if not headerdir or headerdir.startswith("/usr/include"):
-        # only check system install dirs since the header was not found
-        # anywhere else.
-        settings['LIBPATH'] = []
-    else:
-        # the header must have been found under OPT_PREFIX
-        settings['LIBPATH'] = [os.path.join(prefix, 'lib')]
+        msg = "Could not find CanFestival CANopen API header canfestival.h. Check config.log."
+        raise SCons.Errors.StopError, msg
+    
+    # Save the library path
+    settings['LIBPATH'] = os.path.join(prefix, 'lib')
 
     # Now test linking
     libs = ['canfestival_unix', 'canfestival', 'pthread', 'dl', 'rt']
@@ -77,10 +76,9 @@ def generate(env):
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
     env.Append(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=_settings['LIBPATH'])
-    # Add -DCANFESTIVAL_LIBDIR=<libdir> so that code can use the macro when
+    # Add -DCANFESTIVAL_LIBDIR='"<libdir>"' so that code can use the macro when
     # building paths for dynamically loading CanFestival driver libraries.
-    if _settings['LIBPATH']: 
-        env.Append(CPPDEFINES=('CANFESTIVAL_LIBDIR', '"' + _settings['LIBPATH'][0] + '"'))
+    env.Append(CPPDEFINES=('CANFESTIVAL_LIBDIR', '\'"' + _settings['LIBPATH'] + '"\''))
 
 
 def exists(env):
