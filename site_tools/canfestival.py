@@ -4,6 +4,14 @@
 # check /usr/local and system default (i.e., /usr) as possible install locations
 # for CanFestival libraries and headers.
 #
+# The tool also provides a builder to generate CanFestival object dictionary
+# implementation files <foo>.c and <foo>.h from <foo>.od, e.g.,
+#
+#     env.canfestivalObjdictImpl('myobj.od')
+#
+# will cause generation of myobj.c and myobj.h if they are out of date w.r.t.
+# myobj.od.
+#
 
 import os, os.path
 import string
@@ -24,6 +32,18 @@ def CheckCanFestival(context):
     context.Result(result)
     return result
 
+# Emitter for objdictgen. We need this because "objdictgen foo.od foo.c"
+# creates a foo.h file in addition to creating foo.c
+def _od_emitter(target, source, env):
+    for s in source:
+        src = str(s)
+        # strip extension from src
+        head = os.path.splitext(src)[0]
+        # append <head>.h to the target list
+        print 'OD emitter adding ' + head + '.h'
+        target.append(head + '.h')
+
+    return target, source
 
 _settings = {}
 
@@ -51,6 +71,19 @@ def _calculate_settings(env, settings):
     
     # Save the library path
     settings['LIBPATH'] = os.path.join(prefix, 'lib')
+    
+    # Binary path
+    binpath = os.path.join(prefix, 'bin')
+
+    #
+    # Builder to use objdictgen to generate <foo>.c and <foo>.h from <foo>.od
+    #
+    objdictgen_path = os.path.join(binpath, 'objdictgen')
+    settings['ODBUILDER'] = SCons.Builder.Builder(
+            action = objdictgen_path + " $SOURCES $TARGET",
+            suffix = '.c',
+            src_suffix = '.od',
+            emitter = _od_emitter)
 
     # Now test linking
     libs = ['canfestival_unix', 'canfestival', 'pthread', 'dl', 'rt']
@@ -73,9 +106,11 @@ def _calculate_settings(env, settings):
 def generate(env):
     if not _settings:
         _calculate_settings(env, _settings)
-    env.AppendUnique(CPPPATH=_settings['CPPPATH'])
-    env.Append(LIBS=_settings['LIBS'])
-    env.AppendUnique(LIBPATH=_settings['LIBPATH'])
+    env.AppendUnique(CPPPATH = _settings['CPPPATH'])
+    env.Append(LIBS = _settings['LIBS'])
+    env.AppendUnique(LIBPATH = _settings['LIBPATH'])
+    # <foo>.od -> <foo>.c and <foo>.h builder
+    env.Append(BUILDERS = {'canfestivalObjdictImpl' : _settings['ODBUILDER']})
     # Add -DCANFESTIVAL_LIBDIR='"<libdir>"' so that code can use the macro when
     # building paths for dynamically loading CanFestival driver libraries.
     env.Append(CPPDEFINES=('CANFESTIVAL_LIBDIR', '\'"' + _settings['LIBPATH'] + '"\''))
