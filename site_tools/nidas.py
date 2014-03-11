@@ -53,6 +53,8 @@ both cases, so that the same SConscript can work either way.
 
 import sys
 import os
+import subprocess
+import re
 import eol_scons
 import sharedlibrary
 from SCons.Variables import EnumVariable
@@ -177,6 +179,26 @@ def _NidasAppFindFile(env, name):
     eol_scons.Debug("Found app: %s" % (str(app)))
     return app
 
+def _check_nc_server(env, lib):
+    lddcmd = ["ldd", lib]
+    lddprocess = subprocess.Popen(lddcmd, stdout=subprocess.PIPE)
+    found = False
+    lddout = lddprocess.communicate()[0]
+    return bool(re.search('libnc_server_rpc', lddout))
+
+
+def _resolve_libpaths(env, paths):
+    libdir = sharedlibrary.GetArchLibDir(env)
+    libpaths = []
+    for p in paths:
+        parch = os.path.join(p, libdir)
+        plib = os.path.join(p, 'lib')
+        if os.path.exists(parch):
+            libpaths.append(parch)
+        elif os.path.exists(plib):
+            libpaths.append(plib)
+    return libpaths
+
 
 def generate(env):
     # It is not (yet) possible to build against NIDAS on anything
@@ -258,17 +280,26 @@ Set NIDAS_PATH to '""" + USE_PKG_CONFIG + """', the default, to use the settings
         env.EnableNIDAS = (lambda: 1)
         env.Append(CPPPATH=[os.path.join(p,'include') 
                             for p in nidas_paths])
-        libdir = sharedlibrary.GetArchLibDir(env)
-        env.Append(LIBPATH=[os.path.join(p,libdir) 
-                            for p in nidas_paths])
+
+        libpaths = _resolve_libpaths(env, nidas_paths)
+        env.Append(LIBPATH=libpaths)
+
+        # Find the nidas library so we can test it for nc_server_rpc.
+        for p in env['LIBPATH']:
+            pnidas = os.path.join(str(p), 'libnidas.so')
+            if os.path.exists(pnidas):
+                if _check_nc_server(env, pnidas):
+                    nidas_libs += ['nc_server_rpc']
+                    env.Append(LIBPATH=[p+'/../../nc_server/lib',
+                                        '/opt/nc_server/lib'])
+                break
 
         # The nidas library contains nidas_util already, so only the nidas
         # and nidas_dynld libraries need to be linked.  Linking nidas_util
         # causes static constructors to run multiple times (and
         # subsequently multiple deletes).
         env.Append(LIBS=nidas_libs)
-        env.AppendUnique(RPATH=[os.path.join(p,libdir)
-                                for p in nidas_paths])
+        env.AppendUnique(RPATH=libpaths)
         # Anything using nidas is almost guaranteed now to have to link
         # with xerces.  Including some of the nidas headers creates direct
         # dependencies on xercesc symbols, even though an application may
