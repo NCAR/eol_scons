@@ -122,6 +122,14 @@ def Debug(msg, env=None):
             context = GetSubdir(env) + ": "
         print("%s%s" % (context, msg))
 
+def _Dump(env, key=None):
+    if not key:
+        return env.Dump()
+    if not env.has_key(key):
+        return ''
+    return env.Dump(key)
+
+
 _eolsconsdir = os.path.dirname(__file__)
 
 # I wish this would work, but apparently ARGUMENTS has not been populated
@@ -717,7 +725,8 @@ tool_dict = {}
 def _Tool(env, tool, toolpath=None, **kw):
     Debug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)), env)
     name = str(tool)
-    # Debug("...before loading tool %s: %s" % (name, _library_builder_str(env)))
+    Debug("...before applying tool %s: LIBPATH=%s" %
+          (name, _Dump(env, 'LIBPATH')))
 
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
@@ -791,7 +800,8 @@ def _Tool(env, tool, toolpath=None, **kw):
 
     Debug("Applying tool %s" % name, env)
     tool(env)
-    # Debug("...after applying tool %s: %s" % (name, _library_builder_str(env)))
+    Debug("...after applying tool %s: LIBPATH=%s" %
+          (name, _Dump(env, 'LIBPATH')))
     return tool
 
 
