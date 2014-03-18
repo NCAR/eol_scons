@@ -17,7 +17,7 @@ def ChdirActions(env, actions, dir = None):
         dir = env.Dir('.').path
     cdActions = []
     for cmd in actions:
-        cdActions += ["cd %s && %s" % (dir, env.subst(cmd))]
+        cdActions += ["cd %s && %s" % (dir, cmd)]
     return cdActions
 
 if 0:
