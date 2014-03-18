@@ -31,6 +31,7 @@ def _get_config(env, search_paths, config_script, args):
         return _extract_results(result)
     if not result:
         if search_paths:
+            search_paths = [ p for p in search_paths if os.path.exists(p) ]
             env.LogDebug("Checking for %s in %s" % 
                          (config_script, ",".join(search_paths)))
             config = env.WhereIs(config_script, search_paths)
@@ -63,11 +64,19 @@ def CheckConfig(env, command):
     return _get_config(env, None, config_script, args)[0]
 
 
+def _filter_ldflags(flags):
+    "Fix ldflags from config scripts which return standard library dirs."
+    flags = re.sub('-L/usr/lib6?4?\S', '', flags)
+    return flags
+
+
 def ParseConfigPrefix(env, config_script, search_prefixes,
                       default_prefix = "$OPT_PREFIX", apply_config = False):
     """Search for a config script and parse the output."""
     search_paths = [ os.path.join(env.subst(x),"bin")
                      for x in [ y for y in search_prefixes if y ] ]
+    if search_paths:
+        search_paths = [ p for p in search_paths if os.path.exists(p) ]
     prefix = default_prefix
     if env['PLATFORM'] == 'win32':    
         return prefix
@@ -78,11 +87,13 @@ def ParseConfigPrefix(env, config_script, search_prefixes,
                             ['--cppflags', '--ldflags', '--libs'])[1]
         if flags:
             if _debug: print("Merging " + flags)
+            flags = _filter_ldflags(flags)
             env.MergeFlags(flags)
         else:
             if _debug: print("No flags from %s" % (config_script))
         ldflags = _get_config(env, search_paths, config_script,
                               ['--ldflags'])[1]
+        ldflags = _filter_ldflags(ldflags)
                               
         if ldflags:
             ldflags = ldflags.split()
