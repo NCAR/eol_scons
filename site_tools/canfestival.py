@@ -40,7 +40,6 @@ def _od_emitter(target, source, env):
         # strip extension from src
         head = os.path.splitext(src)[0]
         # append <head>.h to the target list
-        print 'OD emitter adding ' + head + '.h'
         target.append(head + '.h')
 
     return target, source
