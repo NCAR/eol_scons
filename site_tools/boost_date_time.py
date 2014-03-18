@@ -1,13 +1,11 @@
-import os,os.path, sys
-import SCons
 
 def generate(env):
     if env['PLATFORM'] != 'darwin':
         env.Append (LIBS = ["boost_date_time"])
     else:
         env.Append (LIBS = ["boost_date_time-mt"])
-    libpath = os.path.abspath(os.path.join(env['OPT_PREFIX'],'lib'))
-    env.AppendUnique(LIBPATH=[libpath])
+    # If the boost libraries must be found in an alternative location, then
+    # make sure the prefixoptions tool is loaded and OPT_PREFIX set.
 
 def exists(env):
     return True

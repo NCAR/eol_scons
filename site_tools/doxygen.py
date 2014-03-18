@@ -239,12 +239,6 @@ REFERENCES_RELATION = NO
 """)
 
     dot_path = env.WhereIs("dot")
-    if not dot_path:
-        ourpath = []
-        if env.has_key('OPT_PREFIX'):
-            ourpath.append("%s/bin" % (env['OPT_PREFIX']))
-        ourpath.append("/net/opt_lnx/local_fc3/bin")
-        dot_path = env.WhereIs("dot", ourpath)
     if dot_path:
         dfile.write("DOT_PATH = %s\n" % os.path.dirname(dot_path))
 
@@ -453,7 +447,6 @@ def SetDoxref(env, name, tagfile, url):
 def generate(env):
     """Add builders and construction variables for DOXYGEN."""
     # print "doxygen.generate(%s)" % env.Dir('.').get_path(env.Dir("#"))
-    env.Require('prefixoptions')
     env['BUILDERS']['Doxyfile'] = doxyfile_builder
     env['BUILDERS']['Doxygen'] = doxygen_builder
     env.SetDefault(DOXREF=[])
