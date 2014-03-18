@@ -1,11 +1,12 @@
 
 import os
-import eol_scons
-import SCons
-import new
 
 _options = None
 
+# Maybe this should be split into two tools: one for setting an OPT_PREFIX
+# for finding dependencies and one for setting up the INSTALL_PREFIX and
+# all of the install methods.  The INSTALL_PREFIX can default to OPT_PREFIX
+# when it exists.
 
 def SetupVariables(env):
     global _options
@@ -21,12 +22,15 @@ def SetupVariables(env):
 
 
 def OptPrefixSetup(env):
-    if not env.has_key('OPT_PREFIX') or len(env['OPT_PREFIX']) == 0:
+    # If OPT_PREFIX does not exist in this environment, or if it is
+    # explicitly set to empty, or if it was left as $DEFAULT_OPT_PREFIX but
+    # DEFAULT_OPT_PREFIX has not been set, then that disables all
+    # OPT_PREFIX settings.  Therefore if the intention is to set a value
+    # for DEFAULT_OPT_PREFIX which always takes effect, it must be set
+    # before this tool is applied.
+    opt_prefix = env.subst(env.get('OPT_PREFIX', ''))
+    if not opt_prefix:
         return env
-    if not env.has_key('DEFAULT_OPT_PREFIX'):
-        env['DEFAULT_OPT_PREFIX'] = '/opt/local'
-    if not env.has_key('DEFAULT_INSTALL_PREFIX'):
-        env['DEFAULT_INSTALL_PREFIX'] = '$OPT_PREFIX'
     opt_lib=os.path.join(env['OPT_PREFIX'], "lib")
     opt_inc=os.path.join(env['OPT_PREFIX'], "include")
     opt_bin=os.path.join(env['OPT_PREFIX'], "bin")
@@ -118,18 +122,14 @@ def InstallHeaders (self, subdir, source):
     incdir = os.path.join(self['INSTALL_INCDIR'],subdir)
     return self.Install (incdir, source)
 
-
-def generate(env):
-    """
-    Use the given paths as defaults for the opt and install prefix
-    directories, else base the default on the OS release.
-    """
-    global _options
-    if not _options:
-        SetupVariables(env)
-    # Generate installation paths according to options and defaults
-    _options.Update(env)
-    OptPrefixSetup(env)
+def InstallPrefixSetup(env):
+    # Rather than depend upon OPT_PREFIX to be set, supply our own default
+    # if no other default has been set.  Unlike OPT_PREFIX, the install
+    # methods all depend upon some reasonable install path.  The default
+    # install prefix has no affect unless INSTALL_PREFIX has not been
+    # changed.
+    if not env.subst(env.get('DEFAULT_INSTALL_PREFIX','')):
+        env['DEFAULT_INSTALL_PREFIX'] = '/opt/local'
     env['INSTALL_LIBDIR'] = "$INSTALL_PREFIX/lib"
     env['INSTALL_BINDIR'] = "$INSTALL_PREFIX/bin"
     env['INSTALL_INCDIR'] = "$INSTALL_PREFIX/include"
@@ -156,6 +156,20 @@ def generate(env):
     env.AddMethod(InstallHeaders)
     env.AddMethod(InstallPythonLibrary)
     env.AddMethod(InstallShare)
+
+
+def generate(env):
+    """
+    Use the given paths as defaults for the opt and install prefix
+    directories, else base the default on the OS release.
+    """
+    global _options
+    if not _options:
+        SetupVariables(env)
+    # Generate installation paths according to options and defaults
+    _options.Update(env)
+    OptPrefixSetup(env)
+    InstallPrefixSetup(env)
 
 def exists(env):
     return True
