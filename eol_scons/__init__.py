@@ -27,60 +27,8 @@ private.  See the README file for the documenation for this module.
 """
 
 import os
-
 import re
 import glob
-
-# It seems like the below is all that should be needed to subclass
-# SConsEnvironment and replace the default Environment class, according to
-# a comment in SCons.Environment where the Environment variable is
-# assigned.  SCons.Script.SConscript then defines a class SConsEnvironment
-# and assigns it to SCons.Environment.Environment.  So this code subclasses
-# SConsEnvironment (so SCons.Script.SConscript must be imported first),
-# then replaces the setting in SCons.Environment.  This works for the first
-# environment created through DefaultEnvironment(), but not for the first
-# Environment created in the SConstruct file.  Presumably that's because
-# the Environment symbol in the SConstruct scope has already been bound to
-# SConsEnvironment even though scons hasn't given the site_init.py a chance
-# to replace it.  Replacing the DefaultEnvironment() at least means that
-# later default calls to SConscript() (ie, not through an env method) will
-# go through the DebugEnvironment.  But any SConscript or Clone method calls 
-# will use the original SConsEnvironment instance.
-#
-# In summary, the goal was to tap into all SConscript() calls and allow
-# things like printing a debug message to trace the evolution of
-# troublesome construction variables.  However that does not appear to be
-# feasible.  It does not work to replace the SConscript method as is done
-# for _ExtendEnvironment, because the _SConscript implementation relies on
-# tricky access to the stack frames.  It did seem to work for subclassing,
-# but that's what I didn't find a way to make stick.  The other goal was to
-# tap the creation of an Environment.  Again that doesn't work using
-# subclassing, since the subclass cannot be put in place.  Maybe it would
-# work by replacing the __init__ method, but it has not been tried.
-# Liekwsei the Clone() method would need to be extended.
-#
-if False:
-    from SCons.Script.SConscript import SConsEnvironment
-    import SCons.Environment
-
-    class DebugEnvironment(SConsEnvironment):
-
-        def __init__(self, **kw):
-            SConsEnvironment.__init__(self, **kw)
-            print("Created environment: %s" % (self.Dir('.').get_path(self.Dir('#'))))
-
-        def SConscript(self, *ls, **kw):
-            Debug("calling SConscript(%s,%s)" % (str(ls), str(kw)))
-            SConsEnvironment.SConscript(self, *ls, **kw)
-            Debug("called SConscript(%s,%s)" % (str(ls), str(kw)))
-
-        def Clone(self, tools=[], toolpath=None, parse_flags = None, **kw):
-            print("Cloning ")
-            return SConsEnvironment.Clone(self, tools, toolpath, parse_flags, **kw)
-
-    SCons.Environment.Environment = DebugEnvironment
-    SCons.Script.Environment = DebugEnvironment
-
 
 import SCons.Tool
 import SCons.Variables
@@ -298,25 +246,6 @@ def _library_builder_str(env):
 
 _default_tool_list = None
 
-# The first attempt by scons to build DefaultEnvironment will load the
-# eol_scons default tool, which can cause things like infinite recursion if
-# a tool causes the DefaultEnvironment() call.  To try to cut that off,
-# create the default environment here, but without any of the eol_scons
-# extensions.
-
-_scons_default_environment = None
-_creating_default_environment = False
-
-def _createDefaultEnvironment():
-
-    global _scons_default_environment
-    global _creating_default_environment
-    if (not _scons_default_environment and
-        not _creating_default_environment):
-        _creating_default_environment = True
-        _scons_default_environment = SCons.Defaults.DefaultEnvironment()
-        _creating_default_environment = False
-
 
 def _update_variables(env):
     GlobalVariables().Update (env)
@@ -331,7 +260,7 @@ def _generate (env):
     environment, especially applying the scons built-in default tool
     and the eol_scons global tools."""
     _update_variables(env)
-    _createDefaultEnvironment()
+    _addMethods(env)
     name = env.Dir('.').get_path(env.Dir('#'))
     Debug("Generating eol defaults for Environment(%s) @ %s" % 
           (name, env.Dir('#').get_abspath()), env)
@@ -414,10 +343,6 @@ def _generate (env):
     env['BUILDERS']['SharedLibrary'] = builder
 
     # Debug("After wrapping Library: %s" % (_library_builder_str(env)))
-
-    if _creating_default_environment:
-        Debug("Limiting DefaultEnvironment to standard scons tools.", env)
-        return env
 
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
@@ -506,7 +431,7 @@ def _ChdirActions (self, actions, dir = None):
 def _Install (self, dir, source):
     """Call the standard Install() method and also add the target to the
     global 'install' alias."""
-    t = SCons.Environment.Base.Install (self, dir, source)
+    t = self._SConscript_Install(dir, source)
     DefaultEnvironment().Alias('install', t)
     return t
 
@@ -725,8 +650,8 @@ tool_dict = {}
 def _Tool(env, tool, toolpath=None, **kw):
     Debug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)), env)
     name = str(tool)
-    Debug("...before applying tool %s: LIBPATH=%s" %
-          (name, _Dump(env, 'LIBPATH')))
+    Debug("...before applying tool %s: LIBPATH=%s, Install=%s" %
+          (name, _Dump(env, 'LIBPATH'), env.Install))
 
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
@@ -800,8 +725,8 @@ def _Tool(env, tool, toolpath=None, **kw):
 
     Debug("Applying tool %s" % name, env)
     tool(env)
-    Debug("...after applying tool %s: LIBPATH=%s" %
-          (name, _Dump(env, 'LIBPATH')))
+    Debug("...after applying tool %s: LIBPATH=%s, env.Install=%s" %
+          (name, _Dump(env, 'LIBPATH'), env.Install))
     return tool
 
 
@@ -831,37 +756,38 @@ def _AppendDoxref(env, ref):
     Debug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])), env)
 
 
-def _ExtendEnvironment(envclass):
+def _addMethods(env):
     
-    envclass.Require = _Require
-    envclass.AddLibraryTarget = _AddLibraryTarget
-    envclass.AddGlobalTarget = _AddGlobalTarget
-    envclass.GetGlobalTarget = _GetGlobalTarget
-    envclass.AppendLibrary = _AppendLibrary
-    envclass.AppendSharedLibrary = _AppendSharedLibrary
-    envclass.PassEnv = _PassEnv
-    envclass.Install = _Install
-    envclass.ChdirActions = _ChdirActions
-    envclass.Test = _Test
-    envclass.LogDebug = _LogDebug
-    envclass.FindPackagePath = _FindPackagePath
-    envclass.GlobalVariables = _GlobalVariables
-    envclass.CacheVariables = _CacheVariables
+    Debug("add methods to environment %s, Install=%s, new _Install=%s" % 
+          (env, env.Install, _Install))
+    env.AddMethod(_Require, "Require")
+    env.AddMethod(_AddLibraryTarget, "AddLibraryTarget")
+    env.AddMethod(_AddGlobalTarget, "AddGlobalTarget")
+    env.AddMethod(_GetGlobalTarget, "GetGlobalTarget")
+    env.AddMethod(_AppendLibrary, "AppendLibrary")
+    env.AddMethod(_AppendSharedLibrary, "AppendSharedLibrary")
+    env.AddMethod(_PassEnv, "PassEnv")
+    env._SConscript_Install = env.Install
+    env.AddMethod(_Install, "Install")
+    env.AddMethod(_ChdirActions, "ChdirActions")
+    env.AddMethod(_Test, "Test")
+    env.AddMethod(_LogDebug, "LogDebug")
+    env.AddMethod(_FindPackagePath, "FindPackagePath")
+    env.AddMethod(_GlobalVariables, "GlobalVariables")
+    env.AddMethod(_CacheVariables, "CacheVariables")
     # Alias for temporary backwards compatibility
-    envclass.GlobalOptions = _GlobalVariables
-    envclass.GlobalTools = _GlobalTools
-    envclass.Tool = _Tool
-    envclass.AppendDoxref = _AppendDoxref
+    env.AddMethod(_GlobalVariables, "GlobalOptions")
+    env.AddMethod(_GlobalTools, "GlobalTools")
+    env.AddMethod(_Tool, "Tool")
+    env.AddMethod(_AppendDoxref, "AppendDoxref")
 
     # So that only the last Help text setting takes effect, rather than
     # duplicating info when SConstruct files are loaded from sub-projects.
-    envclass._SConscript_Help = envclass.Help
-    envclass.SetHelp = _SetHelp
+    env._SConscript_Help = env.Help
+    env.AddMethod(_SetHelp, "SetHelp")
 
     # For backwards compatibility:
-    envclass.Create = _Create
-
-_ExtendEnvironment(SCons.Environment.Environment)
+    env.AddMethod(_Create, "Create")
 
 # ================================================================
 # End of Environment customization.
