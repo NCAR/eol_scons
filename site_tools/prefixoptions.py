@@ -31,9 +31,10 @@ def OptPrefixSetup(env):
     opt_prefix = env.subst(env.get('OPT_PREFIX', ''))
     if not opt_prefix:
         return env
-    opt_lib=os.path.join(env['OPT_PREFIX'], "lib")
-    opt_inc=os.path.join(env['OPT_PREFIX'], "include")
-    opt_bin=os.path.join(env['OPT_PREFIX'], "bin")
+    # Use the expanded variables to check for path existence.
+    opt_lib=os.path.join(opt_prefix, "lib")
+    opt_inc=os.path.join(opt_prefix, "include")
+    opt_bin=os.path.join(opt_prefix, "bin")
     if os.path.exists(opt_bin):
         # Prepend opt bin path so that -config tools like log4cpp-config
         # will be found first and used.

@@ -66,7 +66,9 @@ def CheckConfig(env, command):
 
 def _filter_ldflags(flags):
     "Fix ldflags from config scripts which return standard library dirs."
-    flags = re.sub('-L/usr/lib6?4?\S', '', flags)
+    fields = flags.split()
+    fields = [ f for f in fields if not re.match(r'^-L/usr/lib(64)?$', f) ]
+    flags = " ".join(fields)
     return flags
 
 

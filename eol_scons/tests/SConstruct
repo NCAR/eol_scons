@@ -21,8 +21,11 @@ ignore_tools = [ 'default', 'gcc', 'msvc',
                  'gcc68k',
                  'pyqt', # appears to be outdated
                  'mex', # needs matlab installed
+                 'xmlrpc_client++', # also appears to be outdated
                  'armcross',
                  'armbecross',
+                 'windriver',
+                 'vxworks',
                  ]
 for it in ignore_tools:
     toolnames.remove(it)
@@ -50,7 +53,7 @@ def allsettings(env):
     pass
 
 # Load an environment with every known tool and see if works
-all = Environment(tools = ['default'] + [allsettings] + toolnames)
+# all = Environment(tools = ['default'] + [allsettings] + toolnames)
 
 import unittest
 
@@ -107,17 +110,31 @@ class TestEOLScons(unittest.TestCase):
                env.get('OPT_PREFIX', '<none>')))
         self.assert_(not env.has_key('XERCESC_PREFIX'))
         self.assert_('xerces-c' in env['LIBS'])
-        # Now create an environment using opt_prefix, and make sure
-        # xercesc uses it.
-        env = Environment(tools=['default','prefixoptions'], 
-                          OPT_PREFIX = '/usr/local')
+        # Now create an environment using opt_prefix, and make sure xercesc
+        # uses it.  I do not think it works to pass OPT_PREFIX in the
+        # environment constructor, perhaps because the OPT_PREFIX Variable
+        # overwrites it.  Instead use DEFAULT_OPT_PREFIX to set the value.
+        env = Environment(tools=['default', 'prefixoptions'],
+                          DEFAULT_OPT_PREFIX='/usr/local')
+        self.assert_('/usr/local/lib' in env['LIBPATH'])
+        self.assert_('/usr/local/include' in env['CPPPATH'])
         env.Require('xercesc')
         print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
               (env.get('XERCESC_PREFIX', '<none>'),
                env.get('OPT_PREFIX', '<none>')))
         self.assert_(env['XERCESC_PREFIX'] == '/usr/local')
         self.assert_('xerces-c' in env['LIBS'])
-        self.assert_('/usr/local/lib' in env['LIBPATH'])
+
+    def test_6_filter_ldflags(self):
+        from eol_scons.parseconfig import _filter_ldflags
+        pairs = [('-L/usr/lib', ''),
+                 ('-L/usr/lib64', ''),
+                 ('-L/opt/local/lib -L/usr/lib', '-L/opt/local/lib'),
+                 ('-L/usr/lib -L/opt/local/lib', '-L/opt/local/lib'),
+                 ('-L/usr/lib-extra', '-L/usr/lib-extra'),
+                 ('-L/usr/lib64-extra', '-L/usr/lib64-extra')]
+        for p in pairs:
+            self.assertEqual(_filter_ldflags(p[0]), p[1])
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)
 
