@@ -246,6 +246,30 @@ def _library_builder_str(env):
 
 _default_tool_list = None
 
+# When scons first attempts to build DefaultEnvironment(), it loads the
+# eol_scons default tool, and that calls the _generate() function.  The
+# _generate() function applies more tools, and if any of those tools call
+# DefaultEnvironment(), then SCons tries to create another Environment to
+# serve as the DefaultEnvironment.  That in turn calls _generate() again
+# with a new Environment, leading to infinite recursion.  It's not enough
+# to guard against recursion by noticing that an Environment has already
+# been seen by _generate(), since each call to the DefaultEnvironment
+# factory method creates a new Environment.  To head off the recursion, we
+# must create the default environment here, but with only the standard
+# tools applied.
+ 
+_scons_default_environment = None
+_creating_default_environment = False
+
+def _createDefaultEnvironment():
+    global _scons_default_environment
+    global _creating_default_environment
+    if (not _scons_default_environment and
+        not _creating_default_environment):
+        _creating_default_environment = True
+        _scons_default_environment = SCons.Defaults.DefaultEnvironment()
+        _creating_default_environment = False
+
 
 def _update_variables(env):
     GlobalVariables().Update (env)
@@ -259,6 +283,11 @@ def _generate (env):
     """Generate the basic eol_scons customizations for the given
     environment, especially applying the scons built-in default tool
     and the eol_scons global tools."""
+    if hasattr(env, "_eol_scons_generated"):
+        Debug("skipping _generate(), already applied")
+        return
+    env._eol_scons_generated = True
+    _createDefaultEnvironment()
     _update_variables(env)
     _addMethods(env)
     name = env.Dir('.').get_path(env.Dir('#'))
@@ -343,6 +372,10 @@ def _generate (env):
     env['BUILDERS']['SharedLibrary'] = builder
 
     # Debug("After wrapping Library: %s" % (_library_builder_str(env)))
+
+    if _creating_default_environment:
+        Debug("Limiting DefaultEnvironment to standard scons tools.", env)
+        return env
 
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
@@ -758,6 +791,9 @@ def _AppendDoxref(env, ref):
 
 def _addMethods(env):
     
+    if hasattr(env, "_SConscript_Install"):
+        Debug("environment %s already has methods added" % (env))
+        return
     Debug("add methods to environment %s, Install=%s, new _Install=%s" % 
           (env, env.Install, _Install))
     env.AddMethod(_Require, "Require")
