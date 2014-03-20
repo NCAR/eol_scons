@@ -458,13 +458,13 @@ def _Test (self, sources, actions):
     return self.DefaultTest(self.TestRun("xtest", sources, actions))
 
 
-def _ChdirActions (self, actions, dir = None):
-    return chdir.ChdirActions(self, actions, dir)
+def _ChdirActions (self, actions, cdir = None):
+    return chdir.ChdirActions(self, actions, cdir)
 
-def _Install (self, dir, source):
+def _Install (self, ddir, source):
     """Call the standard Install() method and also add the target to the
     global 'install' alias."""
-    t = self._SConscript_Install(dir, source)
+    t = self._SConscript_Install(self.Dir(ddir), source)
     DefaultEnvironment().Alias('install', t)
     return t
 
@@ -554,9 +554,9 @@ def _AppendSharedLibrary (env, name, path=None):
 def _FindPackagePath(env, optvar, globspec, defaultpath = None):
     """Check for a package installation path matching globspec."""
     options = GlobalVariables()
-    dir=defaultpath
+    pdir=defaultpath
     try:
-        dir=os.environ[optvar]
+        pdir=os.environ[optvar]
     except KeyError:
         if not env:
             env = DefaultEnvironment()
@@ -566,9 +566,9 @@ def _FindPackagePath(env, optvar, globspec, defaultpath = None):
         dirs.reverse()
         for d in dirs:
             if os.path.isdir(d):
-                dir=d
+                pdir=d
                 break
-    return dir
+    return pdir
 
 
 # This is for backwards compatibility only to help with transition.
