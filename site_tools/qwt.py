@@ -1,10 +1,6 @@
 
 import os
-import SCons
 from SCons.Variables import PathVariable
-import eol_scons.chdir
-from eol_scons.package import Package
-import string
 import platform
 
 
@@ -12,69 +8,21 @@ _options = None
 myKey = 'HAS_PACKAGE_QWT'
 USE_PKG_CONFIG = 'Using pkg-config'
 
-
-# The header files are unpacked directly into the QWTDIR/include
-# directory, and thus are listed as targets of the Unpack builder.
-# Otherwise, if they are emitted as targets of the qwt_builder, scons will
-# remove the headers before attempting to build them.  We could try to use
-# Precious() on them, but this is more accurate anyway.
-
-qwt_headers = string.split("""
-qwt.h		  qwt_double_rect.h	 qwt_picker.h		 qwt_scale.h
-qwt_analog_clock.h qwt_drange.h	 qwt_picker_machine.h	 qwt_scldiv.h
-qwt_array.h	  qwt_dyngrid_layout.h qwt_plot.h		 qwt_scldraw.h
-qwt_arrbtn.h	  qwt_event_pattern.h  qwt_plot_canvas.h	 qwt_sclif.h
-qwt_autoscl.h	  qwt_global.h	 qwt_plot_classes.h	 qwt_sldbase.h
-qwt_compass.h	  qwt_grid.h		 qwt_plot_dict.h	 qwt_slider.h
-qwt_compass_rose.h qwt_knob.h		 qwt_plot_item.h	 qwt_spline.h
-qwt_counter.h	  qwt_layout_metrics.h qwt_plot_layout.h	 qwt_symbol.h
-qwt_curve.h	  qwt_legend.h	 qwt_plot_picker.h	 qwt_text.h
-qwt_data.h	  qwt_marker.h	 qwt_plot_printfilter.h qwt_thermo.h
-qwt_dial.h	  qwt_math.h		 qwt_plot_zoomer.h	 qwt_wheel.h
-qwt_dial_needle.h  qwt_paint_buffer.h	 qwt_push_button.h
-qwt_dimap.h	  qwt_painter.h	 qwt_rect.h
-""")
-
-qwt_actions = [
-    "QTDIR=$QTDIR $QTDIR/bin/qmake qwt.pro",
-    "QTDIR=$QTDIR make"
-    ]
-
 def is_64bit():
-  """ is this a 64-bit system? """
-  return platform.machine()[-2:] == '64'
+    """ is this a 64-bit system? """
+    return platform.machine()[-2:] == '64'
 
 if is_64bit():
     lib_= 'lib64'
 else:
     lib_= 'lib'
 
-class QwtPackage(Package):
+class QwtTool:
 
     def __init__(self):
-        headers = [os.path.join("include",f) for f in qwt_headers]
-        libs = ["$QWTDIR/"+lib_+"/libqwt.so"]
-        Package.__init__(self, "QWT", ["qwt.pro"]+headers,
-                         qwt_actions, libs,
-                         default_package_file = "qwt-4.2.0.zip")
         self.settings = {}
-        self.pkgConfigName = ''
-
-    def checkBuild(self, env):
-        if env['PLATFORM'] == 'win32':
-            return
-        qwt_dir = env['QWTDIR']
-        libqwt = os.path.join(qwt_dir, lib_, 'libqwt.so')
-        if not os.access(libqwt, os.R_OK):
-            # Not installed in the given QWTDIR, so try internal path
-            qwt_dir = self.getPackagePath(env)
-            env['QWTDIR'] = qwt_dir
-        Package.checkBuild(self, env)
-
 
     def require(self, env):
-        env.Tool('download')
-        env.Tool('unpack')
         if not self.settings:
             import new
             env.EnableQwt = new.instancemethod(enable_qwt, env, type(env))
@@ -82,23 +30,15 @@ class QwtPackage(Package):
         self.apply_settings(env)
 
     def calculate_settings(self, env):
-
         qwt_dir = find_qwtdir(env)
         if not qwt_dir:
             return
 
-        # The actual QWTDIR value to use depends upon whether qwt is being
-        # built internally or not.  Check here to see if the QWTDIR option
-        # points to an existing library, and if not then resort to the
-        # package build location.
-
-        Package.checkBuild(self, env)
         self.settings['QWTDIR'] = qwt_dir
         qwt_libdir = os.path.join(qwt_dir, lib_)
         libqwt = os.path.join(qwt_libdir, 'libqwt.so')
 
-        # These settings apply whether building, locating manually, or
-        # locating with pkg-config
+        # These settings apply whether located manually or with pkg-config
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')
         self.settings['QWT_DOXREF'] = 'qwt:' + qwt_docdir
 
@@ -106,12 +46,9 @@ class QwtPackage(Package):
             return
             
         if env['PLATFORM'] != 'darwin':
-        	if self.building:
-        		self.settings['LIBS'] = [env.File(libqwt)]
-        	else:
-        		self.settings['LIBS'] = ['qwt']
-        		self.settings['LIBPATH'] = [qwt_libdir]
-        if env['PLATFORM'] == 'darwin':
+            self.settings['LIBS'] = ['qwt']
+            self.settings['LIBPATH'] = [qwt_libdir]
+        else:
             self.settings['FRAMEWORKPATH'] = '/usr/local/lib'
             self.settings['FRAMEWORKS']    = 'qwt'
 
@@ -123,7 +60,6 @@ class QwtPackage(Package):
                 self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
         else:
                 self.settings['CPPPATH'] = '/usr/local/lib/qwt.framework/Headers'
-
         plugindir='$QWTDIR/designer/plugins/designer'
         self.settings['QT_UICIMPLFLAGS'] = ['-L', plugindir]
         self.settings['QT_UICDECLFLAGS'] = ['-L', plugindir]
@@ -148,8 +84,7 @@ class QwtPackage(Package):
 
         if env['PLATFORM'] != 'darwin':
             env.Append(LIBS=self.settings['LIBS'])
-            if not self.building:
-                env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
+            env.AppendUnique(LIBPATH=self.settings['LIBPATH'])
         else:
             env.AppendUnique(FRAMEWORKPATH=self.settings['FRAMEWORKPATH'])
             env.AppendUnique(FRAMEWORKS=self.settings['FRAMEWORKS'])
@@ -205,12 +140,12 @@ def enable_qwt(env):
         conf.Finish()
     return hasQwt
 
-qwt_package = QwtPackage()
+qwt_tool = QwtTool()
 
 def find_qwtdir(env):
     qwtdir = None
 
-    pkgConfigKnowsQwt = qwt_package.findPkgConfig()
+    pkgConfigKnowsQwt = qwt_tool.findPkgConfig()
 
     # 
     # Try to find the Qwt installation location, trying in order:
@@ -238,7 +173,8 @@ def generate(env):
     global _options
     if not _options:
         _options = env.GlobalVariables()
-        _options.AddVariables(PathVariable('QWTDIR', 'Qwt installation root.', None))
+        _options.AddVariables(PathVariable('QWTDIR', 'Qwt installation root.', 
+                                           None))
     _options.Update(env)
 
     #
@@ -251,7 +187,7 @@ def generate(env):
         #env.Require(['qt', 'doxygen'])
 	env.Require(['doxygen'])
         
-    qwt_package.require(env)
+    qwt_tool.require(env)
     env[myKey] = True
 
 
