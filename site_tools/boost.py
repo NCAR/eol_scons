@@ -24,7 +24,18 @@ def boost_libflags(env):
   result = env.subst(env['_boost_save_libflags'])
   return result
 
+
+def _append_boost_library(env, libname):
+  if env['PLATFORM'] != 'darwin':
+    env.Append (LIBS = [libname])
+  else:
+    env.Append (LIBS = [libname + "-mt"])
+
+
 def generate(env):
+  if env.get('BOOST_TOOL_APPLIED'):
+    return
+  env['BOOST_TOOL_APPLIED'] = True
   global _options
   if not _options:
     _options = env.GlobalVariables()
@@ -56,6 +67,9 @@ def generate(env):
     env["_boost_save_libflags"] = env["_LIBFLAGS"]
     env['_LIBFLAGS'] = '${_boost_libflags(__env__)}'
     env['_boost_libflags'] = boost_libflags
+
+  # Finally add the method for appending specific boost libraries
+  env.AddMethod(_append_boost_library, "AppendBoostLibrary")
 
 
 def exists(env):

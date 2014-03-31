@@ -1,11 +1,7 @@
 
 def generate(env):
-    if env['PLATFORM'] != 'darwin':
-        env.Append (LIBS = ["boost_serialization"])
-    else:
-        env.Append (LIBS = ["boost_serialization-mt"])
-    # If the boost libraries must be found in an alternative location, then
-    # make sure the prefixoptions tool is loaded and OPT_PREFIX set.
+    env.Tool('boost')
+    env.AppendBoostLibrary('boost_serialization')
 
 def exists(env):
     return True

@@ -12,27 +12,20 @@ def has_boost_system(env, libname):
     # Define the test program
     header = 'boost/system/error_code.hpp'
     test_src = 'boost::system::error_code code;'
+    if env['PLATFORM'] == 'darwin':
+        libname = libname + '-mt'
 
     # Try to build it
     conf = env.Clone(LIBS=[]).Configure()
     has_it = conf.CheckLibWithHeader(libname, header, 'CXX', test_src)
     conf.Finish()
-
     return has_it
 
 def generate(env):
-
-    if env['PLATFORM'] != 'darwin':
-        env.Append (LIBS = ["boost_program_options"])
-        if has_boost_system(env, "boost_system"):
-            env.Append (LIBS = ["boost_system"])
-    else:
-        env.Append (LIBS = ["boost_program_options-mt"])
-        if has_boost_system(env, "boost_system-mt"):
-            env.Append (LIBS = ["boost_system-mt"])
-                
-    libpath = os.path.abspath(os.path.join(env['OPT_PREFIX'], 'lib'))
-    env.AppendUnique(LIBPATH=[libpath])
+    env.Tool('boost')
+    env.AppendBoostLibrary('boost_program_options')
+    if has_boost_system(env, 'boost_system'):
+        env.AppendBoostLibrary ('boost_system')
 
 def exists(env):
     return True

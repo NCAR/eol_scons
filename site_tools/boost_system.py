@@ -1,10 +1,7 @@
-import os,os.path, sys
-import SCons
 
 def generate(env):
-    env.Append(LIBS=['boost_system',])
-    libpath = os.path.abspath(os.path.join(env['OPT_PREFIX'],'lib'))
-    env.AppendUnique(LIBPATH=[libpath])
+    env.Tool('boost')
+    env.AppendBoostLibrary('boost_system')
 
 
 def exists(env):
