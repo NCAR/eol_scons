@@ -690,10 +690,6 @@ def _Tool(env, tool, toolpath=None, **kw):
         name = env.subst(tool)
         tool = None
         
-        # The canonical name we use for a tool is all lower case, with
-        # any leading PKG_ stripped off...
-        name = name.strip().replace("PKG_", "", 1).lower()
-
         # Is the tool already in our tool dictionary?
         if tool_dict.has_key(name):
             Debug("Found tool %s already loaded" % name, env)
@@ -703,23 +699,11 @@ def _Tool(env, tool, toolpath=None, **kw):
                 Debug("Existing tool not used because keywords were given.", 
                       env)
 
-        # Check if this tool is actually an exported tool function, in
-        # which case return the exported function.  First check for the
-        # tool under the given name.  For historical reasons, we look also
-        # look for the tool with:
-        #    o the canonical name
-        #    o canonical name converted to upper case, with PKG_ prepended
-        #      if not already there
+        # Check if this tool is actually an exported tool function.
         if not tool:
-            pkgName = "PKG_" +  name.upper()
-            for tname in [name, pkgName]:
-                if global_exports.has_key(tname):
-                    tool = global_exports[tname]
-                    break
-
+            tool = global_exports.get(name)
             if tool:
-                Debug("Found tool %s in global_exports (as %s)" % (name, tname),
-                      env)
+                Debug("Found tool %s in global_exports" % (name), env)
 
         # Try to find and load a tool file named "tool_<tool>.py".
         if not tool:
