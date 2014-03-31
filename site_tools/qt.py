@@ -17,7 +17,7 @@ import os
 # That's done with the EnableQt4Modules() method, like this:
 #    env.EnableQt4Modules(['QtGui', 'QtNetwork'])
 
-def PKG_QT(env, minversion=None, maxversion=None):
+def qt(env, minversion=None, maxversion=None):
   # Qt3:
   # For reasons I haven't figured out, the HOME environment variable
   # does not propagate to the environment 'uic' runs under, but
@@ -52,9 +52,9 @@ def PKG_QT(env, minversion=None, maxversion=None):
         #
         env.EnableQt4Modules(['QtCore'])
     else:
-      PKG_QT3(env)
+      qt3(env)
 
-def PKG_QT3(env):
+def qt3(env):
     # Look for the QTDIR setting as a construction variable, and if not
     # there expect it to come from the environment.
     try:
@@ -99,9 +99,6 @@ def PKG_QT3(env):
       env['QT_DOXREF'] = 'qt:%s' % env['QT_DOXDIR']
     env.AppendDoxref (env['QT_DOXREF'])
 
-def PKG_QT_PLUGIN(env):
-  env.Append(CPPDEFINES = ['QT_PLUGIN'])
-
 #
 # Parse the Qt major version number from a version string
 #
@@ -115,7 +112,7 @@ def parseMajorVersion(versionstring):
 def generate(env):
   import SCons.Tool.qt
   SCons.Tool.qt.generate(env)
-  PKG_QT(env)
+  qt(env)
 
 
 def exists(env):
