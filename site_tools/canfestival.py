@@ -112,7 +112,7 @@ def generate(env):
     env.Append(BUILDERS = {'canfestivalObjdictImpl' : _settings['ODBUILDER']})
     # Add -DCANFESTIVAL_LIBDIR='"<libdir>"' so that code can use the macro when
     # building paths for dynamically loading CanFestival driver libraries.
-    env.Append(CPPDEFINES=('CANFESTIVAL_LIBDIR', '\'"' + _settings['LIBPATH'] + '"\''))
+    env.Append(CPPDEFINES=('CANFESTIVAL_LIBDIR=\'"' + _settings['LIBPATH'] + '"\''))
 
 
 def exists(env):
