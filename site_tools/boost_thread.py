@@ -16,7 +16,7 @@ Libs = None
 # Try, in order:
 #       -lboost_thread-mt
 #       -lboost_thread
-#       -lpthread
+#       -lpthread    <-- I don't know if there's any working config with only -lpthread...
 #       -lboost_thread-mt -lpthread
 #       -lboost_thread -lpthread
 # to see if any combination will work. If not, complain and quit.
