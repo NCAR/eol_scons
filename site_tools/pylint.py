@@ -8,12 +8,19 @@ pylint += "${PYLINTRC and '--rcfile='+str(PYLINTRC) or ''} ${SOURCES} 2>&1 | "
 pylint += 'egrep -v "maximum recursion depth exceeded.*ignored" | '
 pylint += 'egrep -v "Instance of \'Popen\' has no \'.*\' member"'
 
-def find_python_files(env, topdir):
+def find_python_files(env, topdir, excludes=None):
     found = []
+    if not excludes:
+        excludes = []
+    excludes = [env.File(xf).get_abspath() for xf in excludes]
     for root, dirs, files in os.walk(str(env.Dir(topdir))):
         dirs[:] = [ d for d in dirs if d not in ['.svn', 'CVS'] ]
-        found.extend([ env.File(os.path.join(root, f))
-                       for f in files if re.match("[^.].*\.py$", f) ])
+        for f in files:
+            if not re.match("[^.].*\.py$", f):
+                continue
+            fnode = env.File(os.path.join(root, f))
+            if fnode.get_abspath() not in excludes:
+                found.append(fnode)
     return found
 
 
