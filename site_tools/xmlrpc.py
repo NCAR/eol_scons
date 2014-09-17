@@ -2,6 +2,17 @@ import os
 
 def generate(env):
 
+    # For cases where we want to override the system installation with a
+    # local build for debugging, the source directory can be specified with
+    # the XMLRPCPP_SOURCE_PATH environment variable.
+    debugpath = env.get('XMLRPCPP_SOURCE_PATH')
+    if debugpath:
+        # Include headers directly from the src directory and link to the
+        # static library with debug symbols.
+        env.AppendUnique(CPPPATH = os.path.join(debugpath, 'src'))
+        env.Append(LIBS = env.File(os.path.join(debugpath, 'libXmlRpcpp.a')))
+        return
+
     # If xmlrpcpp pkg-config file exists, which is installed by the
     # xmlrpc++ RPM, this should be all that's necessary
     if (os.system('pkg-config --exists xmlrpcpp') == 0):
