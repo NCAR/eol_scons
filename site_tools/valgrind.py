@@ -103,7 +103,7 @@ def _parseValgrindOutput(log):
     results = {}
     l = log.readline()
     while l:
-        print(l)
+        l = l.strip()
         for vname, rx in rxmap.items():
             match = rx.search(l)
             if match:
@@ -142,10 +142,26 @@ def test_parsevalgrind():
     assert results['nerrors'] == 16
 
 
+def ValgrindLog(target, source, env):
+    # Perhaps Node.get_contents() could be used here, but valgrind logs
+    # can be very very large, so stick with the file stream.
+    log = open(str(source[0]), "r")
+    results = _parseValgrindOutput(log)
+    log.close()
+    maxleaked = env.get('VALGRIND_LEAK_THRESHOLD', 0)
+    maxerrors = env.get('VALGRIND_ERROR_THRESHOLD', 0)
+    if results['nerrors'] > maxerrors:
+        return "ValgrindLog: Too many errors (%d)" % (results['nerrors'])
+    if results['dlost'] > maxleaked:
+        return "ValgrindLog: Too many bytes leaked: %d" % (results['dlost'])
+    return None
+
+
 def generate(env):
     valgrind = getValgrindPath(env)
     env['ENV']['VALGRIND_PATH'] = valgrind
     env['VALGRIND_PATH'] = valgrind
+    env.Append(BUILDERS = {'ValgrindLog' : Builder(action = ValgrindLog) })
 
 
 def exists(env):
