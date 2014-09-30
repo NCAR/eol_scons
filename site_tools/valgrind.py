@@ -102,6 +102,13 @@ def _parseValgrindOutput(log):
               'ilost' : re.compile(r"indirectly lost: *([\d,]+) bytes") }
     results = {}
     l = log.readline()
+    # The first line gives the tool
+    match = re.search(r"==\d+== (Memcheck|Helgrind), "
+                      r"a (memory|thread) error detector", l)
+    if not match:
+        msg = "not a valgrind log file from memcheck or helgrind tool"
+        raise SCons.Errors.StopError, msg
+    results['tool'] = match.group(1)
     while l:
         l = l.strip()
         for vname, rx in rxmap.items():
@@ -114,7 +121,18 @@ def _parseValgrindOutput(log):
     return results
         
 
-_valgrind_example = """
+_valgrind_example = """\
+==9158== Memcheck, a memory error detector
+==9158== Copyright (C) 2002-2013, and GNU GPL'd, by Julian Seward et al.
+==9158== Using Valgrind-3.9.0 and LibVEX; rerun with -h for copyright info
+==9158== Command: tcore
+==9158== 
+...
+==9158== 
+==9158== HEAP SUMMARY:
+==9158==     in use at exit: 72 bytes in 4 blocks
+==9158==   total heap usage: 1,598 allocs, 1,594 frees, 123,497 bytes allocated
+==9158== 
 ==19284== LEAK SUMMARY:
 ==19284==    definitely lost: 408 bytes in 1 blocks
 ==19284==    indirectly lost: 3,854 bytes in 36 blocks
@@ -126,6 +144,23 @@ _valgrind_example = """
 ==19284== 
 ==19284== For counts of detected and suppressed errors, rerun with: -v
 ==19284== ERROR SUMMARY: 16 errors from 5 contexts (suppressed: 4 from 4)
+"""
+
+_helgrind_example = """\
+==9080== Helgrind, a thread error detector
+==9080== Copyright (C) 2007-2013, and GNU GPL'd, by OpenWorks LLP et al.
+==9080== Using Valgrind-3.9.0 and LibVEX; rerun with -h for copyright info
+==9080== Command: tcore
+==9080== 
+Running 19 test cases...
+received signal Interrupt(2), si_signo=2, si_errno=0, si_code=0
+
+*** No errors detected
+==9080== 
+==9080== For counts of detected and suppressed errors, rerun with: -v
+==9080== Use --history-level=approx or =none to gain increased speed, at
+==9080== the cost of reduced accuracy of conflicting-access information
+==20791== ERROR SUMMARY: 17 errors from 17 contexts (suppressed: 143 from 117)
 """
 
 # Run this test like so:
@@ -140,6 +175,12 @@ def test_parsevalgrind():
     assert results['ilost'] == 3854
     assert results['plost'] == 191841
     assert results['nerrors'] == 16
+    assert results['tool'] == 'Memcheck'
+    log = io.StringIO(_helgrind_example.decode('ascii'))
+    results = _parseValgrindOutput(log)
+    assert results['tool'] == 'Helgrind'
+    assert results.has_key('dlost') == False
+    assert results['nerrors'] == 17
 
 
 def ValgrindLog(target, source, env):
@@ -152,7 +193,7 @@ def ValgrindLog(target, source, env):
     maxerrors = env.get('VALGRIND_ERROR_THRESHOLD', 0)
     if results['nerrors'] > maxerrors:
         return "ValgrindLog: Too many errors (%d)" % (results['nerrors'])
-    if results['dlost'] > maxleaked:
+    if results['tool'] == 'Memcheck' and results['dlost'] > maxleaked:
         return "ValgrindLog: Too many bytes leaked: %d" % (results['dlost'])
     return None
 
