@@ -10,5 +10,5 @@ if [ "$1" = list ]; then
 fi
 find . \( -name build -type d -prune \) -o \
     \( -name "*.hh" -o -name "*.hpp" -o -name "*.h" -o -name "*.cc" -o \
-       -name "*.cpp" -o -name "*.c" \) \
+       -name "*.cpp" -o -name "*.c" -o -name "*.py" \) \
        -a ! -name "moc_*" -a ! -name '.#*' $print0 | $xargs
