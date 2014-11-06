@@ -66,7 +66,8 @@ class PostgresTestDB(object):
 
     def getVersion(self):
         if not self.pgversion:
-            self.pgversion = sp.check_output(['initdb', '--version']).split()[2]
+            p = sp.Popen(['initdb', '--version'], stdout=sp.PIPE, shell=False)
+            self.pgversion = p.communicate()[0].split()[2]
         return self.pgversion
 
     def init(self):
