@@ -78,7 +78,7 @@ def _Dump(env, key=None):
     return env.Dump(key)
 
 
-_eolsconsdir = os.path.dirname(__file__)
+_eolsconsdir = os.path.abspath(os.path.dirname(__file__))
 
 # I wish this would work, but apparently ARGUMENTS has not been populated
 # yet when eol_scons is loaded.
@@ -89,6 +89,40 @@ _eolsconsdir = os.path.dirname(__file__)
 # SetDebug(ARGUMENTS.get('eolsconsdebug', 0))
 
 Debug("Loading eol_scons @ %s" % (_eolsconsdir))
+
+# Explicitly add the site_tools dir to the tool path, in case the eol_scons
+# package is not in one of the standard site_scons locations.  For example,
+# a SConstruct file inside a source tree can use a top-level site_scons
+# directory, without requiring that it be added explicitly with the SCons
+# --site-dir command-line option.  The code below can be used at the top of
+# a SConstruct file to import eol_scons from an explicit path if it is not
+# found in a standard site_scons location:
+#
+# try:
+#     import eol_scons
+# except ImportError:
+#     sys.path.insert(0, os.path.abspath("../site_scons"))
+#     import eol_scons
+#
+# If the site_scons location will always be in a fixed relative location,
+# then the initial import attempt is unnecessary:
+#
+# sys.path.insert(0, os.path.abspath("../site_scons"))
+# import eol_scons
+#
+# Technically SCons imports site_init from the site_scons directory, but
+# the site_init.py in EOL site_scons just imports eol_scons.  So in the
+# above code importing eol_scons is equivalent to importing site_init.
+
+# The check for site_tools already in DefaultToolpath may not be helpful,
+# because even when site_scons is found by SCons the tools directory has
+# not yet been added to the tool path.
+
+_site_tools_dir = os.path.join(_eolsconsdir, "..", "site_tools")
+_site_tools_dir = os.path.normpath(_site_tools_dir)
+if _site_tools_dir not in SCons.Tool.DefaultToolpath:
+    print("Using site_tools: %s" % (_site_tools_dir))
+    SCons.Tool.DefaultToolpath.insert(0, _site_tools_dir)
 
 # ================================================================
 # The public interface for the eol_scons package.
