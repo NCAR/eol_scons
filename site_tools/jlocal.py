@@ -30,8 +30,10 @@ def generate(env):
     _options.Update(env)
     env.AddMethod(_JLocalValid, "JLocalValid")
     if env.JLocalValid():
-        env.Append(CPPPATH=[os.path.join(env['JLOCAL'],'include')])
-        env.Append(LIBPATH=[os.path.join(env['JLOCAL'],'lib') ])
+        env['JLOCALLIBDIR'] = "$JLOCAL/lib"
+        env['JLOCALINCDIR'] = "$JLOCAL/include"
+        env.Append(CPPPATH=['$JLOCALINCDIR'])
+        env.Append(LIBPATH=['$JLOCALLIBDIR'])
 
 
 def _JLocalValid(env):
