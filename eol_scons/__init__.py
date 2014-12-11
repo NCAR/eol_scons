@@ -128,39 +128,39 @@ if _site_tools_dir not in SCons.Tool.DefaultToolpath:
 # The public interface for the eol_scons package.
 # ================================================================
 
-global_variables = None
+_global_variables = None
 
-# We have to use a 'hardcoded' path to the config file rather than using
-# the DefaultEnvironment() to create a path.  Otherwise creating the
-# DefaultEnvironment causes this module to be called again setting up all
-# kinds of weird and hard-to-diagnose behaviors.
+# It used to be that the default config file was hardcoded to be in the
+# parent directory of this site_scons tree, but that fails when site_scons
+# is imported by a SConstruct file from a different relative path.  So now
+# this function implicitly creates an environment if one is not passed in,
+# so the cfile path can be resolved with the usual SCons notation, which by
+# default is the directory containing the SConstruct file.  The creation of
+# the default environment is not recursive because this function is not
+# called (via _update_variables) until global Variables have been added.
 
-default_cfile = "config.py"
+_default_cfile = "#/config.py"
 
-def GlobalVariables(cfile = None):
-    """Return the eol_scons global options."""
-    global global_variables
-    if not global_variables:
-        global default_cfile
+def GlobalVariables(cfile=None, env=None):
+    """Return the eol_scons global variables."""
+    global _global_variables
+    if not _global_variables:
+        if not env:
+            env = DefaultEnvironment()
         if not cfile:
-            cfile = default_cfile
-        if not cfile.startswith("/"):
-            # Turn relative config file path to absolute, relative
-            # to top directory.
-            cfile = os.path.abspath(os.path.join(__path__[0], 
-                                                 "../..", cfile))
-        default_cfile = cfile
-        global_variables = Variables (cfile)
-        global_variables.AddVariables(
+            cfile = _default_cfile
+        cfile = env.File(cfile).get_abspath()
+        _global_variables = Variables (cfile)
+        _global_variables.AddVariables(
             BoolVariable('eolsconsdebug',
                          'Enable debug messages from eol_scons.',
                          debug))
-        global_variables.AddVariables(
+        _global_variables.AddVariables(
             BoolVariable('eolsconscache',
                          'Enable tools.cache optimization.',
                          _enable_cache))
-        print("Config files: %s" % (global_variables.files))
-    return global_variables
+        print("Config files: %s" % (_global_variables.files))
+    return _global_variables
 
 # Alias for temporary backwards compatibility
 GlobalOptions = GlobalVariables
@@ -306,7 +306,10 @@ def _createDefaultEnvironment():
 
 
 def _update_variables(env):
-    GlobalVariables().Update (env)
+    # Do not update the environment with global variables unless some
+    # global variables have been created.
+    if _global_variables and _global_variables.keys():
+        _global_variables.Update(env)
     if env.has_key('eolsconsdebug'):
         eol_scons.debug = env['eolsconsdebug']
     if env.has_key('eolsconscache'):
@@ -322,8 +325,8 @@ def _generate (env):
         return
     env._eol_scons_generated = True
     _createDefaultEnvironment()
-    _update_variables(env)
     _addMethods(env)
+    _update_variables(env)
     name = env.Dir('.').get_path(env.Dir('#'))
     Debug("Generating eol defaults for Environment(%s) @ %s" % 
           (name, env.Dir('#').get_abspath()), env)
@@ -620,8 +623,8 @@ def _Create (env,
 def _LogDebug(env, msg):
     Debug(msg, env)
 
-def _GlobalVariables(env):
-    return GlobalVariables()
+def _GlobalVariables(env, cfile=None):
+    return GlobalVariables(cfile, env)
 
 def _CacheVariables(env):
     return ToolCacheVariables()
