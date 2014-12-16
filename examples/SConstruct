@@ -117,7 +117,7 @@ GENERATE_LATEX = NO
 		#env.AppendUnique(CPPPATH=['/Library/Frameworks/qwt.framework/Headers',])
         env.AppendUnique(CPPPATH=['/usr/local/lib/qwt.framework/Headers',])
         env.AppendUnique(FRAMEWORKS=['Inventor',])
-        env.AppendUnique(FRAMEWORKS=['SoQt',])
+        env.AppendUnique(FRAMEWORKS=['Quarter',])
         env.AppendUnique(FRAMEWORKS=['QtSql',])
         
     return env
