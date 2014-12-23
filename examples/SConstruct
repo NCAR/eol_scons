@@ -35,7 +35,8 @@ def Aeros(env):
     env['DEFAULT_OPT_PREFIX'] = '/opt/local/aeros'
     env['DOXYFILE_DICT'].update({ 'HTML_HEADER' : env.File("#header.html") })
     env['DOXYFILE_DICT'].update({ 'PROJECT_NUMBER' : svnversion })
-    env['DOXYGEN'] = '/usr/bin/doxygen'
+    env['DOXYGEN'] = env.WhereIs('doxygen')
+    print 'DOXYGEN: ', env['DOXYGEN']
     env['TAGDIR'] = '#/../doc/tags'
     env.SetDoxref('QWT_DOXREF','$TAGDIR/qwt-5.2.x.tag',
               'http://qwt.sourceforge.net')
