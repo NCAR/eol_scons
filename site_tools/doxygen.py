@@ -13,6 +13,9 @@ from fnmatch import fnmatch
 
 _debug = False
 
+class DoxygenWarning(SCons.Warnings.Warning):
+    pass
+
 def apidocssubdir(node):
     if not node.isdir():
         node = node.get_dir()
@@ -336,14 +339,20 @@ REFERENCES_RELATION = NO
                     os.symlink (docpath, htmllink)
                 except os.error, e:
                     print("exception creating %s: %s" % (htmllink, str(e)))
-                doxytag = "doxytag -t %s %s" % (tagpath, docpath)
-                print(doxytag)
-                try:
-                    os.system (doxytag)
-                except os.error, e:
-                    # Note the problem but continue anyway since the tag
-                    # file is not critical.
-                    print("exception: %s" % (str(e)))
+                doxytagpath = env.WhereIs('doxytag')
+                if not doxytagpath:
+                    SCons.Warnings.warn(
+                        DoxygenWarning,
+                        "Could not find doxytag program. Tags not generated for %s %s" % (tagpath, docpath))
+                else:
+                    doxytag = "doxytag -t %s %s" % (tagpath, docpath)
+                    print(doxytag)
+                    try:
+                        os.system (doxytag)
+                    except os.error, e:
+                        # Note the problem but continue anyway since the tag
+                        # file is not critical.
+                        print("exception: %s" % (str(e)))
         
     if len(tagfiles) > 0:
         dfile.write("TAGFILES = %s\n" % string.join(tagfiles.values()))
@@ -459,7 +468,6 @@ def generate(env):
     env.AddMethod(Apidocs, "Apidocs")
     env.AddMethod(ApidocsIndex, "ApidocsIndex")
     env.AddMethod(SetDoxref, "SetDoxref")
-
 
 def exists(env):
     return env.Detect ('doxygen')
