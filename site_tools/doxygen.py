@@ -1,7 +1,7 @@
 # -*- python -*-
 
 import os
-import md5
+import hashlib
 import string
 import StringIO
 import SCons
@@ -116,7 +116,7 @@ def Doxyfile_Emitter (target, source, env):
     if ddebug():
         dprint("leaving doxyfile_emitter: targets=(%s), sources=(%s)" %
                (",".join([str(t) for t in target]),
-                ",".join([md5.new(str(s)).hexdigest() for s in source])))
+                ",".join([hashlib.md5(str(s)).hexdigest() for s in source])))
 
     # We used to add dependencies on external html references here (using
     # the index.html file as a proxy), I think so doxytag could be re-run
