@@ -47,14 +47,14 @@ def tdrpGenerator(source, target, env, for_signature):
     # The application name is the extension of the source file. I.e.,
     # if the source file is 'paramdef.foo', the application name is 'foo'.
     appname = source[0].name.split('.')[-1]
-    return 'cd %s; tdrp_gen -f %s -c++ -prog %s' % (srcdir, source[0].name, appname)
+    return 'cd %s; /usr/local/lrose/bin/tdrp_gen -f %s -c++ -prog %s' % (srcdir, source[0].name, appname)
 
 tdrpParamsBuilder = Builder(generator = tdrpGenerator, 
                             emitter = tdrpModifyTargetAndSource)
 
 def generate(env):
     # Add construction variables to the environment
-    env["TDRPGEN"] = "tdrp_gen"
+    env["TDRPGEN"] = "/usr/local/lrose/bin/tdrp_gen"
 
     # Add builder 'tdrpParamFiles' to the environment.
     env.Append(BUILDERS = {'tdrpParamFiles' : tdrpParamsBuilder})
