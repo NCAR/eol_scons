@@ -16,8 +16,8 @@ import platform
 import sys
 import eol_scons
 
-# Readyflow is installed in /usr/local
-installdir = '/usr/local'
+# Readyflow is installed in /usr/local/ReadyFlow
+installdir = '/usr/local/ReadyFlow'
 libdir = os.path.join(installdir, 'lib')
 includedir = os.path.join(installdir, 'include')
 
