@@ -24,7 +24,7 @@ includedir = os.path.join(installdir, 'include')
 
 # Assume that ReadyFlow is installed under /usr/local/ReadyFlow
 prefix = '/usr/local/ReadyFlow'
-if not os.path.exists(prefix):
+if not os.path.isdir(prefix):
     msg = "Unable to find ReadyFlow. Directory %s does not exist." % (prefix)
     raise SCons.Errors.StopError, msg
     

@@ -28,7 +28,7 @@ lroseLibs = ['radar', 'rapmath', 'rapformats', 'Radx', 'Fmq',
 def _calculate_settings(env, settings):
     # Assume that LROSE is installed under /usr/local/lrose
     prefix = '/usr/local/lrose'
-    if not os.path.exists(prefix):
+    if not os.path.isdir(prefix):
         msg = "Unable to find LROSE. Directory %s does not exist." % (prefix)
         raise SCons.Errors.StopError, msg
     
