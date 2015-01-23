@@ -15,12 +15,19 @@ import os
 import platform
 import sys
 import eol_scons
+import SCons
 
 # Readyflow is installed in /usr/local/ReadyFlow
 installdir = '/usr/local/ReadyFlow'
 libdir = os.path.join(installdir, 'lib')
 includedir = os.path.join(installdir, 'include')
 
+# Assume that ReadyFlow is installed under /usr/local/ReadyFlow
+prefix = '/usr/local/ReadyFlow'
+if not os.path.exists(prefix):
+    msg = "Unable to find ReadyFlow. Directory %s does not exist." % (prefix)
+    raise SCons.Errors.StopError, msg
+    
 # define the tool
 def generate(env):
 
