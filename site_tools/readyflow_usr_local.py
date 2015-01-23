@@ -53,8 +53,8 @@ def generate(env):
     if env.has_key('WINDRIVERVERSION'): 
         windriverlib = 'wdapi' + env['WINDRIVERVERSION']
     else:
-        windriverlib = 'wdapi1150'
-        print 'WARNING: WINDRIVERVERSION was not specified; defaulting to version 1150.'
+        windriverlib = 'wdapi1031'
+        print 'WARNING: WINDRIVERVERSION was not specified; defaulting to version 1031.'
         print '         WinDriver library set to', windriverlib
     env.AppendLibrary(windriverlib)
     
