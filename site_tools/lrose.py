@@ -26,10 +26,16 @@ lroseLibs = ['radar', 'rapmath', 'rapformats', 'Radx', 'Fmq',
              'dsserver', 'didss', 'toolsa', 'dataport', 'Spdb']
 
 def _calculate_settings(env, settings):
+    # Assume that LROSE is installed under /usr/local/lrose
     prefix = '/usr/local/lrose'
+    if not os.path.exists(prefix):
+        msg = "Unable to find LROSE. Directory %s does not exist." % (prefix)
+        raise SCons.Errors.StopError, msg
+    
     # Libs will be in <prefix>/lib
     libdir = os.path.join(prefix, 'lib')
     settings['LIBPATH'] = [ libdir ]
+    
     # Headers will be in <prefix>/include
     headerdir = os.path.join(prefix, 'include')
     settings['CPPPATH'] = [ headerdir ]
