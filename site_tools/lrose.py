@@ -22,8 +22,10 @@ def CheckLROSE(context):
 
 _settings = {}
 
-lroseLibs = ['radar', 'rapmath', 'rapformats', 'Radx', 'Fmq', 
-             'dsserver', 'didss', 'toolsa', 'dataport', 'Spdb']
+lroseLibs = ['dsdata', 'Fmq', 'Spdb', 'NcfMdv', 'Mdv', 'titan', 'dsserver',
+             'Radx', 'radar', 'rapformats',
+             'euclid', 'rapmath', 'physics',
+             'didss', 'toolsa', 'dataport', 'tdrp']
 
 def _calculate_settings(env, settings):
     # Assume that LROSE is installed under /usr/local/lrose
