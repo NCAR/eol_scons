@@ -8,7 +8,7 @@
 # "personalities" to impersonate different kinds of databases such as
 # aircraft on-board, aircraft ground, soundings, and so on.
 #
-# pg = env.PostgresTestDatabase()
+# pg = env.PostgresTestDB()
 
 # Return the environment variables necessary to connect to the
 # test database:
@@ -30,6 +30,9 @@ import zlib
 import os
 import subprocess as sp
 import shutil
+import re
+
+from SCons.Script import BUILD_TARGETS
 
 _postgresql_conf = """
 # An empty list is supposed to disable network listening.
@@ -130,14 +133,68 @@ class PostgresTestDB(object):
         # gunzip -c $SQLGZ | psql template1
 	# pg_restore -i -C -d postgres real-time.sqlz
 
+    def action_run_aircraftdb(target, source, env):
+        pg = env.PostgresTestDB()
+        pg.init()
+        pg.start()
+        # Find the source that is the SQL dump.
+        sql = [ s for s in source if str(s).endswith('.sql') ]
+        if not sql:
+            raise SCons.Errors.StopError, "No SQL source."
+        sql = sql[0]
+        pg.setupAircraftDatabase(sql.get_abspath())
+        # Also set PGDATABASE to the name of the database just created, so
+        # programs can connect to the database without knowing the name.
+        matches = re.search(r'CREATE DATABASE "([^"]+)"', sql.get_contents())
+        if matches:
+            env['ENV']['PGDATABASE'] = matches.group(1)
+        return 0
 
-def _create(env, cwd=None):
-    return PostgresTestDB(cwd)
+    action_run_aircraftdb = staticmethod(action_run_aircraftdb)
+
+    def action_stopdb(target, source, env):
+        pg = env.PostgresTestDB()
+        pg.stop()
+        return 0
+
+    action_stopdb = staticmethod(action_stopdb)
+
+def dumpdb(target, source, env):
+    platform = env['AIRCRAFT']
+    db = "real-time"
+    if platform:
+        db = db + "-" + platform
+    pg = env.PostgresTestDB()
+    pg.dump("eol-rt-data.fl-ext.ucar.edu", "ads", db, target[0].get_abspath())
+
+
+def DumpAircraftSQL(env, sqltarget, aircraft):
+    if [ t for t in BUILD_TARGETS if str(t).endswith(sqltarget) ]:
+        sql = env.Command(sqltarget, None, env.Action(dumpdb), 
+                          AIRCRAFT=aircraft)
+        env.AlwaysBuild(sql)
+
+
+def _get_instance(env, cwd=None):
+    # Only create one database test object per environment, so the same
+    # object can be retrieved by separate calls to our PostgresTestDB()
+    # environment method.
+    pg = env.get('POSTGRES_TESTDB')
+    if not pg:
+        pg = PostgresTestDB(cwd)
+        env['POSTGRES_TESTDB'] = pg
+        # Also add the connection settings to the SCons ENV so they will
+        # be set when running commands.
+        env['ENV']['PGPORT'] = pg.PGPORT
+        env['ENV']['PGHOST'] = pg.PGHOST
+        env['ENV']['PGDATA'] = pg.PGDATA
+
+    return pg
 
 
 def generate(env):
-    env.AddMethod(_create, "PostgresTestDB")
-
+    env.AddMethod(_get_instance, "PostgresTestDB")
+    env.AddMethod(DumpAircraftSQL, "DumpAircraftSQL")
 
 def exists(env):
     pgctl = env.WhereIs('pg_ctl')
