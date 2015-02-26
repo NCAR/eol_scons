@@ -1,7 +1,7 @@
 
 def generate(env):
     try:
-        env.Warnings(env)
+        env.Warnings()
     except:
         print "No Warnings tool found for this platform."
         pass

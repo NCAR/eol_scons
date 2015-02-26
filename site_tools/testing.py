@@ -1,5 +1,4 @@
-"""
-SCons tool to run test programs and to log or filter the output.
+"""SCons tool to run test programs and to log or filter the output.
 
 All test pseudo-builder methods take a name for the test (the alias) and
 the list of actions to execute to run that test, typically a shell command.
@@ -49,6 +48,15 @@ directory as the target:
 
  scons -c .
 
+This module defines extra test-related "sub-tools" which seem too small to
+warrant their own module.  The 'gtest' tool adds the gtest library for
+building google-test programs, while the 'gtest_main' tool also links
+against the 'gtest_main' library for programs which do not provide their
+own main().  These tools are not defined until this tool has been loaded,
+so the testing tool must always be required first:
+
+env = Environment(tools=['default', 'testing', 'gtest'])
+
 """
 
 import subprocess
@@ -56,6 +64,7 @@ import io
 import sys
 import re
 
+import SCons.Script
 from SCons.Script import DefaultEnvironment
 from SCons.Action import Action
 from SCons.Action import ListAction
@@ -248,3 +257,14 @@ def generate(env):
 
 def exists(env):
     return True
+
+
+def gtest(env):
+    env.Append(LIBS=['gtest'])
+
+def gtest_main(env):
+    env.Append(LIBS=['gtest_main'])
+    env.Require('gtest')
+
+SCons.Script.Export('gtest')
+SCons.Script.Export('gtest_main')

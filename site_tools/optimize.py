@@ -1,7 +1,7 @@
 
 def generate(env):
     try:
-        env.Optimize(env)
+        env.Optimize()
     except:
         print "No optimize tool found for this platform."
         pass

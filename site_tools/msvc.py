@@ -22,10 +22,10 @@ def Profile(env):
 
 def generate(env):
     SCons.Tool.msvc.generate(env)
-    env.Optimize = Optimize
-    env.Debug = Debug
-    env.Warnings = Warnings
-    env.Profile = Profile
+    env.AddMethod(Optimize)
+    env.AddMethod(Debug)
+    env.AddMethod(Warnings)
+    env.AddMethod(Profile)
 
 def exists(env):
     return SCons.Tool.msvc.exists(env)

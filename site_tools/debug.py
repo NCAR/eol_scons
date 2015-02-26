@@ -1,7 +1,7 @@
 
 def generate(env):
     try:
-        env.Debug(env)
+        env.Debug()
     except:
         print "No debug tool found for this platform."
         pass
