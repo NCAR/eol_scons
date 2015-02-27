@@ -39,6 +39,7 @@ import subprocess as sp
 import shutil
 import re
 import json
+import gzip
 
 _postgresql_conf = """
 # An empty list is supposed to disable network listening.
@@ -171,9 +172,15 @@ class PostgresTestDB(object):
         self.psql("template1", "create database \"%s\";" % (database))
         self.PGDATABASE = database
 
+    def _opensql(self, sqlfile):
+        if sqlfile.endswith(".gz"):
+            print("opening sql file with gzip...")
+            return gzip.open(sqlfile, "r")
+        return open(sqlfile, "r")
+
     def parseDatabase(self, sqlfile):
         "Extract the name of the test database from the SQL file."
-        with open(sqlfile, "r") as sql:
+        with self._opensql(sqlfile) as sql:
             matches = re.search(r'CREATE DATABASE "([^"]+)"', sql.read())
             if matches:
                 self.PGDATABASE = matches.group(1)
@@ -183,7 +190,10 @@ class PostgresTestDB(object):
         self.createUser('ads')
         self.createDatabase('real-time')
         if sqlfile:
-            with open(sqlfile) as sf:
+            # This doesn't actually work with .sql.gz files yet, I think it
+            # has to do with character encoding returned by the gzip file
+            # object, but it's here in case someday it can be fixed.
+            with self._opensql(sqlfile) as sf:
                 p = self._popen(["psql", "template1"], stdin=sf)
                 p.communicate()
             self.parseDatabase(sqlfile)
@@ -195,7 +205,8 @@ class PostgresTestDB(object):
         pg.init()
         pg.start()
         # Find the source that is the SQL dump.
-        sql = [ s for s in source if str(s).endswith('.sql') ]
+        sql = [s for s in source 
+               if str(s).endswith('.sql') or str(s).endswith('.sql.gz')]
         if not sql:
             raise SCons.Errors.StopError, "No SQL source."
         sql = sql[0]
