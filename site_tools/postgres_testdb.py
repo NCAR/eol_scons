@@ -203,7 +203,7 @@ class PostgresTestDB(object):
         # Update PGDATABASE to the name of the database just created, so
         # programs can connect to the test database without knowing the
         # actual name.
-        env['ENV'].update(self.getEnvironment({}))
+        env['ENV'].update(pg.getEnvironment({}))
         return 0
 
     action_run_aircraftdb = staticmethod(action_run_aircraftdb)
