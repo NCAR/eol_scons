@@ -17,10 +17,6 @@
 @li @ref history
 @li @ref comparison
 
-@code
-egrep '@section' README | awk '{ print "@li @ref " $2; }' 
-@endcode
-
 @section overview Overview
 
 This software configuration framework provides the 'build harness' for

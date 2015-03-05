@@ -13,11 +13,6 @@
 # create zip file eol_scons-TAG.zip
 # manually upload zip file to EOL software center
 
-# Update TOC automatically in README
-#
-# Move the SCF page into main page or link to it there.
-#
-
 tagsurl=http://svn.eol.ucar.edu/svn/eol/common/tags
 trunkurl=http://svn.eol.ucar.edu/svn/eol/common/trunk/site_scons
 htmldest=snoopy:/net/www/docs/software/eol_site_scons
@@ -118,10 +113,43 @@ committag() # [<tag>]
 }
 
 
-case "$1" in
+cleanreleases()
+{
+    # Clean all the release artifacts in this directory.
+    showtags | while read tag; do 
+	tarfile="${tag}.tar.gz"
+	(set -x; rm -rf "$tarfile" "$tag")
+    done
+}
+
+
+updatetoc()
+{
+    # This one works on the README file in the current directory.
+
+    # Create the sed script to replace the toc lines.
+    (cat <<EOF
+{
+/@section toc/,/@section/c \\
+@section toc Table of Contents\\
+\\
+EOF
+	egrep '@section' README | \
+	egrep -v 'Table of Contents' | \
+	    awk '{ print "@li @ref " $2 "\\"; }'
+	cat <<EOF
+\\
+@section overview Overview
+}
+EOF
+	) | sed -i -f - README
+}
+
+op="$1"
+shift
+case "$op" in
 
     cleanversion)
-	shift
 	rev=`cleanversion "$1"`
 	if [ $? -eq 0 ]; then
 	    echo "$1: clean at revision $rev"
@@ -131,28 +159,31 @@ case "$1" in
 	;;
 
     committag)
-	shift
 	committag $1
 	;;
 
     showtags)
-	shift
 	showtags
 	;;
 
     formtag)
-	shift
 	formtag eol_site_scons
 	;;
 
     release)
-	shift
 	release "$1"
 	;;
 
     publish)
-	shift
 	publish "$1"
+	;;
+
+    cleanreleases)
+	cleanreleases
+	;;
+
+    updatetoc)
+	updatetoc
 	;;
 
     *)
