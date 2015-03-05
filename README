@@ -14,17 +14,16 @@
 @li @ref configuration
 @li @ref doxygen
 @li @ref subsets
-@li @ref history
 @li @ref comparison
 
 @section overview Overview
 
-This software configuration framework provides the 'build harness' for
-building a source directory tree of libraries and executables.  The goal is
-to make it easy to separate software into logical and reusable modules
-which can be compiled and shared within a single directory tree, allowing
-libraries to be shared transparently from either internal or external
-(installed) locations.
+This software configuration framework is an extension to SCons for
+modularizing software source trees into logical and reusable modules.
+Libraries and executables can be compiled and shared across the whole tree
+transparent to whether dependencies are internal or external to the tree.
+Likewise options for configuring the build can be defined in one place but
+shared across all modules which use that option.
 
 The main objective is a modular, flexible, and portable build system.
 Given various libraries and executables in the source tree, where each
@@ -48,7 +47,7 @@ directly under the top-level directory or under subdirectories.  The
 convention is that each module represents a namespace, so that as much as
 possible the directory partitioning can match the namespace partitioning,
 and header files can be included with the namespace in the path.  For
-example, all of the dataspace library is defined in the 'dataspace' C++
+example, if a dataspace library is defined in the 'dataspace' C++
 namespace, so all public headers are included with "dataspace/" in the
 header path.  One consequence of this convention is that if new modules are
 attached to the source tree with their namespace name, then their header
@@ -59,28 +58,51 @@ helps in navigating the source.
 
 @section implementation SCons Implementation
 
-The current build framework is based on SCons (http://www.scons.org) and
-called eol_scons.  eol_scons is a python package and a set of scons tools
-which extends the standard SCons.  Every component within the source tree
-as well as all external packages have a particular tool which configures a
-scons Environment for building against that component.  The eol_scons
-package provides a table of global targets that SConscript files throughout
-the source tree can use to find dependencies, without knowing where those
-dependencies are built or installed.  For example, the tool for a library
-like netcdf, whether installed on the system or built within the source
-tree, defines a function for configuring the build environment.  Sometimes
-the tools are loaded from a tool file from the common `site_scons/site_tools`
-directory, sometimes via a Python script named `tool_{toolname}.py`, and 
-other times the tool is a function defined within the SConscript
-file which builds the library or dependency.  Either way, the tools are
-genuine scons tools, so they can be applied to an Environment by the
-usual means.  In particular, they can be applied with the Tool() method or
-passed in the tools list when the Environment is constructed.
+This build framework is based on SCons (http://www.scons.org) and called
+eol_site_scons.  It is mostly a python package called eol_scons and a set
+of scons tools which extends the standard SCons.  Thus it is more
+appropriate to call it eol_site_scons, but the python package name is
+historical.  Every component within the source tree as well as all external
+packages have a particular tool which configures a scons Environment for
+building against that component.  The eol_scons package provides a table of
+global targets that SConscript files throughout the source tree can use to
+find dependencies, without knowing where those dependencies are built or
+installed.  For example, the tool for a library like netcdf, whether
+installed on the system or built within the source tree, defines a function
+for configuring the build environment.  Sometimes the tools are loaded from
+a tool file from the common `site_scons/site_tools` directory, sometimes
+via a Python script named `tool_{toolname}.py`, and other times the tool is
+a function defined within the SConscript file which builds the library or
+dependency.  Either way, the tools are genuine scons tools, so they can be
+applied to an Environment by the usual means.  In particular, they can be
+applied with the Tool() method or passed in the tools list when the
+Environment is constructed.
+
+
+@subsection installation Installation
+
+This framework is meant to be installed as the `site_scons` directory in
+the top level directory of a source tree.  Within EOL, this is usually
+accomplished with a subversion external reference.  However, it is also
+possible to extract the eol_site_scons release archive and just rename it
+or link to `site_scons`.  SCons also provides the `--site-dir` option to
+specify the location of the site_scons directory, so it can be shared among
+projects.  Lastly, it is also possible to activate the EOL site_scons
+directory explicitly in a SConstruct file, as long as there is not already
+a site_scons directory that SCons would find by default:
+
+@code
+# Put this at the top of the SConstruct file.
+import os
+import sys
+sys.path.insert(0, os.path.abspath("<path-to>/site_scons"))
+import site_init
+@endcode
 
 
 @subsection externaltools External Tools
 
-Below is an example of a very simple tool from eol_scons for building
+Below is an example of a very simple tool from eol_site_scons for building
 against the fftw library.  The `fftw` tool is a tool file in the
 `site_scons/site_tools` directory under the top directory of the project
 source tree.  It's a shared tool file because it's always an external
@@ -111,7 +133,7 @@ defined in `site_scons/site_tools`.  This is as simple as `def`-ing and
 This can happen in a SConscript file, in which case the tool will be defined
 as soon as the SConscript file is loaded.  However, the preferred method is to
 create a file named `tool_{toolname}.py` in the directory containing the
-tool's components.  The `eol_scons` package will try to find and load such a 
+tool's components.  The `eol_site_scons` package will try to find and load such a 
 tool definition from within the local heirarchy when a tool is requested, 
 so there's no need to explicitly load a specific `SConscript` file before 
 requesting the tool.  Here's an example tool definition from the ELDORA tree, 
@@ -149,7 +171,7 @@ The `ddslib` example shows how tools are not limited to affecting the
 library and include paths through the Envrionment's construction variables.
 Tools can also modify the methods available on an Environment to provide
 new conveniences or functionality.  For example, the 'doxygen' tool adds
-the 'Apidocs()' build wrapper to the Environment.
+the 'Apidocs()' build wrapper ("pseudo-builder") to the Environment.
 
 Also note how the tool requirements are recursive.  When another
 environment requires tool 'ddslib', the `EldoraDDS` library is added to the
@@ -159,19 +181,19 @@ the 'opendds' tool (which was required to build the EldoraDDS library) will
 add the OpenDDS libraries to the library path which EldoraDDS will need to
 link successfully.
 
-Here's how a `SConscript` might show that show that it requires 'ddslib':
+Here's how a `SConscript` might show that it requires 'ddslib':
 
 @code
 tools = ['ddslib', 'qt4']
 env = Environment(tools = ['default'] + tools)
 @endcode
 
-The above excerpt creates an Environment which loads a tool
-called 'ddslib' (along with 'qt4').  If the tool 'ddslib' had not been found 
-in the global exports as 'ddslib' or 'PKG_DDSLIB', then eol_scons would have 
-looked for a file named `tool_ddslib.py` in the local heirarchy and loaded 
-it to generate the tool, otherwise it would have continued to look via the 
-normal SCons tool mechanism.
+The above excerpt creates an Environment which loads a tool called 'ddslib'
+(along with 'qt4').  If the tool 'ddslib' had not been found in the global
+exports as 'ddslib' or 'PKG_DDSLIB', then eol_scons would have looked for a
+file named `tool_ddslib.py` in the local hierarchy and loaded it to
+generate the tool, otherwise it would have continued to look via the normal
+SCons tool mechanism.
 
 Note that modules which use the 'ddslib' component do not need
 to know the dependencies of the ELDORA DDS library.  If the library
@@ -209,14 +231,14 @@ automatically.  If the logx library someday requires another library or
 other include paths, none of the other modules in the source tree which use
 logx will need to change their SConscript configuration.
 
-Unlike in the log4cpp.py tool file, liblogx is a library built _within_ the
-source tree, and so the actual liblogx target node is added to the LIBS
-construction variable.  The liblogx target node must be retrieved from a
-global registry of such nodes maintained by the eol_scons package.  The
-logx tool could just as well determine whether the logx library should be
-linked from within the source tree or from some external installation, and
-then modify the environment accordingly.  The source module which depends
-upon the logx library need not change either way.
+Unlike in the log4cpp.py tool file, liblogx is a library normally built
+_within_ the source tree, and so the actual liblogx target node is added to
+the LIBS construction variable.  The liblogx target node must be retrieved
+from a global registry of such nodes maintained by the eol_scons
+package.  The logx tool could just as well determine whether the logx
+library should be linked from within the source tree or from some external
+installation, and then modify the environment accordingly.  The source
+module which depends upon the logx library need not change either way.
 
 
 @section eolsconspackage The eol_scons Package
@@ -234,20 +256,20 @@ separately, or referenced using 'svn:extnerals'.  SCons automatically
 checks for a directory called 'site_scons' in the top directory, where the
 SConstruct file is located.  So by checking out the eol_scons directory
 tree into a directory called 'site_scons', the integration and extension of
-SCons happens automatically.
+SCons happens automatically.  See also @ref installation.
 
 @subsection extensions SCons Extensions
 
 This package extends SCons in three ways.  First of all, it overrides or
-adds methods for the SCons Environment class.  See the _ExtendEnvironment()
-function to see the full list.
+adds methods in the SCons Environment class.  See the
+eol_scons._addMethods() function to see the full list.
 
 Second, this package adds a set of EOL tools to the SCons tool path.  Most
 of the tools are for configuring and building against third-party software
 packages.
 
 Lastly, this module itself provides an interface for configuring and
-controlling the eol_scons framework outside of the Environment methods.
+controlling the eol_site_scons framework outside of the Environment methods.
 The following sections cover the public functions.
 
 @subsection examples Examples
@@ -276,14 +298,14 @@ arguments) take effect.  All other Variables() constructors will return the
 singleton instance, and any constructor parameters will be ignored.  So if
 a particular source tree wants to set its own config file name, it can
 specify that path in a Variables() constructor in the top-level SConstruct,
-so that instance is created before the default created by eol_scons:
+so that instance is created before the default created by eol_site_scons:
 
 SConstruct:
 @code
 variables = Variables("my_settings.py")
 @endcode
 
-If no singleton instance is created explicitly by in project SConsctruct
+If no singleton instance is created explicitly by the project SConsctruct
 file, then the default created by eol_scons will take effect.  The default
 eol_scons Variables() instance specifies a config file called 'config.py'
 in the top directory.
@@ -291,7 +313,7 @@ in the top directory.
 @section globaltools Global Tools
 
 The eol_scons environment adds the notion of global tools, or tools which
-can be specified in upper-level environments which will be applied to all
+can be specified in root environments which will be applied to all
 subdirectory Environments.  Originally their use was limited to the
 top-level SConstruct file.  It could create an environment which specified
 a set of tools that the project would apply to each Environment created.
@@ -352,14 +374,24 @@ setting it in the config.py file like any other variable.
 
 The eol_scons package overrides the standard Tool() method of the SCons
 Environment class to customize the way tools are loaded.  First of all, the
-eol_scons Tool() method only loads a tool once.  The standard SCons method
-reloads a tool through the python 'imp' module every time a tool name is
-referenced, and this seems excessive and unnecessary, besides breaking the
-assumption in many eol_scons that a tool is only loaded once.
+eol_scons Tool() method loads a tool only once.  In contrast, the standard
+SCons method reloads a tool through the python 'imp' module every time a
+tool name is referenced, and this seems excessive and unnecessary, and at
+this point some of the eol_site_scons tools may rely on being loaded only
+once.
 
-Second, eol_scons at one point tried to only apply tools once.  Standard
-SCons keeps track of which tools have been loaded in an environment in the
-TOOLS construction variable, but it always applies a tool even if it's been
+Loading a tool is different than applying it to an 'Environment'.  Loading
+a tool module only once means the code in the module runs only once.  So
+for example, variables with module scope should only be initialized once.
+However, some tools still contain code to check whether module-scope
+variables have been initialized already or not, in case the tool is ever
+used where it can be loaded multiple times.  There are also guards against
+initializing more than once within the tool function, since the tool can be
+applied multiple times to the same or different 'Environments'.
+
+At one point eol_site_scons tried to apply tools only once.  Standard SCons
+keeps track of which tools have been loaded in an environment in the TOOLS
+construction variable, but it always applies a tool even if it's been
 applied already.  The TOOLS variable is a dictionary of Tool instances
 keyed by the module name with which the tool was loaded (imported).
 However, I think I found this name to be inconsistent depending upon how
@@ -370,9 +402,9 @@ construction environment.  For example, dependencies may need to have their
 libraries listed last, after the last component which requires them, but
 this won't happen if the required tool is required twice but only applied
 the first time.  More experience might determine if it makes more sense to
-only apply tools once, but for now eol_scons follows the prior practice of
-applying tools multiple times, which is consistent with the standard SCons
-behavior.
+only apply tools once, but for now eol_site_scons follows the prior
+practice of applying tools multiple times, which is consistent with the
+standard SCons behavior.
 
 The eol_scons package also adds a Require() method to the SCons
 Environment.  The Require() mehod simply loops over a tool list calling
@@ -402,13 +434,18 @@ scons standard method to only load a tool once.]
 A similar issue occurs if a module is imported under two names.  For
 example, the 'chdir.py' module can be imported either as 'eol_scons.chdir'
 or just 'chdir'.  It appears that python will load that module under both
-names, causing any one-time code to be executed twice.
+names, causing any module-scope code to be executed twice.
 
 Tools are python modules and not SConscript files, so certain functions and
 symbols are not available in the global namespace as they are in SConscript
-files.  In particular, instead of Split(), use string.split().  Export()
-and Import() should not be used.  Consider replacing them with a
-construction variable in the environment.
+files.  The symbols available globally in a SConscript file can be imported
+by a tool from the `SCons.Script` package.  Here's an example:
+
+@code
+    import SCons.Script
+    SCons.Script.Export('gtest')
+    from SCons.Script import BUILD_TARGETS
+@endcode
 
 To refer to tools defined in SConscript files in other directories within a
 source tree, Export() the tool function in the SConscript file, then
@@ -417,21 +454,23 @@ directory.
 
 @section configuration Configuration
 
-The eol_scons framework contains a tool called 'prefixoptions'.  It used to
-be part of the environment by default, but now it's a separate tool.
-However, the tool is still loaded by default unless the GlobalTools() list
-is modified first.  The tool adds build options called @p OPT_PREFIX and @p
-INSTALL_PREFIX.  @p OPT_PREFIX defaults to '$DEFAULT_OPT_PREFIX', which in
-turn defaults to '/opt/local'.  A source tree can modify the default by
-setting DEFAULT_OPT_PREFIX in the environment in the global tool.  Run
-'scons -h' to see the help information for all of the local options.  You
-can set an option on the command line like this:
+The eol_site_scons framework contains a tool called 'prefixoptions'.  It
+used to be part of the environment by default, but now it is a separate
+tool.  However, the tool is still loaded by default unless the
+GlobalTools() list is modified first.  The tool adds build options called
+@p OPT_PREFIX and @p INSTALL_PREFIX.  @p OPT_PREFIX defaults to
+'$DEFAULT_OPT_PREFIX', which in turn defaults to '/opt/local'.  A source
+tree can modify the default by setting DEFAULT_OPT_PREFIX in the
+environment in the global tool.  Run 'scons -h' to see the help information
+for all of the local options.  You can set an option on the command line
+like this:
 
 @code
 scons -u OPT_PREFIX=/opt
 @endcode
 
-Or you can set it for good in a file called config.py in the top directory:
+Or you can set it for good in a file called `config.py` in the top
+directory:
 
 @code
 # toplevel config.py
@@ -513,7 +552,7 @@ There is no alias for doxygen.  Instead, name the top-level documentation
 directory as the target to update all of the documentation underneath it:
 
 @code
-cd raddx
+cd aeros/source
 scons apidocs
 @endcode
 
@@ -756,12 +795,12 @@ SUBDIRS: The list of subdirectories from which to load SConscript files.
   lidar
 @endcode
 
-With eol_scons, individual SConscript files do not need to import a root
-environment from which to create their own environment.  Instead they use
-normal SConscript conventions, except the underlying environment instance
-is modified by the 'default' tool.  So it is possible to build logx
-completely separately from the rest of the source tree with something like
-this:
+With eol_site_scons, individual SConscript files do not need to import a
+root environment from which to create their own environment.  Instead they
+use normal SConscript conventions, except the underlying environment
+instance is modified by the 'default' tool.  So it is possible to build
+`logx` completely separately from the rest of the source tree with
+something like this:
 
 @code
 cd logx
@@ -772,47 +811,18 @@ With a few tweaks to the SConscript file, it is possible for many of the
 shared packages to use the same SConscript file to build both within a
 source tree and standalone.
 
-@section history History
-
-I found myself wishing I had copies of small utility source files in
-multiple projects, and in fact originally just used copies.  As I started
-to add features in one copy that I wanted in the other copies, I realized I
-needed some kind of framework to allow me to easily reuse a single, shared
-copy of the utility sources.  The utilities I wanted were mostly extensions
-to much larger outside packages, like the DOM XML library Xerces-C or the
-C++ logging package log4cpp based on Log4J.  So I did not want to throw all
-the utilities into a single library which would have lots of major
-dependencies.  I thought that would detract from the library's convenience
-and its likelihood of being reused.  Instead I settled on trying to find a
-way to share easily and conveniently many smaller, more focused libraries.
-
-The result is basically very similar to the framework I put in place for
-the MAPR software tree, which due to the KDevelop IDE used automake and
-autoconf and started out divided into several smaller projects.  That work
-in turn led me to borrow some things from the KDE development framework.  I
-wished there were something better to base this on than the autoconf tools,
-but I did not know what that would be.  Qmake seems to be difficult to
-extend to a larger project or with new make variables and rules.  Perhaps
-JAM or ANT would have been better, but autoconf seemed to be the more
-widely used, and there are huge projects like KDE and GCC rich with working
-examples from which techniques can be pulled.  Given that more and more
-projects are likely to run on both Windows and UNIX, it would be useful if
-the build system supported compiles on both platforms.  I don't know how/if
-automake/autoconf could handle that, but SCons does.
-
-
 @section comparison Comparison Between SCons and Autoconf
 
 Here's my input into the build tool comparison mix--more of an abstract
 overview than a feature comparison.  I'll admit there are aspects to both
 make tools and scons that I don't like, but I think scons is more on the
-right track.  Make together with shell scripting can be made to handle very
-complex multi-directory builds and dependencies, however it's limitation is
-that Makefiles must describe all of the dependencies, rules, and relations
-statically.  Dynamic checking and hierarchical builds require recursive
-makes (or gnu make).  All of the tools on top of make like autoconf,
-automake, and Imake were built to allow more dynamic generation of
-dependencies, rule templates, and hierarchical (modular) builds while
+right track.  Together with shell scripting, `make` can be made to handle
+very complex multi-directory builds and dependencies, however it's
+limitation is that Makefiles must describe all of the dependencies, rules,
+and relations statically.  Dynamic checking and hierarchical builds require
+recursive makes (or gnu make).  All of the tools on top of make like
+autoconf, automake, and Imake were built to allow more dynamic generation
+of dependencies, rule templates, and hierarchical (modular) builds while
 sticking to the portable Makefile format, the make program, and Bourne
 shell scripting for actually running the build commands.  This works well
 to a point but requires the incorporation and close cooperation of several
@@ -820,25 +830,25 @@ tools (m4, cpp, sh, make, and various sh scripts), all of which must be
 carefully crafted to be portable between operating systems, especially
 Windows.
 
-So the advantage of scons is that all of the same funcationality can be
-self-contained in a single, portable scripting language--python. The
-build dependencies are not described in yet another static syntax, but
-instead they are assembled through calls to a standard and mostly intuitive
-scripting API built within python.  The assembly of the dependencies and
-build rules on any particular build invocation can be very dynamic and
-runtime configurable.  No preformatting of Makefiles or preconfiguration of
-the build environment is required.  I think this makes scons slower by
-pushing all of that processing back to each and every build run, but it is
-also what allows scons to be more thorough and dynamic.  Ant got the
-portability idea right by encapsulating build rules and their specification
-with XML and Java, but I think it went wrong by adding yet another static
-dependency format in the use of XML.  I think Ant would have been better to
-follow the scons model of using Java for both build phases: first describe
-the rules and dependencies for a build environment using portable Java
-scripting like beanscript, then run the build engine on that environment
-using Java.  The idea is the same: use a portable but powerful runtime like
-Java or python to provide both dynamic dependencies and rule execution.
-Describe the dependencies and write the rules in the same language.
+So the advantage of scons is that all of the same functionality can be
+self-contained in a single, portable scripting language--python. The build
+dependencies are not described in yet another static syntax, but instead
+they are assembled through calls to a standard and mostly intuitive API
+built within python.  The assembly of the dependencies and build rules on
+any particular build invocation can be very dynamic and runtime
+configurable.  No preformatting of Makefiles or preconfiguration of the
+build environment is required.  I think this makes scons slower by pushing
+all of that processing back to each and every build run, but it is also
+what allows scons to be more thorough and dynamic.  Ant got the portability
+idea right by encapsulating build rules and their specification with XML
+and Java, but I think it went wrong by adding yet another static dependency
+format in the use of XML.  I think Ant would have been better to follow the
+scons model of using Java for both build phases: first describe the rules
+and dependencies for a build environment using portable Java scripting like
+beanscript, then run the build engine on that environment using Java.  The
+idea is the same: use a portable but powerful runtime like Java or python
+to provide both dynamic dependencies and rule execution.  Describe the
+dependencies and write the rules in the same language.
 
 On the other hand, the self-containment of scons lends to some of its
 current drawbacks, from my perspective.  For example, automatic dependency
@@ -861,7 +871,5 @@ For both autoconf and scons I've ended up grafting some of my own desired
 extensions on top of them to support more modular build environments.  One
 way or another I'll be able to get scons to do what I want.  So as for me,
 I don't see any reason to go back to autoconf or Makefiles.
-
-
 
 **/

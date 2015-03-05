@@ -3,7 +3,7 @@
 The eol_scons package for EOL extensions to standard SCons.
 
 This package extends SCons in three ways: it overrides or adds methods for
-the SCons Environment class.  See the _ExtendEnvironment() function to see
+the SCons Environment class.  See the _addMethods() function to see
 the full list.
 
 Second, this package adds a set of EOL tools to the SCons tool path.  Most
@@ -377,17 +377,17 @@ def _generate (env):
     env.PrependUnique (CPPPATH=['#'])
 
     # The customized Library wrapper methods might be added directly to
-    # envclass, as in _ExtendEnvironment, except SCons overrides the
-    # instance methods associated with builders, so I don't think that
-    # would work.  It should work to "chain" MethodWrapper, by calling
-    # AddMethod() to add a function object which then calls the original
-    # MethodWrapper instance.  However, this runs into problems with
-    # Environment.Clone().  When the Environment Builders are cloned, they
-    # are added back to the BUILDERS dictionary, and that dictionary is
-    # especially designed to update the Environment instance methods
-    # corresponding to the Builders.  Maybe that's as it should be, but the
-    # point is that we need to replace the standard builder with our own
-    # copy of the builder.
+    # envclass, as in _addMethods, except SCons overrides the instance
+    # methods associated with builders, so I don't think that would work.
+    # It should work to "chain" MethodWrapper, by calling AddMethod() to
+    # add a function object which then calls the original MethodWrapper
+    # instance.  However, this runs into problems with Environment.Clone().
+    # When the Environment Builders are cloned, they are added back to the
+    # BUILDERS dictionary, and that dictionary is especially designed to
+    # update the Environment instance methods corresponding to the
+    # Builders.  Maybe that's as it should be, but the point is that we
+    # need to replace the standard builder with our own copy of the
+    # builder.
     #
     # Can the global list of targets be acquired other than by intercepting
     # Library() just to register the global targets?  Perhaps when

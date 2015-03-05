@@ -10,8 +10,8 @@
 # insert tag in PROJECT_NUMBER in Doxyfile
 # generate doxygen documentation
 # install doxygen docs into /net/www/docs/software
-# create zip file eol_scons-TAG.zip
-# manually upload zip file to EOL software center
+# create release file eol_site_scons-TAG.tar.gz (or zip file too?)
+# manually upload archive to EOL software center
 
 tagsurl=http://svn.eol.ucar.edu/svn/eol/common/tags
 trunkurl=http://svn.eol.ucar.edu/svn/eol/common/trunk/site_scons
@@ -126,7 +126,6 @@ cleanreleases()
 updatetoc()
 {
     # This one works on the README file in the current directory.
-
     # Create the sed script to replace the toc lines.
     (cat <<EOF
 {
@@ -187,7 +186,8 @@ case "$op" in
 	;;
 
     *)
-	echo "Usage: $0 {cleanversion|showtags|release|tag}"
+	echo "Usage: $0 <op>"
+	echo "Op: {showtags|committag|release|publish|updatetoc|cleanreleases}"
 	;;
 
 esac
