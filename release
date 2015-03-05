@@ -13,7 +13,7 @@
 # create zip file eol_scons-TAG.zip
 # manually upload zip file to EOL software center
 
-# Put the tag name into the Doxygen docs?
+# Update TOC automatically in README
 #
 # Move the SCF page into main page or link to it there.
 #
@@ -61,7 +61,9 @@ release() # tag-name
     # Bundle up the results
     (set -x; tar czf ${tag}.tar.gz ${tag})
     # Build doxygen documentation
-    (cd $tag && rm -rf html && doxygen)
+    (cd $tag
+	sed -i "s/PROJECT_NUMBER.*\$/PROJECT_NUMBER = $tag/" Doxyfile
+	doxygen)
 }
 
 

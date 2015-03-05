@@ -610,9 +610,10 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT  = README 
+INPUT  = README mainpage.dox
 INPUT += eol_scons
 INPUT += site_tools
+INPUT += site_init.py
 INPUT += examples/SConstruct examples/logx/tool_logx_example.py
 INPUT += examples/datastore/SConscript examples/aeros/SConscript
 
