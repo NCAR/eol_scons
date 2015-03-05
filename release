@@ -1,0 +1,161 @@
+#! /bin/sh
+
+# Automate the steps in creating a new, separate release of eol_scons.
+# There isn't really anything to build and no dependencies, thus this is
+# just a simple shell script rather a SConstruct file.
+#
+# verify tests pass
+# tag the repository with the date string YYYYmmdd
+# export that tag
+# insert tag in PROJECT_NUMBER in Doxyfile
+# generate doxygen documentation
+# install doxygen docs into /net/www/docs/software
+# create zip file eol_scons-TAG.zip
+# manually upload zip file to EOL software center
+
+# Put the tag name into the Doxygen docs?
+#
+# Move the SCF page into main page or link to it there.
+#
+
+tagsurl=http://svn.eol.ucar.edu/svn/eol/common/tags
+trunkurl=http://svn.eol.ucar.edu/svn/eol/common/trunk/site_scons
+htmldest=snoopy:/net/www/docs/software/eol_site_scons
+
+# Return non-zero status if subversion checkout at path is not clean,
+# and echo the version string.
+cleanversion() # path
+{
+    local path="$1"
+
+    svnver=`svnversion $path`
+    echo $svnver
+    if echo "$svnver" | egrep -q '^[0-9]+$' ; then
+	return 0
+    fi
+    return 1
+}
+
+
+# List the known tags for eol_site_scons
+showtags()
+{
+    svn ls $tagsurl | egrep site_scons | sed -e 's,/$,,'
+}
+
+
+# Build a release from the given tag name.
+release() # tag-name
+{
+    tag="$1"
+    if [ -z "$tag" ]; then
+	echo "release() requires a tag name."
+	echo "List the tags with 'release showtags'."
+	exit 1
+    fi
+    if [ -d "$tag" ]; then
+	echo "Remove staging directory first: $tag"
+	exit 1
+    fi
+    svn export $tagsurl/$tag
+    # Bundle up the results
+    (set -x; tar czf ${tag}.tar.gz ${tag})
+    # Build doxygen documentation
+    (cd $tag && rm -rf html && doxygen)
+}
+
+
+# Publish the release file and the documentation.
+publish() # tag-name
+{
+    tag="$1"
+    tarfile="${tag}.tar.gz"
+    html="${tag}/html"
+    if [ ! -f "$tarfile" -o ! -d "$html" ]; then
+	echo "Release artifacts do not exist yet: $tarfile, $html"
+	echo "Create them with: release $tag"
+	return 1
+    fi
+
+    echo "Copying documentation to publish location..."
+    (set -x; rsync -a --delete "$html"/ "$htmldest")
+
+    echo "Release file must be uploaded to the software center manually..."
+}
+
+
+# Generate a default tag name from the current date with the given prefix.
+formtag()
+{
+    prefix="$1"
+    if [ -n "$prefix" ]; then
+	prefix="${prefix}-"
+    fi
+    tagname=${prefix}`date -u +'%Y%m%d'`
+    echo $tagname
+    return 0
+}
+
+
+# Commit a new tag to the repository by copying the head of the trunk.  Use
+# the given tag name, or else generate a new one and verify it does not
+# already exist.
+committag() # [<tag>]
+{
+    tag="$1"
+    if [ -z "$tag" ]; then
+	tag=`formtag eol_site_scons`
+    fi
+    xtag=`showtags | egrep "^$tag\$"`
+    if [ -n "$xtag" ]; then
+	echo "Tag already exists and cannot be committed again: $tag"
+	return 1
+    fi
+    (set -x; echo svn commit -m"tag $tag" $trunkurl $tagsurl/$tag)
+    return 0
+}
+
+
+case "$1" in
+
+    cleanversion)
+	shift
+	rev=`cleanversion "$1"`
+	if [ $? -eq 0 ]; then
+	    echo "$1: clean at revision $rev"
+	else
+	    echo "$1: not clean, revision is $rev"
+	fi
+	;;
+
+    committag)
+	shift
+	committag $1
+	;;
+
+    showtags)
+	shift
+	showtags
+	;;
+
+    formtag)
+	shift
+	formtag eol_site_scons
+	;;
+
+    release)
+	shift
+	release "$1"
+	;;
+
+    publish)
+	shift
+	publish "$1"
+	;;
+
+    *)
+	echo "Usage: $0 {cleanversion|showtags|release|tag}"
+	;;
+
+esac
+
