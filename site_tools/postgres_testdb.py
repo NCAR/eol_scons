@@ -52,16 +52,11 @@ listen_addresses = ''
 """
 
 
-def simulate_aircraft_realtime(pg, stopevent):
+def simulate_aircraft_realtime(pg, stopevent=None):
     "Loop through the times in the given database until stopevent is true."
 
-    # import here so the whole tool does not depend on it being installed.
-    import psycopg2 as ppg
-
-    # Connect to the database, expecting the connection settings to be
-    # in the environment.
-    db = ppg.connect(host=pg.PGHOST, dbname=pg.PGDATABASE, port=pg.PGPORT,
-                     user=pg.PGUSER)
+    # Get a connection to the database
+    db = pg.connect()
 
     # Grab the first datetime in the raf_lrt table, then loop through
     # setting EndTime to the next greater time.
@@ -70,14 +65,21 @@ def simulate_aircraft_realtime(pg, stopevent):
 SELECT datetime FROM raf_lrt ORDER BY datetime;
 """)
     rows = cursor.fetchall()
-    for r in rows:
+    # Skip the first few rows so the time span never appears empty.
+    for r in rows[5:]:
         when = r[0]
         print("setting EndTime to %s" % (when))
         cursor.execute("""
 UPDATE global_attributes SET value = %s WHERE key = 'EndTime';""", (when,))
         # The commit is required for the notification to happen.
         db.commit()
-        if stopevent.wait(1):
+        # In python 2.7 wait() returns true unless it times out, while
+        # python 2.6 it always returns None.  So to be backwards compatible
+        # we must always test whether the event is set or not.
+        if stopevent is None:
+            time.sleep(1)
+        elif stopevent.wait(1) or stopevent.is_set():
+            print("stop event received.")
             break
 
     db.close()
@@ -112,6 +114,20 @@ class PostgresTestDB(object):
         self.PGDATABASE = None
         self.realtime_thread = None
         self.stopevent = None
+
+    def connect(self):
+        # import here so the whole tool does not depend on it being installed.
+        import psycopg2 as ppg
+        args = {}
+        if self.PGDATABASE:
+            args['database'] = self.PGDATABASE
+        if self.PGUSER:
+            args['user'] = self.PGUSER
+        if self.PGHOST:
+            args['host'] = self.PGHOST
+        if self.PGPORT:
+            args['port'] = int(self.PGPORT)
+        return ppg.connect(**args)
 
     def getVersion(self):
         if not self.pgversion:
@@ -221,8 +237,9 @@ class PostgresTestDB(object):
         if sqlfile.endswith(".gz"):
             print("opening sql file with gzip...")
             tfile = tempfile.TemporaryFile()
-            with gzip.open(sqlfile, "r") as gz:
-                tfile.writelines(gz)
+            gz = gzip.open(sqlfile, "r")
+            tfile.writelines(gz)
+            gz.close()
             tfile.seek(0)
             return tfile
         return open(sqlfile, "r")
@@ -277,7 +294,10 @@ class PostgresTestDB(object):
 
     action_run_aircraftrealtime = staticmethod(action_run_aircraftrealtime)
 
-    def startAircraftRealtime(self):
+    def startAircraftRealtime(self, block=False):
+        if block:
+            simulate_aircraft_realtime(self)
+            return
         self.stopevent = threading.Event()
         self.realtime_thread = threading.Thread(
             target=simulate_aircraft_realtime,
@@ -394,14 +414,24 @@ def main():
     elif op == "stop":
         pg.stop()
     elif op == "aircraft":
-        pg.setupAircraftDatabase()
+        sqlfile = None
+        if len(args) > 2:
+            sqlfile = args[2]
+        pg.setupAircraftDatabase(sqlfile)
         pg.saveSetup()
+    elif op == "realtime":
+        pg.startAircraftRealtime(block=True)
     elif op == "dump":
         pg.dump(args=args[2:])
     elif op == "env":
         env = pg.getEnvironment({})
         for k,v in env.items():
             sys.stdout.write("export %s=%s; " % (k, v))
+        sys.stdout.write("\n")
+    elif op == "cshrc":
+        env = pg.getEnvironment({})
+        for k,v in env.items():
+            sys.stdout.write('setenv %s "%s"; ' % (k, v))
         sys.stdout.write("\n")
     else:
         print(_usage)
