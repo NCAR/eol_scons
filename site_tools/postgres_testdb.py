@@ -374,7 +374,7 @@ class AircraftTestDB(PostgresTestDB):
 
     def startRealtime(self, block=False):
         if block:
-            self.simulate_aircraft_realtime()
+            self.simulate_realtime()
             return
         self.stopevent = threading.Event()
         self.realtime_thread = threading.Thread(
