@@ -463,13 +463,15 @@ def exists(env):
 _usage = """\
 Usage: postgres_testdb.py {init|start|stop|env|aircraft}
 
-init      Create the data directory and config file, but do not start it.
+init [<sqlfile>]
+          Create the data directory and config file, start the database,
+          and optionally load a SQL file.
 start     Start the Postgres server running in the background.
 stop      Stop the Postgres server.
 env       Print the environment variables for connecting to the test
           database, suitable for sh 'eval'.
-aircraft  Setup an aircraft user (ads) and database (real-time) for the
-          currently running Postgres instance.
+cshrc     Same as 'env' but for csh.
+realtime  Run aircraft real-time updates on the current Postgres instance.
 dump <sqlfile>
           Dump the current database to <sqlfile>.
 """
