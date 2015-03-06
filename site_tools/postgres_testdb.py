@@ -71,15 +71,14 @@ SELECT datetime FROM raf_lrt ORDER BY datetime;
 """)
     rows = cursor.fetchall()
     for r in rows:
-        if stopevent.is_set():
-            break
         when = r[0]
         print("setting EndTime to %s" % (when))
         cursor.execute("""
 UPDATE global_attributes SET value = %s WHERE key = 'EndTime';""", (when,))
         # The commit is required for the notification to happen.
         db.commit()
-        time.sleep(1)
+        if stopevent.wait(1):
+            break
 
     db.close()
 
