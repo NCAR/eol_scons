@@ -39,7 +39,10 @@ import subprocess as sp
 import shutil
 import re
 import json
+import tempfile
 import gzip
+import time
+import threading
 
 _postgresql_conf = """
 # An empty list is supposed to disable network listening.
@@ -47,6 +50,38 @@ listen_addresses = ''
 # Use the data directory for unix sockets.
 %(socketparam)s = '%(PGHOST)s'
 """
+
+
+def simulate_aircraft_realtime(pg, stopevent):
+    "Loop through the times in the given database until stopevent is true."
+
+    # import here so the whole tool does not depend on it being installed.
+    import psycopg2 as ppg
+
+    # Connect to the database, expecting the connection settings to be
+    # in the environment.
+    db = ppg.connect(host=pg.PGHOST, dbname=pg.PGDATABASE, port=pg.PGPORT,
+                     user=pg.PGUSER)
+
+    # Grab the first datetime in the raf_lrt table, then loop through
+    # setting EndTime to the next greater time.
+    cursor = db.cursor()
+    cursor.execute("""
+SELECT datetime FROM raf_lrt ORDER BY datetime;
+""")
+    rows = cursor.fetchall()
+    for r in rows:
+        if stopevent.is_set():
+            break
+        when = r[0]
+        print("setting EndTime to %s" % (when))
+        cursor.execute("""
+UPDATE global_attributes SET value = %s WHERE key = 'EndTime';""", (when,))
+        # The commit is required for the notification to happen.
+        db.commit()
+        time.sleep(1)
+
+    db.close()
 
 
 class PostgresTestDB(object):
@@ -76,6 +111,8 @@ class PostgresTestDB(object):
         self.pgversion = None
         self.PGUSER = None
         self.PGDATABASE = None
+        self.realtime_thread = None
+        self.stopevent = None
 
     def getVersion(self):
         if not self.pgversion:
@@ -121,6 +158,7 @@ class PostgresTestDB(object):
         p.wait()
 
     def stop(self):
+        self.stopAircraftRealtime()
         p = self._popen(["pg_ctl", "-m", "fast", "-w", "stop"])
         p.wait()
 
@@ -183,7 +221,11 @@ class PostgresTestDB(object):
     def _opensql(self, sqlfile):
         if sqlfile.endswith(".gz"):
             print("opening sql file with gzip...")
-            return gzip.open(sqlfile, "r")
+            tfile = tempfile.TemporaryFile()
+            with gzip.open(sqlfile, "r") as gz:
+                tfile.writelines(gz)
+            tfile.seek(0)
+            return tfile
         return open(sqlfile, "r")
 
     def parseDatabase(self, sqlfile):
@@ -226,6 +268,42 @@ class PostgresTestDB(object):
         return 0
 
     action_run_aircraftdb = staticmethod(action_run_aircraftdb)
+
+
+    def action_run_aircraftrealtime(target, source, env):
+        # Run a thread to simulate real-time on the database.
+        pg = env.PostgresTestDB()
+        pg.startAircraftRealtime()
+        return 0
+
+    action_run_aircraftrealtime = staticmethod(action_run_aircraftrealtime)
+
+    def startAircraftRealtime(self):
+        self.stopevent = threading.Event()
+        self.realtime_thread = threading.Thread(
+            target=simulate_aircraft_realtime,
+            args=(self, self.stopevent))
+        # Mark it as a daemon so it does not prevent python from exiting if
+        # scons bails somewhere else.
+        self.realtime_thread.daemon = True
+        self.realtime_thread.start()
+
+    def stopAircraftRealtime(self):
+        if self.realtime_thread:
+            print("stopping aircraft real-time data thread...")
+            self.stopevent.set()
+            self.realtime_thread.join(5)
+            # If it doesn't stop we don't really care.
+            self.realtime_thread = None
+            self.stopevent = None
+
+    def action_stop_aircraftrealtime(target, source, env):
+        pg = env.PostgresTestDB()
+        pg.stopAircraftRealtime()
+        return 0
+
+    action_stop_aircraftrealtime = staticmethod(action_stop_aircraftrealtime)
+
 
     def action_stopdb(target, source, env):
         pg = env.PostgresTestDB()
