@@ -1,35 +1,60 @@
-"""Provide simple setup for an isolated test PostgreSQL database.
+"""
+Provide simple setup for an isolated PostgreSQL test database.
 
 This tool attaches an object to the environment which serves as a proxy for
 a postgres test database running in the background.  To run tests against a
 live postgresql database, we want an abstraction to control the database
 before, during, and after running test commands.
 
-Create the object and setup all of the parameters.  Provide "personalities"
-to impersonate different kinds of databases such as aircraft on-board,
-aircraft ground, soundings, and so on.
+Here are the main methods for controlling the database:
 
-   pg = env.PostgresTestDB()
+pg = env.PostgresTestDB()
 
-Return the environment variables necessary to connect to the
-test database:
+    Create the object and setup all of the parameters.  This may return
+    subclasses or database objects with different personalities, so the
+    test database can impersonate different kinds of databases such as
+    aircraft on-board, aircraft ground, soundings, and so on.
 
-   pg.getEnvironment()
+pg.getEnvironment()
 
-This initializes the database, setting up the data directory and tweaking
-the postgresql.conf file to allow local connections.
+    Return the environment variables necessary to connect to the test
+    database.
 
-   pg.initdb()
+pg.init()
 
-These are all synchronous, but they control an asynchronous child process.
+    This initializes the database, setting up the data directory and
+    tweaking the postgresql.conf file to allow local connections.  Then it
+    starts the database with the start() method.  Subclasses may perform
+    additional initialization that must happen for that kind of database.
 
-   pg.start()
-   pg.stop()
+pg.start()
+
+    Start the background postgres server.
+
+pg.stop()
+
+    Stop the background postgres server and any other background tasks
+    related to this test database, such as threads for simulating real-time
+    data.
+
+For running the database within scons builders and testers, there are class
+members which can be used in SCons action lists.  These pull the current
+test database instance from the Environment and then call the corresponding
+method:
+
+action_init()
+action_start()
+action_stop()
+
+Subclasses can provide additional actions, such as action_start_realtime()
+for running the thread to simulate aircraft real-time updates.
 
 This python module can also run as a main script.  It parses the command
 line to run methods on the PostgresTestDB instance corresponding to the
-current working directory.
-
+current working directory.  The connection parameters like PGUSER and
+PGDATABASE, which sometimes are not determined until the SQL file gets
+loaded, are saved in a setup file so they can persist across shell
+commands.
 """
 
 
@@ -52,42 +77,9 @@ listen_addresses = ''
 """
 
 
-def simulate_aircraft_realtime(pg, stopevent=None):
-    "Loop through the times in the given database until stopevent is true."
-
-    # Get a connection to the database
-    db = pg.connect()
-
-    # Grab the first datetime in the raf_lrt table, then loop through
-    # setting EndTime to the next greater time.
-    cursor = db.cursor()
-    cursor.execute("""
-SELECT datetime FROM raf_lrt ORDER BY datetime;
-""")
-    rows = cursor.fetchall()
-    # Skip the first few rows so the time span never appears empty.
-    for r in rows[5:]:
-        when = r[0]
-        print("setting EndTime to %s" % (when))
-        cursor.execute("""
-UPDATE global_attributes SET value = %s WHERE key = 'EndTime';""", (when,))
-        # The commit is required for the notification to happen.
-        db.commit()
-        # In python 2.7 wait() returns true unless it times out, while
-        # python 2.6 it always returns None.  So to be backwards compatible
-        # we must always test whether the event is set or not.
-        if stopevent is None:
-            time.sleep(1)
-        elif stopevent.wait(1) or stopevent.is_set():
-            print("stop event received.")
-            break
-
-    db.close()
-
-
 class PostgresTestDB(object):
 
-    def __init__(self, cwd=None):
+    def __init__(self, cwd=None, personality="postgrestestdb"):
 
         # Save off the directory from which commands should operate, in
         # case there are different test databases for different directories
@@ -112,10 +104,12 @@ class PostgresTestDB(object):
         self.pgversion = None
         self.PGUSER = None
         self.PGDATABASE = None
-        self.realtime_thread = None
-        self.stopevent = None
+        self.personality = personality
 
     def connect(self):
+        """
+        Return a psycopg2 connection to this test database.
+        """
         # import here so the whole tool does not depend on it being installed.
         import psycopg2 as ppg
         args = {}
@@ -135,12 +129,15 @@ class PostgresTestDB(object):
             self.pgversion = p.communicate()[0].split()[2]
         return self.pgversion
 
-    def init(self):
-        "Create the PGDATA directory and setup the configuration."
+    def init(self, sqlfile=None):
+        """
+        Create the PGDATA directory, setup the configuration, and start the
+        postgres server.
+        """
         self.stop()
         shutil.rmtree(self.PGDATA, ignore_errors=True)
         print("Postgres version: %s" % (self.getVersion()))
-        self.initdb()
+        self._initdb()
         socketparam = "unix_socket_directories"
         if self.getVersion().startswith("8."):
             socketparam = "unix_socket_directory"
@@ -149,18 +146,43 @@ class PostgresTestDB(object):
                                      "socketparam":socketparam }
         with open(cfile, "w") as cf:
             cf.write(ctext)
+        self.start()
+        if sqlfile:
+            self.loadSQL(sqlfile)
 
     def saveSetup(self):
-        "Save the settings to a file for use later."
+        """
+        Save the settings to a file for use later.
+        """
         with open(self.settingsfile, "w") as sfile:
-            json.dump(self.getEnvironment({}), sfile)
+            settings = {"personality":self.personality}
+            json.dump(self.getEnvironment(settings), sfile)
             sfile.write("\n")
 
     def loadSetup(self):
-        "Restore settings from the settings file."
+        """
+        Restore settings from the settings file.
+        """
         if os.path.exists(self.settingsfile):
             with open(self.settingsfile) as sfile:
                 self.__dict__.update(json.load(sfile))
+
+    def start(self):
+        """
+        Start the background postgres server.
+
+        If it is already running then this will print errors and will not
+        affect the running server.
+        """
+        p = self._popen(["pg_ctl", "-w", "-o", "-i", "start"])
+        p.wait()
+
+    def stop(self):
+        """
+        Stop the background postgres server.
+        """
+        p = self._popen(["pg_ctl", "-m", "fast", "-w", "stop"])
+        p.wait()
 
     def _popen(self, cmd, env=None, **args):
         print("Running: %s" % " ".join(cmd))
@@ -168,25 +190,18 @@ class PostgresTestDB(object):
             env = self.getEnvironment()
         return sp.Popen(cmd, shell=False, env=env, **args)
 
-    def start(self):
-        p = self._popen(["pg_ctl", "-w", "-o", "-i", "start"])
-        p.wait()
-
-    def stop(self):
-        self.stopAircraftRealtime()
-        p = self._popen(["pg_ctl", "-m", "fast", "-w", "stop"])
-        p.wait()
-
-    def initdb(self):
+    def _initdb(self):
         p = self._popen(["initdb"])
         p.wait()
 
-    def psql(self, database, command):
+    def _psql(self, database, command):
         p = self._popen(["psql", database, "-c", command])
         p.wait()
 
     def dump(self, host=None, user=None, db=None, path=None, args=None):
-        "Write SQL dump of @p user, @p host, @p db to @p path."
+        """
+        Write SQL dump of @p user, @p host, @p db to @p path.
+        """
         if not db:
             db = self.PGDATABASE
         if not path and db:
@@ -206,6 +221,13 @@ class PostgresTestDB(object):
         p.wait()
 
     def getEnvironment(self, env=None):
+        """
+        Return a dictionary with environment settings for connecting to this
+        database.  If env is None, then the dictionary includes all the
+        current environment settings, suitable for passing to a subprocess
+        call.  To get just the connection parameters, pass an empty
+        dictionary, as in getEnvironment({}).
+        """
         if env is None:
             env = os.environ.copy()
         env['PGPORT'] = self.PGPORT
@@ -226,11 +248,11 @@ class PostgresTestDB(object):
         # previous run, we need to explicitly unset it to connect as the
         # admin user.
         self.PGUSER = None
-        self.psql("template1", "create user \"%s\" with createdb;" % (user))
+        self._psql("template1", "create user \"%s\" with createdb;" % (user))
         self.PGUSER = user
 
     def createDatabase(self, database):
-        self.psql("template1", "create database \"%s\";" % (database))
+        self._psql("template1", "create database \"%s\";" % (database))
         self.PGDATABASE = database
 
     def _opensql(self, sqlfile):
@@ -251,63 +273,118 @@ class PostgresTestDB(object):
             if matches:
                 self.PGDATABASE = matches.group(1)
 
-    def setupAircraftDatabase(self, sqlfile=None):
-        self.start()
-        self.createUser('ads')
-        self.createDatabase('real-time')
-        if sqlfile:
-            # This doesn't actually work with .sql.gz files yet, I think it
-            # has to do with character encoding returned by the gzip file
-            # object, but it's here in case someday it can be fixed.
-            with self._opensql(sqlfile) as sf:
-                p = self._popen(["psql", "template1"], stdin=sf)
-                p.communicate()
-            self.parseDatabase(sqlfile)
-        # gunzip -c $SQLGZ | psql template1
-	# pg_restore -i -C -d postgres real-time.sqlz
+    def loadSQL(self, sqlfile):
+        with self._opensql(sqlfile) as sf:
+            p = self._popen(["psql", "template1"], stdin=sf)
+            p.communicate()
+        self.parseDatabase(sqlfile)
 
-    def action_run_aircraftdb(target, source, env):
+
+    def action_init(target, source, env):
         pg = env.PostgresTestDB()
-        pg.init()
-        pg.start()
-        # Find the source that is the SQL dump.
+        # Look for an optional SQL source to load.
         sql = [s for s in source 
                if str(s).endswith('.sql') or str(s).endswith('.sql.gz')]
-        if not sql:
-            raise SCons.Errors.StopError, "No SQL source."
-        sql = sql[0]
-        pg.setupAircraftDatabase(sql.get_abspath())
+        #if not sql:
+        #    raise SCons.Errors.StopError, "No SQL source."
+        sqlfile = None
+        if sql:
+            sqlfile = sql[0]
+        pg.init(sqlfile.get_abspath())
         # Update PGDATABASE to the name of the database just created, so
         # programs can connect to the test database without knowing the
         # actual name.
         env['ENV'].update(pg.getEnvironment({}))
         return 0
 
-    action_run_aircraftdb = staticmethod(action_run_aircraftdb)
+    action_init = staticmethod(action_init)
 
 
-    def action_run_aircraftrealtime(target, source, env):
-        # Run a thread to simulate real-time on the database.
+    def action_start(target, source, env):
         pg = env.PostgresTestDB()
-        pg.startAircraftRealtime()
+        pg.start()
         return 0
 
-    action_run_aircraftrealtime = staticmethod(action_run_aircraftrealtime)
+    action_start = staticmethod(action_start)
 
-    def startAircraftRealtime(self, block=False):
+
+    def action_stop(target, source, env):
+        pg = env.PostgresTestDB()
+        pg.stop()
+        return 0
+
+    action_stop = staticmethod(action_stop)
+
+
+
+class AircraftTestDB(PostgresTestDB):
+    """A PostgresTestDB where the user is always ads and the default database
+    name is real-time, and there is a method to simulate real-time updates.
+    This test database adds two action methods for controlling the realtime
+    updates thread: start_realtime and stop_realtime.
+    """
+
+    def __init__(self, cwd=None):
+        PostgresTestDB.__init__(self, cwd, "aircrafttestdb")
+        self.realtime_thread = None
+        self.stopevent = None
+
+    def init(self, sqlfile=None):
+        PostgresTestDB.init(self)
+        self.createUser('ads')
+        self.createDatabase('real-time')
+        if sqlfile:
+            self.loadSQL(sqlfile)
+
+    def stop(self):
+        self.stopRealtime()
+        PostgresTestDB.stop(self)
+
+    def simulate_realtime(self):
+        """
+        Loop through the times in the database until stopevent is true.
+        """
+        # Get a connection to the database
+        db = self.connect()
+
+        # Grab the first datetime in the raf_lrt table, then loop through
+        # setting EndTime to the next greater time.
+        cursor = db.cursor()
+        cursor.execute("""
+    SELECT datetime FROM raf_lrt ORDER BY datetime;
+    """)
+        rows = cursor.fetchall()
+        # Skip the first few rows so the time span never appears empty.
+        for r in rows[5:]:
+            when = r[0]
+            print("setting EndTime to %s" % (when))
+            cursor.execute("""
+    UPDATE global_attributes SET value = %s WHERE key = 'EndTime';""", (when,))
+            # The commit is required for the notification to happen.
+            db.commit()
+            # In python 2.7 wait() returns true unless it times out, while
+            # python 2.6 it always returns None.  So to be backwards compatible
+            # we must always test whether the event is set or not.
+            if self.stopevent is None:
+                time.sleep(1)
+            elif self.stopevent.wait(1) or self.stopevent.is_set():
+                print("stop event received.")
+                break
+        db.close()
+
+    def startRealtime(self, block=False):
         if block:
-            simulate_aircraft_realtime(self)
+            self.simulate_aircraft_realtime()
             return
         self.stopevent = threading.Event()
         self.realtime_thread = threading.Thread(
-            target=simulate_aircraft_realtime,
-            args=(self, self.stopevent))
+            target=self.simulate_realtime)
         # Mark it as a daemon so it does not prevent python from exiting if
         # scons bails somewhere else.
         self.realtime_thread.daemon = True
         self.realtime_thread.start()
 
-    def stopAircraftRealtime(self):
+    def stopRealtime(self):
         if self.realtime_thread:
             print("stopping aircraft real-time data thread...")
             self.stopevent.set()
@@ -316,20 +393,23 @@ class PostgresTestDB(object):
             self.realtime_thread = None
             self.stopevent = None
 
-    def action_stop_aircraftrealtime(target, source, env):
+    def action_start_realtime(target, source, env):
+        # Run a thread to simulate real-time on the database.
         pg = env.PostgresTestDB()
-        pg.stopAircraftRealtime()
+        pg.startRealtime()
         return 0
 
-    action_stop_aircraftrealtime = staticmethod(action_stop_aircraftrealtime)
+    action_start_realtime = staticmethod(action_start_realtime)
 
-
-    def action_stopdb(target, source, env):
+    def action_stop_realtime(target, source, env):
         pg = env.PostgresTestDB()
-        pg.stop()
+        pg.stopRealtime()
         return 0
 
-    action_stopdb = staticmethod(action_stopdb)
+    action_stop_realtime = staticmethod(action_stop_realtime)
+
+
+
 
 def dumpdb(target, source, env):
     platform = env['AIRCRAFT']
@@ -348,20 +428,20 @@ def DumpAircraftSQL(env, sqltarget, aircraft):
         env.AlwaysBuild(sql)
 
 
-def _get_instance(env, cwd=None):
+def _get_instance(env, cwd=None, personality="aircraft"):
     # Only create one database test object per environment, so the same
     # object can be retrieved by separate calls to our PostgresTestDB()
     # environment method.
     pg = env.get('POSTGRES_TESTDB')
     if not pg:
-        pg = PostgresTestDB(cwd)
+        if personality == "aircraft":
+            pg = AircraftTestDB(cwd)
+        else:
+            pg = PostgresTestDB(cwd)
         env['POSTGRES_TESTDB'] = pg
         # Also add the connection settings to the SCons ENV so they will
         # be set when running commands.
-        env['ENV']['PGPORT'] = pg.PGPORT
-        env['ENV']['PGHOST'] = pg.PGHOST
-        env['ENV']['PGDATA'] = pg.PGDATA
-
+        env['ENV'].update(pg.getEnvironment({}))
     return pg
 
 
@@ -402,25 +482,30 @@ def main():
     # persist to the next time this script runs.  So load the settings for
     # every session, but then save them after they might have changed so
     # they can persist across runs.
-    pg = PostgresTestDB()
+
+    # For now the test database personality is always the aircraft
+    # database.  However, if other personalities are ever used, then it
+    # will have to be set through some method here.
+    # 
+    pg = AircraftTestDB()
     pg.loadSetup()
+    if pg.personality == "postgrestestdb":
+        pg = PostgresTestDB()
     import sys
     args = sys.argv
     op = args[1]
     if op == "init":
-        pg.init()
+        sqlfile = None
+        if len(args) > 2:
+            sqlfile = args[2]
+        pg.init(sqlfile)
+        pg.saveSetup()
     elif op == "start":
         pg.start()
     elif op == "stop":
         pg.stop()
-    elif op == "aircraft":
-        sqlfile = None
-        if len(args) > 2:
-            sqlfile = args[2]
-        pg.setupAircraftDatabase(sqlfile)
-        pg.saveSetup()
     elif op == "realtime":
-        pg.startAircraftRealtime(block=True)
+        pg.startRealtime(block=True)
     elif op == "dump":
         pg.dump(args=args[2:])
     elif op == "env":
