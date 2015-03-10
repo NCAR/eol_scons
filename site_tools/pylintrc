@@ -34,7 +34,7 @@ load-plugins=
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
-disable=R0201,I0011,C0111,C0303,W1201,C1001
+disable=R0201,I0011,C0111,C0303,W1201,C1001,C0325
 
 # W0403 relative import
 # R0201 method could be a function
@@ -44,15 +44,15 @@ disable=R0201,I0011,C0111,C0303,W1201,C1001
 # C0303 trailing whitespace
 # W1201 logging-not-lazy
 # C1001 old-style-class
+# C0325 superfluous-parens: prefer to use python3 print as a function
 
 [REPORTS]
 
 # Set the output format. Available formats are text, parseable, colorized, msvs
 # (visual studio) and html
-output-format=parseable
+#output-format=parseable
 
-# Include message's id in output
-include-ids=yes
+msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
 
 # Put messages in a separate file for each module / package specified on the
 # command line instead of printing them on stdout. Reports (if any) will be

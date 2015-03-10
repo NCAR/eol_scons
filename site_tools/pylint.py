@@ -4,9 +4,9 @@ import re
 
 pylint = "${PYLINTPYTHONPATH and 'env PYTHONPATH='+PYLINTPYTHONPATH or ''} "
 pylint += "${PYLINT} ${PYLINTARGS} "
-pylint += "${PYLINTRC and '--rcfile='+str(PYLINTRC) or ''} ${SOURCES} 2>&1 | "
-pylint += 'egrep -v "maximum recursion depth exceeded.*ignored" | '
-pylint += 'egrep -v "Instance of \'Popen\' has no \'.*\' member"'
+pylint += "${PYLINTRC and '--rcfile='+str(PYLINTRC) or ''} ${SOURCES} 2>&1"
+#pylint += '| egrep -v "maximum recursion depth exceeded.*ignored" | '
+#pylint += 'egrep -v "Instance of \'Popen\' has no \'.*\' member"'
 
 def find_python_files(env, topdir, excludes=None):
     found = []
