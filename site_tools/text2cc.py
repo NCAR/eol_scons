@@ -42,10 +42,13 @@ def _message(target, source, env):
     return "Embedding text file '%s' in '%s'" % (source[0], target[0])
 
 _embedded_builder = None
+_have_embedded_builder = False
 
 def _get_builder():
     global _embedded_builder
-    if not _embedded_builder:
+    global _have_embedded_builder
+    
+    if not _have_embedded_builder:
         import SCons
         from SCons.Script import Builder
         from SCons.Script import Action
@@ -53,6 +56,8 @@ def _get_builder():
                           varlist=['TEXT_DATA_VARIABLE_NAME'])
         _embedded_builder = Builder(action=etaction,
                                     emitter=_embedded_text_emitter)
+        _have_embedded_builder = True
+        
     return _embedded_builder
 
 def _EmbedTextCC(env, target, source, variable):
