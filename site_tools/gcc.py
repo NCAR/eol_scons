@@ -23,7 +23,7 @@ does not appear to be a Fedora package which provides it.
 import SCons.Tool
 import SCons.Tool.gcc
 import os
-
+import re
 
 
 def Debug(env):
@@ -75,8 +75,7 @@ def generate(env):
     env.AddMethod(Debug)
     env.AddMethod(Warnings)
     env.AddMethod(Profile)
-    env.AddMethod(SanitizeAddress)
-    env.AddMethod(SanitizeThread)
+
     # There's no harm in always adding these to the construction
     # environment, whether sanitization will be used or not.  This way
     # environments can filter output from sanitized executables built in a
@@ -87,7 +86,25 @@ def generate(env):
     env.SetDefault(ASAN_SYMBOLIZE=asan)
     env.SetDefault(CXXFILT='c++filt')
     env.SetDefault(ASAN_FILTER="${ASAN_SYMBOLIZE} | ${CXXFILT}")
-    env.AddMethod(AsanFilter)
+
+    # The sanitize options require GCC 4.8+, so if we don't have that,
+    # then provide nop methods.
+
+    version = env.get('CCVERSION')
+    if not version or re.match(r'[1234]\.[1-7]\.', version):
+        env.AddMethod((lambda env: env), "SanitizeAddress")
+        env.AddMethod((lambda env: env), "SanitizeThread")
+        # In theory this doesn't hurt anything, and it's possible someone
+        # may need to symbolize output from something that was not
+        # sanitized, but that can be handled later if ever needed.
+        env.AddMethod((lambda env, command: command), "AsanFilter")
+        env.AddMethod((lambda env: False), "SanitizeSupported")
+    else:
+        env.AddMethod(SanitizeAddress)
+        env.AddMethod(SanitizeThread)
+        env.AddMethod(AsanFilter)
+        env.AddMethod((lambda env: True), "SanitizeSupported")
+
 
 def exists(env):
     return SCons.Tool.gcc.exists(env)
