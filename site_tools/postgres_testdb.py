@@ -37,6 +37,10 @@ pg.stop()
     related to this test database, such as threads for simulating real-time
     data.
 
+pg.destroy()
+
+    Stop the postgres server and clean up everything creatd by init().
+
 For running the database within scons builders and testers, there are class
 members which can be used in SCons action lists.  These pull the current
 test database instance from the Environment and then call the corresponding
@@ -45,6 +49,19 @@ method:
 action_init()
 action_start()
 action_stop()
+action_destroy()
+
+Since the init() and destroy() methods also take care of starting and
+stopping the server, it is typically sufficient to bracket tests with just
+those actions.  If the test runs successfully, then the destroy() takes
+care of removing any artifacts.  Here is an example from the aeros
+datastore tests:
+
+    sql = env.File("../../../data/real-time.sql.gz")
+    dbtest = env.TestLog('xtest', [testprog, sql], [
+        pg.action_init, pg.action_start_realtime] +
+        env.ChdirActions(["./${SOURCE.file} --log_level=all -debug all"]) +
+        [pg.action_destroy])
 
 Subclasses can provide additional actions, such as action_start_realtime()
 for running the thread to simulate aircraft real-time updates.
@@ -134,8 +151,7 @@ class PostgresTestDB(object):
         Create the PGDATA directory, setup the configuration, and start the
         postgres server.
         """
-        self.stop()
-        shutil.rmtree(self.PGDATA, ignore_errors=True)
+        self.destroy()
         print("Postgres version: %s" % (self.getVersion()))
         self._initdb()
         socketparam = "unix_socket_directories"
@@ -149,6 +165,14 @@ class PostgresTestDB(object):
         self.start()
         if sqlfile:
             self.loadSQL(sqlfile)
+
+    def destroy(self):
+        """
+        Stop the postgres server and remove the data directory, cleaning up
+        everything created by init().
+        """
+        self.stop()
+        shutil.rmtree(self.PGDATA, ignore_errors=True)
 
     def saveSetup(self):
         """
@@ -314,6 +338,13 @@ class PostgresTestDB(object):
         return 0
 
     action_stop = staticmethod(action_stop)
+
+    def action_destroy(target, source, env):
+        pg = env.PostgresTestDB()
+        pg.destroy()
+        return 0
+
+    action_destroy = staticmethod(action_destroy)
 
 
 
