@@ -781,18 +781,63 @@ def _Tool(env, tool, toolpath=None, **kw):
     tool(env)
     Debug("...after applying tool %s: LIBPATH=%s, env.Install=%s" %
           (name, _Dump(env, 'LIBPATH'), env.Install))
+    # We could regenerate the help text after each tool is loaded,
+    # presuming that only tools add variables, but that would not catch
+    # variables which are added after the last tool is loaded, as well as
+    # being a lot of extra calls.  So this works to a point, and it would
+    # still allow the help text to be customized at the end of the
+    # SConstruct file (unlike wrapping the _SConscript call below).
+    # However, it is left unused in favor of adding a simple SetHelp() call
+    # at the end of SConstruct.
+    #
+    # env.SetHelp()
+    #
     return tool
 
+def _SConscript(fs, *files, **kw):
+    # This is a custom wrapper to the SCons function which reads a
+    # SConscript file (including the SConstruct file).  Set the help text
+    # after the last SConscript has been read.  However this approach
+    # doesn't work, because the _SConscript() function makes some
+    # assumptions about the call stack, and so I think inserting this
+    # function in the stack causes problems.
+    _real_SConscript(fs, *files, **kw)
+    if SCons.Script.sconscript_reading == 0:
+        env = DefaultEnvironment()
+        env.SetHelp()
 
-def _SetHelp(env, text):
+if False:
+    _real_SConscript = SCons.Script._SConscript._SConscript
+    SCons.Script._SConscript._SConscript = _SConscript
+
+def _SetHelp(env, text=None):
     """
     Override the SConsEnvironment Help method to first erase any previous
     help text.  This can help if multiple SConstruct files in a project
-    each try to generate the help text all at once.
+    each try to generate the help text all at once.  If @p text is None,
+    then generate the help text from the global variables.  To clear the
+    help text to an empty string, pass "" in @p text.
     """
     import SCons.Script
     SCons.Script.help_text = None
-    env._SConscript_Help(text)
+    if text is None:
+        variables = env.GlobalVariables()
+        variables.Update(env)
+        text = variables.GenerateHelpText(env)
+
+    # It doesn't work to call the real Help() function because it performs
+    # a substitution on the text.  There is already lots of variable help
+    # text written using $VARIABLE which is not supposed to be substituted.
+    # Further, some of the $VARIABLE references do not parse because they
+    # are followed by a period. (eg, soqt.py and coin.py) So instead call
+    # the HelpFunction() directly.  If that ever breaks and we need to
+    # resort to calling the standard Help() method, then it may help to fix
+    # the variable references in the help text first, like so:
+    #
+    # text = re.sub(r'\$', '$$', text)
+    # env.Help(text)
+    #
+    SCons.Script.HelpFunction(text)
 
 
 # Include this as a standard part of Environment, so that other tools can
@@ -840,7 +885,6 @@ def _addMethods(env):
 
     # So that only the last Help text setting takes effect, rather than
     # duplicating info when SConstruct files are loaded from sub-projects.
-    env._SConscript_Help = env.Help
     env.AddMethod(_SetHelp, "SetHelp")
 
     # For backwards compatibility:
