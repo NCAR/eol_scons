@@ -104,6 +104,23 @@ class PostgresTestDB(object):
         self.cwd = cwd
         if not self.cwd:
             self.cwd = os.getcwd()
+
+        self.PGPORT = None
+        self.PGHOST = None
+        self.PGDATA = None
+        self.PGUSER = None
+        self.PGDATABASE = None
+        self.personality = personality
+        self.pgversion = None
+        self.settingsfile = None
+        self.setupTempConnection()
+        
+    def setupTempConnection(self):
+        """
+        Setup the connection parameters for a database server which runs in a
+        directory under /tmp keyed by a hash of the current directory and
+        listening on a unix socket.
+        """
         # We want the port to depend on the current directory, so it is
         # consistent between runs without colliding with other instances
         # running from other working directories.
@@ -118,10 +135,6 @@ class PostgresTestDB(object):
         #
         self.PGDATA = "/tmp/pgdata.%s" % (self.PGPORT)
         self.settingsfile = self.PGDATA + "/postgres_testdb.json"
-        self.pgversion = None
-        self.PGUSER = None
-        self.PGDATABASE = None
-        self.personality = personality
 
     def connect(self):
         """
@@ -222,12 +235,18 @@ class PostgresTestDB(object):
         p = self._popen(["psql", database, "-c", command])
         p.wait()
 
-    def dump(self, host=None, user=None, db=None, path=None, args=None):
+    def dump(self, host=None, user=None, db=None, path=None, env=None, args=None):
         """
-        Write SQL dump of @p user, @p host, @p db to @p path.
+        Write SQL dump of @p user, @p host, @p db to @p path.  If env is None,
+        then use the environment for this PostgresTestDB instance, dump the
+        temporary test database.  Otherwise, pass env as os.environ or an
+        empty dictionary to prevent using this object's environment
+        settings.
         """
         if not db:
             db = self.PGDATABASE
+        if env is None:
+            env = self.getEnvironment()
         if not path and db:
             path = db + ".sql"
 	cmd = ["pg_dump", "-i", "-C", "--no-owner", "-v", "--format=p"]
@@ -241,7 +260,7 @@ class PostgresTestDB(object):
             cmd += ["-f", path]
         if db:
             cmd += [db]
-        p = self._popen(cmd, env=self.getEnvironment())
+        p = self._popen(cmd, env=env)
         p.wait()
 
     def getEnvironment(self, env=None):
@@ -448,7 +467,8 @@ def dumpdb(target, source, env):
     if platform:
         db = db + "-" + platform
     pg = env.PostgresTestDB()
-    pg.dump("eol-rt-data.fl-ext.ucar.edu", "ads", db, target[0].get_abspath())
+    pg.dump("eol-rt-data.fl-ext.ucar.edu", "ads", db, target[0].get_abspath(),
+            env=os.environ)
 
 
 def DumpAircraftSQL(env, sqltarget, aircraft):
