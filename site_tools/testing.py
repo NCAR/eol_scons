@@ -311,6 +311,7 @@ def diff_emitter(target, source, env):
     (base, ext) = os.path.splitext(str(source[0]))
     if str(target[0]) == base:
         diff = "diff-" + str(source[0]) + "-" + str(source[1])
+        diff = diff.replace('/', '-')
         print("Creating default diff target: %s" % (diff))
         target = [diff]
     return target, source
