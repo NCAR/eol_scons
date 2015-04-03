@@ -5,7 +5,8 @@ _options = None
 
 def getPrefix(env, apply_config = False):
     matchdir = env.FindPackagePath('COIN_DIR','$OPT_PREFIX/Coin*')
-    prefixes = [ env.get('COIN_DIR'), matchdir, env.get('OPT_PREFIX'), "/usr"]
+    prefixes = [ env.get('COIN_DIR'), "/usr/local", matchdir, 
+                 env.get('OPT_PREFIX'), "/usr"]
     return parseconfig.ParseConfigPrefix(env, 'coin-config', prefixes,
                                          apply_config = apply_config)
 
@@ -15,9 +16,12 @@ def generate(env):
     if not _options:
         _options = env.GlobalVariables()
         _options.Add('COIN_DIR', """Set the Coin directory.
-If not set, look for a directory matching Coin* under $OPT_PREFIX.
 Use the first coin-config found in this list of paths:
- $COIN_DIR/bin, $OPT_PREFIX/bin, and /usr/bin.""", getPrefix(env))
+ $COIN_DIR/bin, /usr/local/bin, $OPT_PREFIX/Coin*/bin, 
+ $OPT_PREFIX/bin, and /usr/bin.
+/usr/local/bin is searched early since it is the default installation 
+for the Coin version on which Quarter depends.""", 
+                     getPrefix(env))
         
     _options.Update(env)
     prefix = getPrefix(env, apply_config = True)
