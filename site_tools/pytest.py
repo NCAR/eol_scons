@@ -11,6 +11,15 @@ def PythonTest(env, name, script, **kw):
     return target
 
 
+# Run py.test on the source files.
+
+def PyDotTest(env, name, sources, **kw):
+    target = env.Command(name, sources,
+                         'py.test ${PYTESTARGS} ${SOURCES}', **kw)
+    env.Alias(name, target)
+    return target
+
+
 def generate(env):
     global _options
     if not _options:
@@ -23,6 +32,7 @@ def generate(env):
                       "-v")
     _options.Update(env)
     env.AddMethod(PythonTest, "PythonTest")
+    env.AddMethod(PyDotTest, "PyDotTest")
                    
 
 def exists(env):
