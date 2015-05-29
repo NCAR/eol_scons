@@ -8,14 +8,12 @@ representing characteristics of the repository. These variables can be
 accessed directly in the scons environment. It also can generate
 a C header file with defines based on the same information.
 
-The git information is based on the most recent git tag 
+The git information is based on the most recent annotated git tag 
 that can be reached through 'git describe'. This is combined
 with the number of commits since that tag to create a distinct
 revision number which can be traced to a particular git commit.
 
-It is intended to be used in a workflow where the master branch
-has tags naming major releases, followed by incremental
-updates. 
+Remember: _The tag must be a git annotated tag_
 
 Example usage:
 env = Environment(tools = ['default', gitinfo'])
