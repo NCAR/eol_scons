@@ -155,7 +155,7 @@ class GitInfo:
         except OSError, e:
             print("Warning: '%s' failed: %s" % (" ".join(cmd), str(e)))
             return "Git error: " + str(e)
-        return output[0]
+        return output[0].lstrip().rstrip()
 
     def _cmd_out_ok(self, cmd_out, error):
         """
