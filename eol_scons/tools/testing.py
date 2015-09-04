@@ -254,7 +254,7 @@ def _DefaultTest(env, xtest):
 
 
 def _get_page_instance(env):
-    from imagecomparisonpage import ImageComparisonPage
+    from eol_scons.imagecomparisonpage import ImageComparisonPage
     page = env.get('IMAGE_COMPARISON_PAGE')
     if not page:
         page = ImageComparisonPage()
@@ -268,7 +268,7 @@ def _sync_cache(target, source, env):
     raise SCons.Errors.StopError("datasync failed.")
 
 def _get_cache_instance(env):
-    import datafilecache
+    import eol_scons.datafilecache as datafilecache
     import os
     dfcache = env.get('DATA_FILE_CACHE')
     if not dfcache:

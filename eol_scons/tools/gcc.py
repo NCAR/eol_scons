@@ -80,7 +80,7 @@ def generate(env):
     # environment, whether sanitization will be used or not.  This way
     # environments can filter output from sanitized executables built in a
     # different environment.
-    asan = os.path.join(os.path.dirname(__file__), "..", 'utils', 
+    asan = os.path.join(os.path.dirname(__file__), "scripts", 
                         'asan_symbolize.py')
     asan = os.path.normpath(asan)
     env.SetDefault(ASAN_SYMBOLIZE=asan)

@@ -3,7 +3,7 @@
 ##
 # @file examples/aeros/SConscript
 
-env = Environment (tools = ['default', 'deploy', 'valgrind', 'plotlib'])
+env = Environment (tools = ['default', 'deploy', 'valgrind', 'qt4'])
 
 sources = Split("""
 MainWindow.cc

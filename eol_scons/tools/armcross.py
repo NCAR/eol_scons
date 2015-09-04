@@ -3,7 +3,7 @@
 Customize an environment to use the GCC ARM cross-compiler tools.
 """
 
-import localutils
+import eol_scons.utils
 
 def generate(env,**kw):
     """
@@ -40,7 +40,7 @@ def generate(env,**kw):
     print("armcross: found %s and %s" % 
           (env.WhereIs('arm-linux-gcc'), env.WhereIs('arm-linux-g++')))
 
-    cxxrev = localutils.get_cxxversion(env)
+    cxxrev = eol_scons.utils.get_cxxversion(env)
     if cxxrev != None:
         env.Replace(CXXVERSION = cxxrev)
 

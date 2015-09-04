@@ -14,6 +14,7 @@ def GetArchLibDir(env):
     # It is tempting to pass clean=False and help=False to this Configure
     # context, but that might change the paths to targets which need to be
     # cleaned or are specified in help variables.
+
     sconf = env.Clone(LIBS=[]).Configure()
     libdir = 'lib'
     if sconf.CheckTypeSize('void *',expect=8,language='C'):

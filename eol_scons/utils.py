@@ -1,3 +1,6 @@
+# -*- python -*-
+# Copyright 2007 UCAR, NCAR, All Rights Reserved
+
 import os
 import re
 import subprocess

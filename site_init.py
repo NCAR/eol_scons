@@ -1,3 +1,0 @@
-
-import eol_scons
-

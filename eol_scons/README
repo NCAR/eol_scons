@@ -59,7 +59,7 @@ helps in navigating the source.
 @section implementation SCons Implementation
 
 This build framework is based on SCons (http://www.scons.org) and called
-eol_site_scons.  It is mostly a python package called eol_scons and a set
+eol_scons.  It is mostly a python package called eol_scons and a set
 of scons tools which extends the standard SCons.  Thus it is more
 appropriate to call it eol_site_scons, but the python package name is
 historical.  Every component within the source tree as well as all external
@@ -81,30 +81,45 @@ Environment is constructed.
 
 @subsection installation Installation
 
-This framework is meant to be installed as the `site_scons` directory in
-the top level directory of a source tree.  Within EOL, this is usually
-accomplished with a subversion external reference.  However, it is also
-possible to extract the eol_site_scons release archive and just rename it
-or link to `site_scons`.  SCons also provides the `--site-dir` option to
-specify the location of the site_scons directory, so it can be shared among
-projects.  Lastly, it is also possible to activate the EOL site_scons
-directory explicitly in a SConstruct file, as long as there is not already
-a site_scons directory that SCons would find by default:
+Starting with version 2.3, Scons will search the following directories in the order shown to find a tool package and site_init.py:
+
+    -# /usr/share/scons/site_scons
+    -# $HOME/.scons/site_scons
+    -# ./site_scons
+
+For versions of SCons prior to 2.3, only ./site_scons is searched, where '.' is the directory containing SConstruct.
+
+The eol_scons RPM installs eol_scons to /usr/share/scons/site_scons. If that RPM is installed, and you're using scons version 2.3 or later, you should be set.
+
+Otherwise if you're using scons version 2.3 or later, and that RPM is not installed, or you want to test modifications to eol_scons, you can install it to $HOME/.scons/site_scons, and use it for all your scons builds:
 
 @code
-# Put this at the top of the SConstruct file.
-import os
-import sys
-sys.path.insert(0, os.path.abspath("<path-to>/site_scons"))
-import site_init
+mkdir -p $HOME/.scons/site_scons
+cd $HOME/.scons/site_scons
+git clone http://github.com/ncareol/eol_scons
 @endcode
 
+Otherwise if you're using scons version before 2.3, install eol_scons to the directory containing SConstruct:
+
+
+@code
+mkdir site_scons
+cd site_scons
+git clone http://github.com/ncareol/eol_scons
+@endcode
+
+In all cases, import eol_scons at the top of your SConstruct, before any tools are loaded:
+@code
+import eol_scons
+...
+env = Environment(tools=['default'])
+@endcode
 
 @subsection externaltools External Tools
 
 Below is an example of a very simple tool from eol_site_scons for building
 against the fftw library.  The `fftw` tool is a tool file in the
-`site_scons/site_tools` directory under the top directory of the project
+`eol_scons/tools` directory under the top directory of the project
 source tree.  It's a shared tool file because it's always an external
 dependency.
 
@@ -265,7 +280,7 @@ adds methods in the SCons Environment class.  See the
 eol_scons._addMethods() function to see the full list.
 
 Second, this package adds a set of EOL tools to the SCons tool path.  Most
-of the tools are for configuring and building against third-party software
+of the tools there are for configuring and building against third-party software
 packages.
 
 Lastly, this module itself provides an interface for configuring and
