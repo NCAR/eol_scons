@@ -499,6 +499,12 @@ def _get_instance(env, cwd=None, personality="aircraft"):
 def generate(env):
     env.AddMethod(_get_instance, "PostgresTestDB")
     env.AddMethod(DumpAircraftSQL, "DumpAircraftSQL")
+    # Put the path to this script in the shell environment, so test scripts
+    # can call it directly as a script.
+    ptdb = os.path.join(os.path.dirname(__file__), "postgres_testdb.py")
+    env.SetDefault(POSTGRES_TESTDB_PATH=ptdb)
+    env['ENV']['POSTGRES_TESTDB_PATH'] = ptdb
+
 
 def exists(env):
     pgctl = env.WhereIs('pg_ctl')
