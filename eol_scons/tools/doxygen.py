@@ -568,6 +568,12 @@ def generate(env):
     env.AddMethod(Doxygen, "Doxygen")
     env.AddMethod(ApidocsIndex, "ApidocsIndex")
     env.AddMethod(SetDoxref, "SetDoxref")
+    # Set the path to the eol_scons README file in the environment, so
+    # doxygen targets can reference it in project documentation without
+    # hardcoding the path to it.
+    readme = os.path.join(os.path.dirname(__file__), "..", "README")
+    readme = os.path.abspath(readme)
+    env.SetDefault(EOL_SCONS_README=env.File(readme))
 
 def exists(env):
     return env.Detect ('doxygen')
