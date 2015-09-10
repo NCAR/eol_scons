@@ -1,3 +1,6 @@
+# -*- python -*-
+# Copyright 2007 UCAR, NCAR, All Rights Reserved
+
 """
 API for transparently downloading and caching remote data files.
 
