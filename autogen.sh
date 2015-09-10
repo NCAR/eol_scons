@@ -1,22 +1,12 @@
 #!/bin/sh
 
-set -e
+set -ex
 
-echo "Adding libtools."
 libtoolize --force --automake
-
-echo "Building macros."
-ACLOCAL_AMFLAGS="-I config $ACLOCAL_AMFLAGS"
-export ACLOCAL_AMFLAGS
-aclocal $ACLOCAL_AMFLAGS
-
-echo "Building config header."
+aclocal -I config
 autoheader
-
-echo "Building makefiles."
 automake -f --add-missing --foreign
-
-echo "Building configure."
 autoconf
 
+set +x
 echo 'run "configure; make"'
