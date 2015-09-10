@@ -6,9 +6,9 @@ echo "Adding libtools."
 libtoolize --force --automake
 
 echo "Building macros."
-# ACLOCAL_FLAGS="-I config --output=config/aclocal.m4 $ACLOCAL_FLAGS"
-ACLOCAL_FLAGS="-I config $ACLOCAL_FLAGS"
-aclocal $ACLOCAL_FLAGS
+ACLOCAL_AMFLAGS="-I config $ACLOCAL_AMFLAGS"
+export ACLOCAL_AMFLAGS
+aclocal $ACLOCAL_AMFLAGS
 
 echo "Building config header."
 autoheader
