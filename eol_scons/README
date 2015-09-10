@@ -94,9 +94,12 @@ The eol_scons RPM installs eol_scons to /usr/share/scons/site_scons. If that RPM
 Otherwise if you're using scons version 2.3 or later, and that RPM is not installed, or you want to test modifications to eol_scons, you can install it to $HOME/.scons/site_scons, and use it for all your scons builds:
 
 @code
+mkdir -p $HOME/git
+cd $HOME/git
+git clone http://github.com/ncareol/eol_scons
 mkdir -p $HOME/.scons/site_scons
 cd $HOME/.scons/site_scons
-git clone http://github.com/ncareol/eol_scons
+ln -s $HOME/git/eol_scons/eol_scons .
 @endcode
 
 Otherwise if you're using scons version before 2.3, install eol_scons to the directory containing SConstruct:
