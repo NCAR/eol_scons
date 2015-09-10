@@ -1,0 +1,113 @@
+
+----------------------------------------------------------------
+Projects with multiple SConstruct files
+
+----------------
+Fixing tool Variables and the global Help text
+
+Is there a way to override the Help() call so that it does not take effect
+until after all the sconscript files have been read?  then a toplevel
+Sconstruct can create the Help(), but it can be ignored when loaded as part
+of a larger tree.  Ultimately it would be great to not need to call the
+Help() function in any SConstruct or SConscript file.
+
+ - overriding Help() works, but I don't see a clean way to trigger
+ somethine after all sconscripts are read.  perhaps better to add help each
+ time a variable is added to the global variables?  then it should only
+ ever happen once, and the extra Help() call at the end of SConstruct will
+ not be necessary unless it needs to add something.
+
+ - the Help() text is already global, so each option only needs to append
+ to it once... the logic to generate text for one option is 
+ Variables.FormatVariableHelpText(env, key, help, default, actual, aliases=[])
+ or
+ Variables.FormatVariableHelpText(env, opt.key, opt.help, opt.default, actual, opt.aliases)
+
+ so each time a variable is added, the [Default]Environment could be Updated,
+ and it's help text and associated settings could be added to env.Help()
+
+ - the convention for prepending help info would be to use the default
+ Help() at the top of the SConstruct file, before any tools are loaded
+ which might start adding help.
+
+ Note this doesn't exclude using Help(GenerateHelpText()), especially if it
+ gets cleared first.
+
+ Someday we could change GlobalVariables to use Variables(is_global=True),
+ then tools could use that instead of calling GlobalVariables(), as long as
+ the global variables are set up with the config file setting.  Or perhaps
+ sub-projects should add their own config files... a source project tree
+ could refer to other project trees not even in the same directory
+ hierarchy, allowing them to be assembled together, then targets like
+ install and test and rpm could be run on all of them at once
+
+
+sconsign only works if given the original filename, such as
+.sconsign.dblite.
+
+----------------
+Multiple copies of eol_scons in the tree
+
+So far it has not been proved to be a problem.  Some debugging of the
+profiler source tree did not show any eol_scons tools or modules being
+loaded multiple times from the wrong places.
+
+However...
+
+SCons.Script.SConscript defines the SConsEnvironment class, with the public
+methods for the SCons script interface, including the hook into the
+_SConscript() function which does the actual reading.  That function
+actually changes the working directory a few times, and also inserts the
+SConscript directory on the front of the system path!  So is it possible
+that eol_scons is getting imported more than once from two different
+locations?
+
+----------------------------------------------------------------
+Why eol_scons.debug not getting set to true sooner when eolsconsdebug=yes?
+
+I tried checking SCons.Script.ARGUMENTS.get('eolsconsdebug',False) in
+eol_scons.__init__.py, but ARGUMENTS has not been populated yet.
+
+----------------------------------------------------------------
+Performance
+
+Could we improve scons performance by leaving out targets that will not be
+built?  For example, leave off all of the apidocs rules if there is no
+'apidocs' target on the command line.
+
+----------------------------------------------------------------
+Other
+
+How to assemble a list of all the source files in all the Program and
+Library targets, especially when in different environments?  Maybe by
+overriding those methods in Pkg_Environment?  But we also need to get
+header files, which are not specified.  With a list of source files in the
+tree an etags target would be trivial and complete.
+
+----------------------------------------------------------------
+On loading tools multiple times:
+
+Tools with **kw arguments expect to be instantiated more than once,
+even though each still points to the same module instance and to the
+same generate() and exists() and options() methods from that module.
+
+That seems to conflict with eol_scons assumption in several tools that they
+will only be instantiated once.
+
+If new tools are always instantiated each time Tool() is called, then
+buildmode breaks, and all the tool variables get added to the list multiple
+times.  why?  The assumption in the options() attribute to a Tool seems to
+be that every Environment will have only the options which apply to it,
+meaning for the tools which have been applied to it, except how does a
+toplevel Environment then print complete help information?
+
+For now, if kw is passed to Tool(), don't cache that tool, but instead
+instantiate a new one.
+
+Eventually, can we migrate to the options() and generate() mechanism for
+tools with options?  or detect whether a tool's variables have been added
+to the global variables or not?
+
+It seems scons actually rereads the tool module file each time, meaning
+we can't count on _options being None only once.
+

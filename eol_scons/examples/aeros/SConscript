@@ -1,0 +1,167 @@
+# -*- python -*-
+
+##
+# @file examples/aeros/SConscript
+
+env = Environment (tools = ['default', 'deploy', 'valgrind', 'qt4'])
+
+sources = Split("""
+MainWindow.cc
+MainWindowConfig.cc
+aeros.cc
+DemoThread.cc
+GlobalFilter.cc
+EventInfo.cc
+QAerosMdiArea.cc
+helpviewer/helpwindow.cpp
+""")
+
+headers = Split("""
+MainWindow.h
+DemoThread.h
+GlobalFilter.h
+QAerosMdiArea.h
+helpviewer/helpwindow.h
+""")
+
+if env['PLATFORM'] != 'win32':
+    env.Append(LINKFLAGS=['-rdynamic'])
+    
+if env['PLATFORM'] == 'darwin':
+	# this switch allows extra room for library path names
+	# because the macdeployqt tool calls install_name_tool 
+	# to turn absolute paths into relative paths within the bundle
+    env.Append(LINKFLAGS=['-headerpad_max_install_names'])
+    
+# env.EnableQt4Modules(['QtScript'])
+
+# Creating qrc_aeros.cc 
+resources  = env.Qrc(['#resources/aeros.qrc',])
+sources = sources + [resources]
+
+aeros = env.Program('aeros', sources)
+env.Default (aeros)
+env.DeployProgram(aeros)
+env.Alias('aeros', aeros)
+
+env.Install ("$DEPLOY_DIRECTORY/bin", 'launch_aeros')
+env.Install ("$DEPLOY_DIRECTORY/data", '#../data/135rf18.nc')
+env.Install ("$DEPLOY_DIRECTORY/doc/online",
+             [ "helpviewer/home.xpm",
+               "helpviewer/back.xpm",
+               "helpviewer/forward.xpm" ])
+env.Install ("$DEPLOY_DIRECTORY/doc/online", "#../doc/online/AEROS.htm")
+
+doxfiles = ["mainpage.dox", "#/site_scons/README", "#/BUILD"]
+env['DOXYFILE_DICT'].update({'DOTFILE_DIRS' : env.Dir(".").get_abspath(),
+                             'PROJECT_NAME' : 'AEROS'})
+env.Apidocs (sources + headers + doxfiles)
+
+# For all of the plot images in before and after, generate build rules
+# to create smaller images of them.
+
+exts = ['-nc', '-sql']
+images = [
+("timeseries-1-save", "Timeseries Plots", exts),
+("xyplot-1-save", "XY Plots", exts),
+("skewt-1-save", "Skew-t Plots", exts),
+("ascii-1-save", "ASCII Tables", exts),
+("stats-1-save", "Statistics Tables", exts),
+("histogram-1-save", "Concentration Histogram", exts),
+("sizedist-1-save", "Size Distributions", exts),
+("simulated-pms-64-save", "Simulated PMS 64-bit Images", [""]),
+("democonfig-saved-save",
+ "before saving configuration to democonfig.xml", exts),
+("democonfig-loaded-save",
+ "after loading configuration from democonfig.xml", exts),
+]
+
+convert = "convert +profile '*' -colors 128 -geometry 500x500 +contrast %(SOURCE)s %(TARGET)s"
+
+import os
+
+def Reduce(env, image, dir):
+    source = os.path.join(dir, image);
+    target = os.path.join(dir, "reduced-"+image);
+    action = Action(convert % {"TARGET":env.File(target).path,
+                               "SOURCE":env.File(source).path})
+    # Create targets to update source images which already exist.  This
+    # allows, for example, converting images with scons after running the
+    # test manually, with 'scons -u after'.
+    if os.path.exists(source):
+        env.Command(target, source, action)
+    return [action]
+
+reduceactions = []
+
+for imagetuple in images:
+    image = imagetuple[0]
+    for x in imagetuple[2]:
+        reduceactions.extend(Reduce(env, image+x+".png", "before"))
+        reduceactions.extend(Reduce(env, image+x+".png", "after"))
+
+xdemos="--clearlog --debug all"
+xdemos+=" --demo opennetcdf,opentimeseries,save,clearall,load"
+xaeros = env.Alias ('xaeros', aeros, 
+                    env.ChdirActions(["./runtests --hide "+xdemos]))
+env.AlwaysBuild(xaeros)
+
+cmd="./runtests --hide --runsql --demo torture"
+runtest = env.Test(aeros, env.ChdirActions([cmd])+reduceactions)
+
+cmd="./runtests --hide --novg --demo opennetcdf,openall"
+qtest = env.Alias ('qtest', aeros, env.ChdirActions([cmd])+reduceactions)
+env.AlwaysBuild(qtest)
+
+header = """<html>
+<head>
+<title>AEROS Test Plots</title>
+<link rel=stylesheet href='before-and-after.css' type='text/css'>
+</head>
+<body>
+<table border>
+"""
+
+titlerow = """<tr>
+<td colspan='2'><h2>%(title)s</h2></td>
+</tr>
+"""
+
+rowtemplate = """
+<tr>
+<td>
+<h2>%(before)s</h2><br>
+<a href='%(before)s'><img src='%(urlbefore)s'></a>
+</td>
+<td>
+<h2>%(after)s</h2><br>
+<a href='%(after)s'><img src='%(urlafter)s'></a>
+</td>
+</tr>
+"""
+
+def GenerateComparisonPage(target, source, env):
+    # For every image type, add a row to compare before and after
+    # for both nc and sql datasources.
+    out = open(target[0].get_path(),'wb')
+    out.write(header)
+    for image in images:
+        dict = {}
+        dict['title'] = image[1]
+        out.write(titlerow % dict)
+        for ext in image[2]:
+            ext = ext + ".png"
+            dict['before'] = os.path.join('before', image[0]+ext)
+            dict['after'] = os.path.join('after', image[0]+ext)
+            dict['urlbefore'] = os.path.join('before','reduced-'+image[0]+ext)
+            dict['urlafter'] = os.path.join('after','reduced-'+image[0]+ext)
+            out.write(rowtemplate % dict)
+    return None
+
+
+page = env.Command('before-and-after.html', Value(images), 
+                   GenerateComparisonPage)
+env.Default(page)
+
+# Make sure the summary page is built when the test runs.
+env.Depends(runtest, page)

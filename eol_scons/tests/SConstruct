@@ -1,0 +1,149 @@
+# -*- mode: python; -*-
+
+# Test a few aspects of eol_scons.
+# Run this test script with 'scons --site-dir=../../../site_scons'
+
+import os
+import sys
+
+import eol_scons
+env0 = Environment(tools = ['eol_scons', 'default' ])
+
+tooldir = eol_scons.tools_dir
+
+v = eol_scons.GlobalVariables(os.getcwd() + '/dummy-config.py')
+
+# Search the tools directory to find all the tools possible to load.
+import glob
+toolfiles = glob.glob(tooldir + "/*.py")
+toolnames = [ os.path.splitext(os.path.basename(f))[0] 
+              for f in toolfiles ]
+ignore_tools = [ 'default', 'gcc', 'msvc', 
+                 'gcc68k',
+                 'pyqt', # appears to be outdated
+                 'mex', # needs matlab installed
+                 'xmlrpc_client++', # also appears to be outdated
+                 'armcross',
+                 'armbecross',
+                 'windriver',
+                 'vxworks',
+                 ]
+for it in ignore_tools:
+    toolnames.remove(it)
+
+env = Environment(tools = ['default'], GLOBAL_TOOLS = ['prefixoptions'])
+envtools = env.GlobalTools()[:]
+
+env2 = Environment(tools = ['default'], GLOBAL_TOOLS = ['tnt'])
+env2tools = env2.GlobalTools()[:]
+
+subenv = SConscript("subdir/SConscript")
+subtools = subenv.GlobalTools()
+print("subenv['TOOLS'] = %s" % (subenv['TOOLS']))
+
+env3 = Environment(tools = ['default'])
+env3tools = env3.GlobalTools()[:]
+
+sub2 = SConscript("subdir/subdir/SConscript")
+
+# Dump the global tools map
+for k, v in eol_scons.tool._global_tools.items():
+    print("%s = %s" % (k, str(v)))
+
+def allsettings(env):
+    pass
+
+# Load an environment with every known tool and see if works
+# all = Environment(tools = ['default'] + [allsettings] + toolnames)
+
+import unittest
+
+class TestEOLScons(unittest.TestCase):
+
+    def test_1_default_global_tools(self):
+        gtools = envtools
+        print("env.GlobalTools() = %s" % (gtools))
+        self.assert_('prefixoptions' in gtools)
+        self.assertEqual(len(gtools), 1)
+
+    def test_2_extend_root_tools(self):
+        gtools = env2tools
+        print("env2.GlobalTools() = %s" % (gtools))
+        self.assert_('prefixoptions' in gtools)
+        self.assert_('tnt' in gtools)
+        self.assertEqual(len(gtools), 2)
+
+    def test_3_subdir_global_tools(self):
+        print("subenv GLOBAL_TOOLS = %s" % (subtools))
+        self.assert_('netcdf' in subtools)
+        self.assertEqual(len(subtools), 1)
+        # Make sure the parent tools were also applied.
+        tools = subenv['TOOLS']
+        self.assert_('netcdf' in tools)
+        self.assert_('prefixoptions' in tools)
+        self.assert_('tnt' in tools)
+        # Make sure a root environment does not have a global tool
+        # from a subdirectory, and the root global tools have
+        # not changed.
+        gtools = env3tools
+        self.assert_('netcdf' not in gtools)
+        self.assert_('prefixoptions' in gtools)
+        self.assert_('tnt' in gtools)
+        self.assertEqual(len(gtools), 2)
+                         
+    def test_4_subdir_subdir_global_tools(self):
+        subtools = sub2.GlobalTools()
+        self.assert_(subtools == [])
+        self.assertEqual(len(subtools), 0)
+        # Make sure the parent tools were also applied.
+        tools = subenv['TOOLS']
+        self.assert_('netcdf' in tools)
+        self.assert_('prefixoptions' in tools)
+        self.assert_('tnt' in tools)
+
+    def test_5_xercesc(self):
+        # Use xercesc tool without prefixoptions set
+        eol_scons.tool._global_tools.clear()
+        eol_scons.global_variables = None
+        env = Environment(tools=['default','xercesc'])
+        print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
+              (env.get('XERCESC_PREFIX', '<none>'),
+               env.get('OPT_PREFIX', '<none>')))
+        # self.assert_(not env.has_key('XERCESC_PREFIX'))
+        self.assert_('xerces-c' in env['LIBS'])
+        # Now create an environment using opt_prefix, and make sure xercesc
+        # uses it.  I do not think it works to pass OPT_PREFIX in the
+        # environment constructor, perhaps because the OPT_PREFIX Variable
+        # overwrites it.  Instead use DEFAULT_OPT_PREFIX to set the value.
+        env = Environment(tools=['default', 'prefixoptions'],
+                          DEFAULT_OPT_PREFIX='/usr/local')
+        self.assert_('/usr/local/lib' in env['LIBPATH'])
+        self.assert_('/usr/local/include' in env['CPPPATH'])
+        env.Require('xercesc')
+        print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
+              (env.get('XERCESC_PREFIX', '<none>'),
+               env.get('OPT_PREFIX', '<none>')))
+        self.assert_(env['XERCESC_PREFIX'] == '/usr/local')
+        self.assert_('xerces-c' in env['LIBS'])
+
+    def test_6_filter_ldflags(self):
+        from eol_scons.parseconfig import _filter_ldflags
+        pairs = [('-L/usr/lib', ''),
+                 ('-L/usr/lib64', ''),
+                 ('-L/opt/local/lib -L/usr/lib', '-L/opt/local/lib'),
+                 ('-L/usr/lib -L/opt/local/lib', '-L/opt/local/lib'),
+                 ('-L/usr/lib-extra', '-L/usr/lib-extra'),
+                 ('-L/usr/lib64-extra', '-L/usr/lib64-extra')]
+        for p in pairs:
+            self.assertEqual(_filter_ldflags(p[0]), p[1])
+
+suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)
+
+results = unittest.TextTestRunner(verbosity=2).run(suite)
+Exit(len(results.errors))
+
+# boost.generate(env)
+# env.Append(LIBS = [ "logx", "boost_date_time" ])
+# print boost.boost_libflags(env)
+# print env.subst(env["_LIBFLAGS"])
+
