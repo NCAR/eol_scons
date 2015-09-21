@@ -59,24 +59,22 @@ helps in navigating the source.
 @section implementation SCons Implementation
 
 This build framework is based on SCons (http://www.scons.org) and called
-eol_scons.  It is mostly a python package called eol_scons and a set
-of scons tools which extends the standard SCons.  Thus it is more
-appropriate to call it eol_site_scons, but the python package name is
-historical.  Every component within the source tree as well as all external
-packages have a particular tool which configures a scons Environment for
-building against that component.  The eol_scons package provides a table of
-global targets that SConscript files throughout the source tree can use to
-find dependencies, without knowing where those dependencies are built or
-installed.  For example, the tool for a library like netcdf, whether
-installed on the system or built within the source tree, defines a function
-for configuring the build environment.  Sometimes the tools are loaded from
-a tool file from the common `site_scons/site_tools` directory, sometimes
-via a Python script named `tool_{toolname}.py`, and other times the tool is
-a function defined within the SConscript file which builds the library or
-dependency.  Either way, the tools are genuine scons tools, so they can be
-applied to an Environment by the usual means.  In particular, they can be
-applied with the Tool() method or passed in the tools list when the
-Environment is constructed.
+eol_scons.  It is mostly a python package called eol_scons and a set of
+scons tools which extends the standard SCons tools.  Every component within
+the source tree as well as external components have a particular tool which
+configures a scons Environment for building against that component.  The
+eol_scons package provides a table of global targets that SConscript files
+throughout the source tree can use to find dependencies, without knowing
+where those dependencies are built or installed.  For example, the tool for
+a library like netcdf, whether installed on the system or built within the
+source tree, defines a function for configuring the build environment.
+Sometimes the tools are loaded from a tool file from the common
+`site_scons/site_tools` directory, sometimes via a Python script named
+`tool_{toolname}.py`, and other times the tool is a function defined within
+the SConscript file which builds the library or dependency.  Either way,
+the tools are genuine scons tools, so they can be applied to an Environment
+by the usual means.  In particular, they can be applied with the Tool()
+method or passed in the tools list when the Environment is constructed.
 
 
 @subsection installation Installation
