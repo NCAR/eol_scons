@@ -263,6 +263,14 @@ GRAPHICAL_HIERARCHY    = YES
 REFERENCED_BY_RELATION = NO
 REFERENCES_RELATION = NO
 
+# Allow files without extensions and .dox files to be parsed like source
+# files, for projects which include README files and the like as part of
+# the doxygen source.  Files with non-standard extensions worked implicitly
+# in older doxygen versions, but apparently newer versions need an explicit
+# mapping.
+
+EXTENSION_MAPPING = no_extension=C++ dox=C++
+
 """)
 
     dot_path = env.WhereIs("dot")
