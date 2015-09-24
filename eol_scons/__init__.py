@@ -35,16 +35,21 @@ import traceback
 import SCons.Tool
 import SCons.Defaults
 
-# For backward compatibility, import symbols to be used
-# without specifying 'eol_scons' module 
+# For backward compatibility, import symbols into the eol_scons package
+# namespace.
 from eol_scons.debug import Debug
 from eol_scons.variables import GlobalOptions   # replaced by GlobalVariables
 from eol_scons.variables import GlobalVariables
 from eol_scons.variables import PathToAbsolute
 
-from eol_scons.tool import generate, exists
+# I'm not sure why this is needed, since this is not a tool, and the right
+# way to customize an Environment for eol_scons is by loading its 'default'
+# tool.  Is some SConscript file out there calling eol_scons.generate?
+
+# from eol_scons.tool import generate, exists
 
 # print("__init__ __file__=%s" % __file__)
+
 try:
     _eolsconsdir
     Debug("eol_scons previously initialized")
