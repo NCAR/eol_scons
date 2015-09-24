@@ -28,9 +28,6 @@ def GetSubdir(env):
     return subdir
 
 def AddVariables(variables):
-    # This is not really a path, but ListVariable and EnumVariable seem to
-    # require that you know what will be listed ahead of time.  There is no
-    # plain string variable.
     variables.Add('eolsconsdebug',
 """Enable debug messages from eol_scons.  Setting to 1 just enables
 messages.  Or, set it to a comma-separated list of construction variables
