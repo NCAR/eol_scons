@@ -11,7 +11,7 @@ from SCons.Script.SConscript import global_exports
 
 import variables as es_vars
 import tool as es_tool
-from debug import Debug
+import eol_scons.debug as esd
 import chdir
 
 _global_targets = {}
@@ -29,14 +29,6 @@ _tool_matches = None
 """
 
 
-def _Dump(env, key=None):
-    if not key:
-        return env.Dump()
-    if not env.has_key(key):
-        return ''
-    return env.Dump(key)
-
-
 def _PassEnv(env, regexp):
     """Pass system environment variables matching regexp to the scons
     execution environment."""
@@ -48,7 +40,7 @@ def _Require(env, tools):
     applied = []
     if not isinstance(tools, type([])):
         tools = [tools]
-    Debug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]), env)
+    env.LogDebug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]))
     for t in tools:
         tool = env.Tool(t)
         if tool:
@@ -98,12 +90,12 @@ def _AddGlobalTarget(env, name, target):
     except(TypeError, AttributeError):
         node = target
     if not _global_targets.has_key(name):
-        Debug("AddGlobalTarget: " + name + "=" + node.get_abspath(), env)
+        env.LogDebug("AddGlobalTarget: " + name + "=" + node.get_abspath())
         _global_targets[name] = node
     else:
-        Debug(("%s global target already set to %s, " +
-               "not changed to %s.") % (name, _global_targets[name], 
-                                        node.get_abspath()), env)
+        env.LogDebug(("%s global target already set to %s, " +
+                      "not changed to %s.") % (name, _global_targets[name], 
+                                               node.get_abspath()))
     # The "local" targets is a dictionary of target strings mapped to their
     # node.  The dictionary is assigned to a construction variable.  That
     # way anything can be used as a key, while environment construction
@@ -112,11 +104,11 @@ def _AddGlobalTarget(env, name, target):
         env["LOCAL_TARGETS"] = {}
     local_tgts = env["LOCAL_TARGETS"]
     if not local_tgts.has_key(name):
-        Debug("local target: " + name + "=" + str(node), env)
+        env.LogDebug("local target: " + name + "=" + str(node))
         local_tgts[name] = node
     else:
-        Debug(("%s local target already set to %s, " +
-               "not changed to %s.") % (name, local_tgts[name], node), env)
+        env.LogDebug(("%s local target already set to %s, " +
+                      "not changed to %s.") % (name, local_tgts[name], node))
     return node
 
 
@@ -137,11 +129,11 @@ def _GetGlobalTarget(env, name):
 
 def _AppendLibrary(env, name, path=None):
     "Add this library either as a local target or a link option."
-    Debug("AppendLibrary wrapper looking for %s" % name, env)
+    env.LogDebug("AppendLibrary wrapper looking for %s" % name)
     env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
     if target:
-        Debug("appending library node: %s" % str(target), env)
+        env.LogDebug("appending library node: %s" % str(target))
         env.Append(LIBS=[target])
     else:
         env.Append(LIBS=[name])
@@ -152,7 +144,7 @@ def _AppendSharedLibrary(env, name, path=None):
     "Add this shared library either as a local target or a link option."
     env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
-    Debug("appending shared library node: %s" % str(target), env)
+    env.LogDebug("appending shared library node: %s" % str(target))
     if target and not path:
         path = target.dir.get_abspath()
     env.Append(LIBS=[name])
@@ -194,7 +186,7 @@ def _Create(env,
 
 
 def _LogDebug(env, msg):
-    Debug(msg, env)
+    esd.Debug(msg, env)
 
 def _GlobalVariables(env, cfile=None):
     return es_vars.GlobalVariables(cfile, env)
@@ -207,7 +199,7 @@ def _GlobalTools(env):
     gtools = None
     if gkey and es_tool._global_tools.has_key(gkey):
         gtools = es_tool._global_tools[gkey]
-    Debug("GlobalTools(%s) returns: %s" % (gkey, gtools), env)
+    env.LogDebug("GlobalTools(%s) returns: %s" % (gkey, gtools))
     return gtools
 
 
@@ -264,7 +256,7 @@ def _loadToolFile(env, name):
                   str(matchList) + ", using the first one")
         # Load the first match
         toolScript = matchList[0]
-        Debug("Loading %s to get tool %s..." % (toolScript, name), env)
+        env.LogDebug("Loading %s to get tool %s..." % (toolScript, name))
         env.SConscript(toolScript)
         # After loading the script, make sure the tool appeared 
         # in the global exports list.
@@ -288,10 +280,9 @@ def _loadToolFile(env, name):
 tool_dict = {}
 
 def _Tool(env, tool, toolpath=None, **kw):
-    Debug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)), env)
+    env.LogDebug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)))
     name = str(tool)
-    Debug("...before applying tool %s: LIBPATH=%s, Install=%s" %
-          (name, _Dump(env, 'LIBPATH'), env.Install))
+    env.LogDebug("...before applying tool %s: %s" % (name, esd.Watches(env)))
 
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
@@ -299,18 +290,18 @@ def _Tool(env, tool, toolpath=None, **kw):
         
         # Is the tool already in our tool dictionary?
         if tool_dict.has_key(name):
-            Debug("Found tool %s already loaded" % name, env)
+            env.LogDebug("Found tool %s already loaded" % name)
             if not kw:
                 tool = tool_dict[name]
             else:
-                Debug("Existing tool not used because keywords were given.", 
-                      env)
+                env.LogDebug("Existing tool not used because "
+                             "keywords were given.")
 
         # Check if this tool is actually an exported tool function.
         if not tool:
             tool = global_exports.get(name)
             if tool:
-                Debug("Found tool %s in global_exports" % (name), env)
+                env.LogDebug("Found tool %s in global_exports" % (name))
 
         # Try to find and load a tool file named "tool_<tool>.py".
         if not tool:
@@ -333,24 +324,23 @@ def _Tool(env, tool, toolpath=None, **kw):
         # is *not* stashed in the local tool dictionary if there are
         # keyword parameters.
         if not tool:
-            Debug("Loading tool: %s" % name, env)
+            env.LogDebug("Loading tool: %s" % name)
             if toolpath is None:
                 toolpath = env.get('toolpath', [])
             toolpath = map(env._find_toolpath_dir, toolpath)
             tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
-            Debug("Tool loaded: %s" % name, env)
+            env.LogDebug("Tool loaded: %s" % name)
             # If the tool is not specialized with keywords, then we can 
             # stash this particular instance and avoid reloading it.
             if tool and not kw:
                 tool_dict[name] = tool
             elif kw:
-                Debug("Tool %s not cached because it has keyword parameters."
-                      % (name), env)
+                env.LogDebug("Tool %s not cached because it has "
+                             "keyword parameters." % (name))
 
-    Debug("Applying tool %s" % name, env)
+    env.LogDebug("Applying tool %s" % name)
     tool(env)
-    Debug("...after applying tool %s: LIBPATH=%s, env.Install=%s" %
-          (name, _Dump(env, 'LIBPATH'), env.Install))
+    env.LogDebug("...after applying tool %s: %s" % (name, esd.Watches(env)))
     # We could regenerate the help text after each tool is loaded,
     # presuming that only tools add variables, but that would not catch
     # variables which are added after the last tool is loaded, as well as
@@ -422,16 +412,17 @@ def _AppendDoxref(env, ref):
         env['DOXREF'] = [ref]
     else:
         env['DOXREF'].append(ref)
-    Debug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])), env)
+    env.LogDebug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])))
 
 
 def _addMethods(env):
     
     if hasattr(env, "_SConscript_Install"):
-        Debug("environment %s already has methods added" % (env))
+        env.LogDebug("environment %s already has methods added" % (env))
         return
-    Debug("add methods to environment %s, Install=%s, new _Install=%s" % 
-          (env, env.Install, _Install))
+    env.AddMethod(_LogDebug, "LogDebug")
+    env.LogDebug("add methods to environment %s, Install=%s, new _Install=%s" % 
+                 (env, env.Install, _Install))
     env.AddMethod(_Require, "Require")
     env.AddMethod(_AddLibraryTarget, "AddLibraryTarget")
     env.AddMethod(_AddGlobalTarget, "AddGlobalTarget")
@@ -443,7 +434,6 @@ def _addMethods(env):
     env.AddMethod(_Install, "Install")
     env.AddMethod(_ChdirActions, "ChdirActions")
     env.AddMethod(_Test, "Test")
-    env.AddMethod(_LogDebug, "LogDebug")
     env.AddMethod(_FindPackagePath, "FindPackagePath")
     env.AddMethod(_GlobalVariables, "GlobalVariables")
     env.AddMethod(_CacheVariables, "CacheVariables")

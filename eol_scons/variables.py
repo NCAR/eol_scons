@@ -21,7 +21,7 @@ from SCons.Script import Variables
 from SCons.Script import DefaultEnvironment
 from SCons.Script import BoolVariable
 
-import debug
+import eol_scons.debug
 import traceback
 
 _global_variables = None
@@ -39,10 +39,7 @@ def GlobalVariables(cfile=None, env=None):
             cfile = _default_cfile
         cfile = env.File(cfile).get_abspath()
         _global_variables = Variables(cfile)
-        _global_variables.AddVariables(
-            BoolVariable('eolsconsdebug',
-                         'Enable debug messages from eol_scons.',
-                         debug.debug))
+        eol_scons.debug.AddVariables(_global_variables)
         _global_variables.AddVariables(
             BoolVariable('eolsconscache',
                          'Enable tools.cache optimization.',
@@ -83,9 +80,9 @@ class VariableCache(SCons.Variables.Variables):
         value = None
         if env.has_key(key):
             value = env[key]
-            debug.Debug("returning %s cached value: %s" % (key, value), env)
+            env.LogDebug("returning %s cached value: %s" % (key, value))
         else:
-            debug.Debug("no value cached for %s" % (key), env)
+            env.LogDebug("no value cached for %s" % (key))
         return value
         
     def store(self, env, name, value):
@@ -94,14 +91,15 @@ class VariableCache(SCons.Variables.Variables):
         env[key] = value
         if self.getPath():
             self.Save(self.getPath(), env)
-        debug.Debug("Updated %s to value: %s" % (key, value), env)
+        env.LogDebug("Updated %s to value: %s" % (key, value))
 
 
 def ToolCacheVariables(env):
     global _cache_variables
     if not _cache_variables:
-        debug.Debug("creating _cache_variables: eolsconsdebug=%s, eolsconscache=%s" %
-              (debug.debug, _enable_cache))
+        env.LogDebug(
+            "creating _cache_variables: eolsconsdebug=%s, eolsconscache=%s" %
+            (eol_scons.debug.debug, _enable_cache))
         cfile = "#/tools.cache"
         cfile = env.File(cfile).get_abspath()
         if _enable_cache:
@@ -128,7 +126,7 @@ def _update_variables(env):
         _global_variables.Update(env)
 
     if env.has_key('eolsconsdebug'):
-        debug.debug = env['eolsconsdebug']
+        eol_scons.debug.SetDebug(env['eolsconsdebug'])
     if env.has_key('eolsconscache'):
         global _enable_cache
         _enable_cache = env['eolsconscache']
