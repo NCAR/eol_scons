@@ -1,0 +1,13 @@
+# -*- python -*-
+
+import sys
+
+import eol_scons
+eol_scons.RemoveDefaultHook()
+
+# If not using the default hook, then it must be possible to get the
+# eol_scons customizations by requiring the tool explicitly.
+
+env = Environment(tools=['default', 'eol_scons_tool', 'prefixoptions', 'netcdf'])
+variables = env.GlobalVariables()
+

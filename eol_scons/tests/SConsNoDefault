@@ -1,0 +1,14 @@
+# -*- python -*-
+
+import sys
+import eol_scons
+eol_scons.RemoveDefaultHook()
+
+try:
+    env = Environment(tools=['default', 'prefixoptions', 'netcdf'])
+    variables = env.GlobalVariables()
+except:
+    print("Exception raised as expected.")
+    sys.exit(0)
+
+raise Exception("eol_scons default hook should not have worked")

@@ -79,17 +79,37 @@ method or passed in the tools list when the Environment is constructed.
 
 @subsection installation Installation
 
-Starting with version 2.3, Scons will search the following directories in the order shown to find a tool package and site_init.py:
+The usual technique for extending SCons is to install custom tools and
+packages under a directory called site_scons.  Prior to SCons version 2.3,
+the site_scons directory had to be in the same directory as the top-level
+SConstruct file, or else it had to be specified on the command-line with
+the --site-dir option.
+
+Starting with version 2.3, Scons searches for the following site_scons
+directories in the order shown:
 
     -# /usr/share/scons/site_scons
     -# $HOME/.scons/site_scons
     -# ./site_scons
 
-For versions of SCons prior to 2.3, only ./site_scons is searched, where '.' is the directory containing SConstruct.
+SCons adds each site_scons directory found to the python search path.  The
+last found in the list above appears first on the path and has the highest
+precedence.  Likewise, each site_tools directory under site_scons is added
+to the tool path, and the site_init.py file is loaded.
 
-The eol_scons RPM installs eol_scons to /usr/share/scons/site_scons. If that RPM is installed, and you're using scons version 2.3 or later, you should be set.
+Since eol_scons is a regular python package (and not a scons tool package),
+it needs to be imported from the standard python path or from one of the
+site_scons directories searched by scons.
 
-Otherwise if you're using scons version 2.3 or later, and that RPM is not installed, or you want to test modifications to eol_scons, you can install it to $HOME/.scons/site_scons, and use it for all your scons builds:
+The eol_scons RPM installs eol_scons to `/usr/share/scons/site_scons`. If
+that RPM is installed, and you're using scons version 2.3 or later, then
+`import eol_scons` should just work.  Otherwise, you need to install
+eol_scons under one of the site_scons directories above searched by your
+particular version of SCons.
+
+The example below installs it under $HOME/.scons/site_scons where it can be
+used it for all your scons builds.  This is also useful for developing eol_scons
+and testing changes.
 
 @code
 mkdir -p $HOME/git
@@ -100,8 +120,8 @@ cd $HOME/.scons/site_scons
 ln -s $HOME/git/eol_scons/eol_scons .
 @endcode
 
-Otherwise if you're using scons version before 2.3, install eol_scons to the directory containing SConstruct:
-
+If you're using a scons version before 2.3, then you can install eol_scons
+under the directory containing SConstruct:
 
 @code
 mkdir site_scons
@@ -109,12 +129,99 @@ cd site_scons
 git clone http://github.com/ncareol/eol_scons
 @endcode
 
-In all cases, import eol_scons at the top of your SConstruct, before any tools are loaded:
+Finally, eol_scons can be installed on the standard python search path.
+Then it can be imported like any other python package.  To ensure a
+recreatable build environment, SCons does not propagate the PYTHONPATH
+setting, so it does not work to install eol_scons just anywhere and then
+add it to PYTHONPATH.  If you want to use eol_scons from a non-standard
+location, you can either modify sys.path directly in the SConstruct file or
+link to eol_scons in one of the searched site_scons directories.
+
+Note that the eol_scons package is not a 'tool package': the package does
+not provide the generate() or exists() methods required in scons tools.  So
+there is no point to installing the eol_scons package under one of the
+site_tools directories searched by SCons.  Instead, eol_scons is meant to
+be installed as a python package, as described above.  There is still a way
+to load eol_scons as if it were a tool, described in @ref activation.
+
+
+@subsection activation Activating eol_scons
+
+There are two parts to extending SCons with eol_scons.  The first part is
+inserting eol_scons into the scons tool path so that eol_scons can override
+some of the standard SCons tools.  This modifies the global scons state
+rather than just one Environment instance.  The second part to extending
+SCons is the customization of an Environment instance.  This is the part
+that behaves like a normal scons tool.
+
+Installing eol_scons on the python search path does not automatically
+activate it within a SCons build.  The eol_scons tools are not on the
+default tool path, and eol_scons does not install a site_init.py file.
+
+The first part happens when eol_scons is imported, when it automatically
+inserts the eol_scons tools directory into the scons tool path.  It also
+inserts a second tools directory containing a default.py tool module to
+override the scons default tool.  By overriding the default tool, eol_scons
+can apply itself to every Environment created by scons to which the
+'default' tool is applied, which usually is every Environment in a source
+tree.  This is the usual way to activate eol_scons in a scons build
+framework, since it avoids explicitly applying eol_scons to every
+Environment constructor call.  To activate eol_scons this way, import
+eol_scons at the top of the SConstruct file, before any tools are loaded:
+
 @code
 import eol_scons
 ...
 env = Environment(tools=['default'])
 @endcode
+
+The overridden default tool first applies the standard scons default tools
+before applying eol_scons.  In theory the insertion of the eol_scons
+default tool should not affect scons builds which worked using the default
+tool without eol_scons.  Plus the eol_scons default tool optimizes the
+loading of all the default tools, helping to speed up builds which create
+many Environments.
+
+It is also possible to apply eol_scons to an Environment like a regular
+tool, without overriding the default tool, but this is an experimental
+technique.  In this case, Environments which need the eol_scons extensions
+must explicitly load a tool module called eol_scons_tool.py.  If eol_scons
+has been imported, then the eol_scons_tool.py module will be on the tool
+path already, but the default tool override will also be on the path.  So
+the default tool can be removed from the tool path using the
+RemoveDefaultHook() function:
+
+@code
+import eol_scons
+eol_scons.RemoveDefaultHook()
+env = Environment(tools=['default', 'eol_scons_tool', 'prefixoptions', 'netcdf'])
+@endcode
+
+If someone wants to load the tool without an explicit import in the
+SConstruct file, then eol_scons_tool.py can be copied or linked into one of
+the scons site_tools directories. Then when loaded into an Environment, it
+takes care of first importing eol_scons, removing the default hook, and
+then customizing the Environment.  The code below is an example.  It
+applies the eol_scons extensions to the created Environment but does not
+override the default tool and does not require an explicit import.  It just
+requires that the eol_scons_tool.py tool module be installed (or linked)
+somewhere in the scons tool path.
+
+@code
+env = Environment(tools=['default', 'eol_scons_tool', 'prefixoptions', 'netcdf'])
+variables = env.GlobalVariables()
+@endcode
+
+Unfortunately, `scons` does not have a command-line option to modify the
+tool path.  Maybe the eol_scons/tools directory should be renamed to
+site_tools, then eol_scons_tool.py could be added to the tool path by
+specifying eol_scons as the site directory.  For this to work the eol_scons
+package must still be on the python path.
+
+@code
+scons --site-dir=/usr/share/scons/site_scons/eol_scons
+@endcode
+
 
 @subsection externaltools External Tools
 

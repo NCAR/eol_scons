@@ -346,29 +346,12 @@ def _Tool(env, tool, toolpath=None, **kw):
     # variables which are added after the last tool is loaded, as well as
     # being a lot of extra calls.  So this works to a point, and it would
     # still allow the help text to be customized at the end of the
-    # SConstruct file (unlike wrapping the _SConscript call below).
-    # However, it is left unused in favor of adding a simple SetHelp() call
-    # at the end of SConstruct.
+    # SConstruct file.  However, it is left unused in favor of adding a
+    # simple SetHelp() call at the end of SConstruct.
     #
     # env.SetHelp()
     #
     return tool
-
-def _SConscript(fs, *files, **kw):
-    # This is a custom wrapper to the SCons function which reads a
-    # SConscript file (including the SConstruct file).  Set the help text
-    # after the last SConscript has been read.  However this approach
-    # doesn't work, because the _SConscript() function makes some
-    # assumptions about the call stack, and so I think inserting this
-    # function in the stack causes problems.
-    _real_SConscript(fs, *files, **kw)
-    if SCons.Script.sconscript_reading == 0:
-        env = DefaultEnvironment()
-        env.SetHelp()
-
-if False:
-    _real_SConscript = SCons.Script._SConscript._SConscript
-    SCons.Script._SConscript._SConscript = _SConscript
 
 def _SetHelp(env, text=None):
     """

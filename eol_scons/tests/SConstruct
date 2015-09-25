@@ -7,7 +7,12 @@ import os
 import sys
 
 import eol_scons
-env0 = Environment(tools = ['eol_scons', 'default' ])
+
+# I don't know what this was supposed to test, but it now interferes
+# with the rest of the tests because loading the eol_scons tool explicitly
+# disables the 'default' hook which the rest of the test requires.
+#
+# env0 = Environment(tools = ['eol_scons_tool', 'default' ])
 
 tooldir = eol_scons.tools_dir
 
@@ -18,7 +23,7 @@ import glob
 toolfiles = glob.glob(tooldir + "/*.py")
 toolnames = [ os.path.splitext(os.path.basename(f))[0] 
               for f in toolfiles ]
-ignore_tools = [ 'default', 'gcc', 'msvc', 
+ignore_tools = [ 'gcc', 'msvc', 
                  'gcc68k',
                  'pyqt', # appears to be outdated
                  'mex', # needs matlab installed

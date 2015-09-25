@@ -42,33 +42,59 @@ from eol_scons.variables import GlobalOptions   # replaced by GlobalVariables
 from eol_scons.variables import GlobalVariables
 from eol_scons.variables import PathToAbsolute
 
-# I'm not sure why this is needed, since this is not a tool, and the right
-# way to customize an Environment for eol_scons is by loading its 'default'
-# tool.  Is some SConscript file out there calling eol_scons.generate?
+# This would be needed if the eol_scons package were going to be loaded as
+# a tool by installing it under a site_tools directory somewhere.  However,
+# I don't think we're going to support that.  I think it's more flexible to
+# just install as a package somewhere.  If it needs to be loaded like a
+# tool without importing eol_scons explicitly, then the eol_scons.py tool
+# module can be installed into site_tools somewhere.
 
 # from eol_scons.tool import generate, exists
 
 # print("__init__ __file__=%s" % __file__)
+
+
+def InstallToolsPath():
+    "Add the eol_scons/tools dir to the tool path."
+    print("Using site_tools: %s" % (tools_dir))
+    SCons.Tool.DefaultToolpath.insert(0, tools_dir)
+     
+def InstallDefaultHook():
+    "Add the hooks dir to the tool path to override the default tool."
+    SCons.Tool.DefaultToolpath.insert(0, hooks_dir)
+
+def RemoveDefaultHook():
+    """
+    Remove the path to the default override, for cases where eol_scons will
+    be applied to Environments explicitly using the eol_scons.py tool
+    module.
+    """
+    if hooks_dir in SCons.Tool.DefaultToolpath:
+        SCons.Tool.DefaultToolpath.remove(hooks_dir)
+
+
+# I'm not sure this could ever be run twice if it is only imported as a
+# python package, since python should never import a package twice.  So
+# maybe this extra machinery can be removed someday.
 
 try:
     _eolsconsdir
     Debug("eol_scons previously initialized")
 
 except NameError:
-    # print("eol_scons __init__.py: %s" % __file__)
+    _eolsconsdir = os.path.abspath(os.path.dirname(__file__))
+    tools_dir = os.path.normpath(os.path.join(_eolsconsdir, "tools"))
+    hooks_dir = os.path.normpath(os.path.join(_eolsconsdir, "hooks"))
+
+    InstallToolsPath()
 
     # Create the DefaultEnvironment which is used for SCons.Script
     # functions that are called as plain functions, without an environment.
-    # In SCons/Defaults.py this becomes a global which is
-    # returned on all successive calls.
+    # In SCons/Defaults.py this becomes a global which is returned on all
+    # successive calls.  Also, create this here before the default.py hook
+    # tool is added to the tool path, since that can cause infinite
+    # recursion.
     SCons.Defaults.DefaultEnvironment()
-
-    _eolsconsdir = os.path.abspath(os.path.dirname(__file__))
-
-    # Add the tools dir to the tool path.
-    tools_dir = os.path.normpath(os.path.join(_eolsconsdir, "tools"))
-    print("Using site_tools: %s" % (tools_dir))
-    SCons.Tool.DefaultToolpath.insert(0, tools_dir)
-     
+    InstallDefaultHook()
     Debug("eol_scons.__init__ loaded: %s." % (__file__))
 
