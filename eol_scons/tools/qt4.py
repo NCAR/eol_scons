@@ -1,4 +1,26 @@
 # -*- python -*-
+
+"""
+This tool adds Qt4 include paths and libraries to the build
+environment.  Since Qt4 is divided into many different modules, the modules
+can be applied to the environment individually using either the
+EnableQt4Modules() method or by listing the module as a tool.  For example,
+these are equivalent:
+
+    qtmods = ['QtSvg', 'QtCore', 'QtGui', 'QtNetwork', 'QtSql', 'QtOpenGL']
+    env.EnableQt4Modules(qtmods)
+
+    env.Require(Split("qtsvg qtcore qtgui qtnetwork qtsql qtopengl"))
+
+If a Qt4 module is optional, such as disabling the build of a Qt GUI
+application when the QtGui module is not present, then the
+return value from the EnableQt4Modules() method must be used:
+
+    qt4Modules = Split('QtGui QtCore QtNetwork')
+    if not env.EnableQt4Modules(qt4Modules):
+        Return()
+"""
+
 import re
 import os
 
@@ -565,5 +587,20 @@ def enable_modules(self, modules, debug=False) :
         
     return True
 
+
 def exists(env):
     return _detect(env)
+
+
+def export_qt4_module_tool(module):
+    kw = {}
+    kw[module.lower()] = lambda env: env.EnableQt4Modules([module])
+    SCons.Script.Export(**kw)
+    
+
+for qtmod in ['QtSvg', 'QtCore', 'QtGui', 'QtNetwork', 'QtSql', 'QtOpenGL',
+              'QtXml', 'QtDesigner', 'QtHelp', 'QtTest', 'QtWebKit',
+              'QtXmlPatterns', 'QtDBus', 'QtMultimedia',
+              'QtScript', 'QtScriptTools', 'QtUiTools']:
+    export_qt4_module_tool(qtmod)
+
