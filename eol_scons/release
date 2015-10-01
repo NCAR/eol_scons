@@ -56,7 +56,7 @@ release() # tag-name
     # Bundle up the results
     (set -x; tar czf ${tag}.tar.gz ${tag})
     # Build doxygen documentation
-    (cd $tag
+    (cd $tag/doxy
 	sed -i "s/PROJECT_NUMBER.*\$/PROJECT_NUMBER = $tag/" Doxyfile
 	doxygen)
 }
@@ -67,7 +67,7 @@ publish() # tag-name
 {
     tag="$1"
     tarfile="${tag}.tar.gz"
-    html="${tag}/html"
+    html="${tag}/doxy/html"
     if [ ! -f "$tarfile" -o ! -d "$html" ]; then
 	echo "Release artifacts do not exist yet: $tarfile, $html"
 	echo "Create them with: release $tag"
@@ -108,7 +108,8 @@ committag() # [<tag>]
 	echo "Tag already exists and cannot be committed again: $tag"
 	return 1
     fi
-    (set -x; echo svn commit -m"tag $tag" $trunkurl $tagsurl/$tag)
+    # (set -x; svn copy -m"tag $tag" $trunkurl $tagsurl/$tag)
+    (set -x; svn copy -m"tag $tag" . $tagsurl/$tag)
     return 0
 }
 
