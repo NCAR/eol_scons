@@ -592,15 +592,3 @@ def exists(env):
     return _detect(env)
 
 
-def export_qt4_module_tool(module):
-    kw = {}
-    kw[module.lower()] = lambda env: env.EnableQt4Modules([module])
-    SCons.Script.Export(**kw)
-    
-
-for qtmod in ['QtSvg', 'QtCore', 'QtGui', 'QtNetwork', 'QtSql', 'QtOpenGL',
-              'QtXml', 'QtDesigner', 'QtHelp', 'QtTest', 'QtWebKit',
-              'QtXmlPatterns', 'QtDBus', 'QtMultimedia',
-              'QtScript', 'QtScriptTools', 'QtUiTools']:
-    export_qt4_module_tool(qtmod)
-

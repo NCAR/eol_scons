@@ -92,3 +92,40 @@ def generate(env, **kw):
     return env
 
 
+def export_qt4_module_tool(modules):
+    kw = {}
+    module = modules[0]
+    dependencies = [m.lower() for m in modules[1:]]
+    def qtmtool(env):
+        env.Require(['qt4']+dependencies)
+        env.EnableQt4Modules([module])
+    kw[module.lower()] = qtmtool
+    SCons.Script.Export(**kw)
+    
+
+_qtmodules = [
+    ('QtCore',),
+    ('QtSvg', 'QtCore'),
+    ('QtGui', 'QtCore'),
+    ('QtNetwork', 'QtCore'),
+    ('QtXml', 'QtCore'),
+    ('QtXmlPatterns', 'QtXml'),
+    ('QtSql',),
+    ('QtOpenGL',),
+    ('QtXml',),
+    ('QtDesigner',),
+    ('QtHelp',),
+    ('QtTest',),
+    ('QtWebKit',),
+    ('QtDBus',),
+    ('QtMultimedia',),
+    ('QtScript',),
+    ('QtScriptTools', 'QtScript'),
+    ('QtUiTools', 'QtGui')
+]
+
+
+def DefineQt4Tools():
+    for qtmod in _qtmodules:
+        export_qt4_module_tool(qtmod)
+

@@ -41,6 +41,7 @@ from eol_scons.debug import Debug
 from eol_scons.variables import GlobalOptions   # replaced by GlobalVariables
 from eol_scons.variables import GlobalVariables
 from eol_scons.variables import PathToAbsolute
+from eol_scons.tool import DefineQt4Tools
 
 # This would be needed if the eol_scons package were going to be loaded as
 # a tool by installing it under a site_tools directory somewhere.  However,
@@ -87,6 +88,7 @@ except NameError:
     hooks_dir = os.path.normpath(os.path.join(_eolsconsdir, "hooks"))
 
     InstallToolsPath()
+    DefineQt4Tools()
 
     # Create the DefaultEnvironment which is used for SCons.Script
     # functions that are called as plain functions, without an environment.
