@@ -31,7 +31,7 @@ else
 fi
 
 cd $dir
-cd ../..
+cd ..
 pwd
 
 log=/tmp/$script.$$
@@ -39,22 +39,31 @@ trap "{ rm -f $log; }" EXIT
 
 set -o pipefail
 
-get_version() 
-{
-    # awk '/^Version:/{print $2}' $1
-    echo 1.0
-}
+# Set RPM version and release from output of git describe.
+# version is latest tag
+# release is number of commits since tag
+gitdesc=$(git describe)   # 2.0-14-gabcdef123
+version=${gitdesc%%-*}   # 2.0
+
+# check for dash
+if [[ $version =~ .+-.+ ]]; then
+    release=${gitdesc#*-}   # 14-gabcdef123
+    release=${release%-*}   # 14
+else
+    release=0
+fi
 
 [ -d $topdir/SOURCES ] || mkdir -p $topdir/SOURCES
 
 pkg=eol_scons
-version=`get_version $pkg/scripts/${pkg}.spec`
 
 tar czf ${topdir}/SOURCES/${pkg}-${version}.tar.gz --exclude .svn --exclude ".git*" --exclude "*.swp" --exclude "*.py[oc]" --exclude __pycache__ --exclude .sconf_temp --exclude "*.o" ${pkg}
 
 set -x
-rpmbuild -ba --clean --define "_topdir $topdir" --define "debug_package %{nil}" \
-    $pkg/scripts/${pkg}.spec | tee -a $log  || exit $?
+rpmbuild -ba --clean \
+    --define "_topdir $topdir" --define "debug_package %{nil}" \
+    --define "version $version" --define "release $release" \
+    scripts/${pkg}.spec | tee -a $log  || exit $?
 
 
 echo "RPMS:"

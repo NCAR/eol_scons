@@ -1,6 +1,4 @@
 %define name eol_scons
-%define version 1.0
-%define release 1
 
 Summary: EOL SCons tools
 Name: %{name}
