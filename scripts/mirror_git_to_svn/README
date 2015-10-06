@@ -1,0 +1,46 @@
+This directory contains scripts for creating and maintaining a
+read-only subversion mirror of the eol_scons git repository.
+
+Many software projects at EOL use svn:external subversion properties to
+access the eol_scons SCons framework. With this mirror, these externals will
+still work.
+
+The subversion repository http://svn/svn/eol/common/trunk/site_scons
+was cloned to become the public git repository at github:
+http://github.com/ncareol/eol_scons, using the clone_svn_to_git.sh
+script, listed below.
+
+The git master branch on http://github.com/ncareol/eol_scons is then
+mirrored to http://svn/svn/eol/common/trunk/site_scons by the jenkins server
+at EOL. The eol_scons jenkins project polls github for changes, and then
+runs the mirror_git_to_svn.sh script listed below.
+
+Only the master branch of the git repository is mirrored to
+subversion at EOL, and commits to the subversion side will be disallowed,
+via a pre-commit hook.
+    
+
+Scripts:
+
+    clone_svn_to_git.sh
+        Script which was used to create a git clone of the trunk of the EOL
+        site_scons subversion repository, along whth as much of the history
+        from its branches and tags as git-svn could follow.
+        As a final step a bare git eol_scons repository is cloned. 
+
+
+    push_github.sh
+        Next, a public eol_scons repository was created at github using an
+        ncareol account, and this script was used to push the bare eol_scons
+        repository to github.
+
+    mirror_git_to_svn.sh
+        Script run by jenkins to mirror git to subversion when a commit is 
+        detected on the github repository.
+
+        After jenkins has fetched the changes from github, execute this
+        command in the shell:
+
+        eol_scons/scripts/mirror_git_to_svn/git_svn_mirror.sh
+
+
