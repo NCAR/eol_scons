@@ -39,6 +39,8 @@ trap "{ rm -f $log; }" EXIT
 
 set -o pipefail
 
+set -x
+
 # Set RPM version and release from output of git describe.
 # version is latest tag
 # release is number of commits since tag
@@ -46,13 +48,14 @@ gitdesc=$(git describe)   # 2.0-14-gabcdef123
 version=${gitdesc%%-*}   # 2.0
 
 # check for dash
-if [[ $version =~ .+-.+ ]]; then
+if [[ $gitdesc =~ .+-.+ ]]; then
     release=${gitdesc#*-}   # 14-gabcdef123
     release=${release%-*}   # 14
 else
     release=0
 fi
 
+exit
 [ -d $topdir/SOURCES ] || mkdir -p $topdir/SOURCES
 
 pkg=eol_scons
