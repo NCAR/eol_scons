@@ -39,23 +39,19 @@ trap "{ rm -f $log; }" EXIT
 
 set -o pipefail
 
-set -x
-
 # Set RPM version and release from output of git describe.
-# version is latest tag
-# release is number of commits since tag
-gitdesc=$(git describe)   # 2.0-14-gabcdef123
-version=${gitdesc%%-*}   # 2.0
+# Assuming the latest tag is something like "v2.0", the
+# output of git describe will be "v2.0-14-gabcdef123"
+# Set the RPM version to the tag value after "v",
+# and the RPM release to the number of commits since tag.
+gitdesc=$(git describe)     # v2.0-14-gabcdef123
+gitdesc=${gitdesc%-*}       # v2.0-14
+gitdesc=${gitdesc/#v}       # 2.0-14
+version=${gitdesc%-*}      # 2.0
 
-# check for dash
-if [[ $gitdesc =~ .+-.+ ]]; then
-    release=${gitdesc#*-}   # 14-gabcdef123
-    release=${release%-*}   # 14
-else
-    release=0
-fi
+release=${gitdesc#*-}       # 14
+[ $gitdesc == "$release" ] && release=0 # no dash
 
-exit
 [ -d $topdir/SOURCES ] || mkdir -p $topdir/SOURCES
 
 pkg=eol_scons
