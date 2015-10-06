@@ -39,12 +39,13 @@ trap "{ rm -f $log; }" EXIT
 
 set -o pipefail
 
-# Set RPM version and release from output of git describe.
+# Set RPM version and release from output of git describe,
+# looking for tags starting with "v[0-9]".
 # Assuming the latest tag is something like "v2.0", the
 # output of git describe will be "v2.0-14-gabcdef123"
 # Set the RPM version to the tag value after "v",
 # and the RPM release to the number of commits since tag.
-gitdesc=$(git describe)     # v2.0-14-gabcdef123
+gitdesc=$(git describe --match "v[0-9]*")     # v2.0-14-gabcdef123
 gitdesc=${gitdesc%-*}       # v2.0-14
 gitdesc=${gitdesc/#v}       # 2.0-14
 version=${gitdesc%-*}      # 2.0
