@@ -47,7 +47,8 @@ Enable the EOL yum repository on Fedora systems
 
     sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-fedora-1-3.noarch.rpm
 
-Install eol_scons RPM:
+Install eol_scons RPM
+
     sudo yum install eol_scons
 or on newer Fedora systems
 
