@@ -65,7 +65,7 @@ In the directory containing SConstruct:
 
     git clone http://github.com/ncareol/eol_scons site_scons
 or
-  git clone git@github.com:ncareol/eol_scons.git site_scons
+    git clone git@github.com:ncareol/eol_scons.git site_scons
 
 ## Using eol_scons
 In your SConstruct file, simply import eol_scons. The import will add eol_scons/tools to the SCons tool search path:
