@@ -39,16 +39,18 @@ Another option is to create an eol_scons Python package and install it in the us
 ### Install eol_scons to /usr/share/scons/site_scons on RedHat Linux systems
 An eol_scons RPM is found in the EOL RPM repository, which installs eol_scons to /usr/share/scon/site_scons.
 
-Enable the EOL yum repository on RHEL systems:
-    sudo rpm -ihv \
-        http://www.eol.ucar.edu/software/rpms/eol-repo-epel-1-3.noarch.rpm
-Enable the EOL yum repository on Fedora systems:
-    sudo rpm -ihv \
-        http://www.eol.ucar.edu/software/rpms/eol-repo-fedora-1-3.noarch.rpm
+Enable the EOL yum repository on RHEL systems
 
-Install eol_scons:
+    sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-epel-1-3.noarch.rpm
+  
+Enable the EOL yum repository on Fedora systems
+
+    sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-fedora-1-3.noarch.rpm
+
+Install eol_scons RPM:
     sudo yum install eol_scons
-or on newer Fedora systems:
+or on newer Fedora systems
+
     sudo dnf install eol_scons
  
 ### Install eol_scons to $HOME/.scons/site_scons
