@@ -40,36 +40,46 @@ Another option is to create an eol_scons Python package and install it in the us
 An eol_scons RPM is found in the EOL yum repository, which installs eol_scons to /usr/share/scon/site_scons.
 
 Enable the EOL yum repository on RHEL systems:
-
-    sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-epel-1-3.noarch.rpm
+```shell
+sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-epel-1-3.noarch.rpm
+```
   
 or, on Fedora systems:
-
-    sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-fedora-1-3.noarch.rpm
+```shell
+sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-fedora-1-3.noarch.rpm
+```
 
 Install eol_scons RPM:
-
-    sudo yum install eol_scons
+```shell
+sudo yum install eol_scons
+```
 
 ### Install eol_scons to $HOME/.scons/site_scons
-
-    mkdir $HOME/.scons
-    cd $HOME/.scons
-    git clone http://github.com/ncareol/eol_scons site_scons
+```shell
+mkdir $HOME/.scons
+cd $HOME/.scons
+git clone http://github.com/ncareol/eol_scons site_scons
+```
 
 Or if you have setup an ssh key on github, and will want to push back your changes to github:
-    git clone git@github.com:ncareol/eol_scons.git site_scons
+```shell
+git clone git@github.com:ncareol/eol_scons.git site_scons
+```
 
 ### Install eol_scons to ./site_scons
 In the directory containing SConstruct:
-
-    git clone http://github.com/ncareol/eol_scons site_scons
+```shell
+git clone http://github.com/ncareol/eol_scons site_scons
+```
 or
-    git clone git@github.com:ncareol/eol_scons.git site_scons
+```shell
+git clone git@github.com:ncareol/eol_scons.git site_scons
+```
 
 ## Using eol_scons
 In your SConstruct file, simply import eol_scons. The import will add eol_scons/tools to the SCons tool search path:
-
-    import eol_scons
-    env = Environment(tools=['default','boost_date_time'])
+```python
+import eol_scons
+env = Environment(tools=['default','boost_date_time'])
+```
 
