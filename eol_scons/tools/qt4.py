@@ -484,11 +484,16 @@ def enable_modules(self, modules, debug=False) :
                     hdir = os.path.join(prefix, 'include')
 
                 if (CheckConfig(self, 'pkg-config --exists ' + module) == 0):
-                    # Don't try here to make things unique in LIBS and
-                    # CFLAGS; just do a simple append
-                    flags = RunConfig(self, 
-                                      'pkg-config --libs --cflags ' + module)
-                    self.MergeFlags(flags, unique=0)
+                    # Retrieve LIBS and CFLAGS separately, so CFLAGS can be
+                    # added just once (unique=1).  Otherwise projects like
+                    # ASPEN which require qt modules many times over end up
+                    # with dozens of superfluous CPP includes and defines.
+                    cflags = RunConfig(self,
+                                       'pkg-config --cflags ' + module)
+                    self.MergeFlags(cflags, unique=1)
+                    libflags = RunConfig(self,
+                                         'pkg-config --libs ' + module)
+                    self.MergeFlags(libflags, unique=0)
                 else:
                     # warn if we haven't already
                     if not (module in no_pkgconfig_warned):
