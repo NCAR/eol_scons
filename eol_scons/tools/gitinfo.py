@@ -201,7 +201,7 @@ class GitInfo:
         """
         
         tag          = None
-        commits      = None
+        commits      = '0'
         objname      = None
         date         = None
         hash         = None
