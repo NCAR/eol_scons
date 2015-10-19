@@ -36,8 +36,8 @@ SCons prior to version 2.3 only searches ./site_scons.
 
 Another option is to create an eol_scons Python package and install it in the usual locations. Support for this should be provided soon. Note that SCons ignores the PYTHONPATH environment variable.
 
-### Install eol_scons to /usr/share/scons/site_scons on RedHat Linux systems
-An eol_scons RPM is found in the EOL yum repository, which installs eol_scons to /usr/share/scon/site_scons.
+### eol_scons RPM for RedHat Linux systems
+To install eol_scons to /usr/share/scons/site_scons, you can install the RPM from the EOL yum repository.
 
 Enable the EOL yum repository on RHEL systems:
 ```shell
@@ -49,7 +49,7 @@ or, on Fedora systems:
 sudo rpm -ihv http://www.eol.ucar.edu/software/rpms/eol-repo-fedora-1-3.noarch.rpm
 ```
 
-Install eol_scons RPM:
+Install RPM:
 ```shell
 sudo yum install eol_scons
 ```
