@@ -15,6 +15,10 @@ revision number which can be traced to a particular git commit.
 
 Remember: _The tag must be a git annotated tag_
 
+The git describe uses a '--match [vV][0-9]*' argument for a
+file-glob style match on possible tags, looking for one that
+starts with 'v' or 'V', followed by a number, followed by anything.
+
 Example usage:
 env = Environment(tools = ['default', gitinfo'])
 repoinfo = env.GitInfo('repoInfo.h', '#/')
@@ -97,12 +101,14 @@ class GitInfo:
     Encapsulate the repository characteristics, making them avaiable via a dictionary.
     
     Git commands used to extract the repository information:
-    git describe: Returns string with up to three tokens: V3.2-4-g3189d8e
-                  First token is the last tag on the branch.
-                  Second token is the number of commits since the tag.
-                  Third is the abbreviate object name of the last commit.
-                  If the tag points to the most recent commit, then only tag
-                  is returned.
+    git describe --match [vV][0-9]*: Looks for a tag starting with 'v'
+                or 'V' followed by a number followed by anything.
+                Returns string with up to three tokens: V3.2-4-g3189d8e. 
+                First token is the last matching tag on the branch.
+                Second token is the number of commits since the tag.
+                Third is the abbreviate object name of the last commit.
+                If the tag points to the most recent commit, then commit
+                is '0'.
                   
     git config --get remote.origin.url: Get the repository URL that this branch was
                   fetched from.
@@ -211,7 +217,7 @@ class GitInfo:
         error        = []
 
         # Run git describe, and extract the tag, number of commits, and object name
-        cmd_out = self._get_output([self.gitcmd, 'describe'])
+        cmd_out = self._get_output([self.gitcmd, 'describe', '--match', '[vV][0-9]*'])
         if self._cmd_out_ok(cmd_out, error):
             describe = cmd_out.split('-')
             if len(describe) > 0:
