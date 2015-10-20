@@ -76,6 +76,25 @@ or
 git clone git@github.com:ncareol/eol_scons.git site_scons
 ```
 
+### Access eol_scons as a git submodule
+In a git repository, in the same directory as your SConstruct, where vX.Y is the tagged branch of eol_scons you want to use, or leave off the '-b vX.Y' if you want the latest:
+```shell
+git submodule -add -b vX.Y https://github.com/ncareol/eol_scons site_scons
+```
+If your code repository is also on https://github.com/ncareol, you can use a relative URL:
+```shell
+git submodule -add -b vX.Y ../eol_scons site_scons
+```
+Then
+```
+git commit -am "Added eol_scons submodule vX.Y"
+git push ...
+```
+Remember to use --recursive when cloning your repo:
+```shell
+git clone --recursive
+```
+
 ## Using eol_scons
 In your SConstruct file, simply import eol_scons. The import will add eol_scons/tools to the SCons tool search path:
 ```python
