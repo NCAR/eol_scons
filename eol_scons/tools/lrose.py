@@ -28,10 +28,15 @@ lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'NcfMdv', 'Mdv', 'titan',
              'didss', 'toolsa', 'dataport', 'tdrp']
 
 def _calculate_settings(env, settings):
-    # Assume that LROSE is installed under /usr/local/lrose
-    prefix = '/usr/local/lrose'
-    if not os.path.isdir(prefix):
-        msg = "Unable to find LROSE. Directory %s does not exist." % (prefix)
+    # Assume that LROSE is installed under /usr/local/lrose or /opt/local/lrose
+    prefix = None
+    paths = ['/usr/local/lrose', '/opt/local/lrose']
+    for path in paths:
+        if os.path.isdir(path):
+            prefix = path
+            break
+    if not prefix:
+        msg = "Unable to find LROSE. No directory in [%s] exists." % (','.join(paths))
         raise SCons.Errors.StopError, msg
     
     # Libs will be in <prefix>/lib
