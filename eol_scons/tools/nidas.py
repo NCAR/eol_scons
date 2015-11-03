@@ -241,6 +241,8 @@ paths relative to the top directory.
 Set NIDAS_PATH to '""" + USE_PKG_CONFIG + """', the default, to use the settings from the system pkg-config.""",
                      USE_PKG_CONFIG)
     _options.Update(env)
+    if env.GetOption('help'):
+        return
 
     nidas_paths = []
     nidas_libs = ['nidas','nidas_dynld','nidas_util']
