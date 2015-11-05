@@ -6,6 +6,18 @@ from a .proto file.
 
 NOTE: Java is not currently supported."""
 
+# This tool originally came from the SCons Wiki:
+#
+#   https://bitbucket.org/scons/scons/wiki/ProtocBuilder
+#
+# As now noted on that page, a mercurial repository has been created on
+# bitbucket to maintain the tool.
+#
+#   https://bitbucket.org/russel/scons_protobuf/
+#
+# As of 2015-11-05, there were no changes worth updating this copy.
+
+
 __author__ = "Scott Stafford"
 
 import SCons.Action
