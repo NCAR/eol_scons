@@ -150,13 +150,29 @@ def _NidasUtilLibs(env):
     return ['nidas_util']
 
 def _NidasApp(env, name):
-    app = _nidas_apps[(name, env['ARCH'])]
-    path = env.subst("${TARGET.dir}", target=app)
-    env.PrependENVPath('PATH', path)
-    eol_scons.Debug("NidasApp(%s) resolved to %s, prepend %s to PATH, %s" %
-                    (name, str(app), path,
-                     "LD_LIBRARY_PATH=%s" % (env['ENV']['LD_LIBRARY_PATH'])))
+    # If inside the source tree, look for the given app in the source tree
+    # and setup to run against it.  If not inside, then look in the
+    # installed path.
+    if env.get('NIDAS_INSIDE_SOURCE'):
+        app = _nidas_apps[(name, env['ARCH'])]
+        path = env.subst("${TARGET.dir}", target=app)
+        env.PrependENVPath('PATH', path)
+        eol_scons.Debug("NidasApp(%s) resolved to %s, prepend %s to PATH, %s" %
+                        (name, str(app), path,
+                         "LD_LIBRARY_PATH=%s" % (env['ENV']['LD_LIBRARY_PATH'])))
+    else:
+        _NidasRuntimeENV(env)
+        app = env.File('${NIDAS_PATH}/bin/'+name)
     return app
+
+
+def _NidasRuntimeENV(env):
+    "Setup the environment to run installed NIDAS programs."
+    env.PrependENVPath('PATH', env.subst('${NIDAS_PATH}/bin'))
+    libp = _resolve_libpaths(env, [env.subst('${NIDAS_PATH}')])
+    if libp:
+        env.PrependENVPath('LD_LIBRARY_PATH', libp[0])
+    env.PrependENVPath('LD_LIBRARY_PATH', '/opt/nc_server/lib')
 
 
 def _NidasAppFindFile(env, name):
@@ -209,6 +225,7 @@ def generate(env):
         return
 
     inside = _applyInsideSource(env)
+    env['NIDAS_INSIDE_SOURCE'] = inside
     eol_scons.Debug("applying nidas tool to %s, PREFIX=%s, %s source tree" %
                     (env.Dir('.').abspath, env.get('PREFIX'),
                      ['outside','inside'][int(inside)]))
@@ -217,6 +234,7 @@ def generate(env):
     env.AddMethod(_NidasUtilLibs, "NidasUtilLibs")
     env.AddMethod(_NidasAddApp, "NidasAddApp")
     env.AddMethod(_NidasApp, "NidasApp")
+    env.AddMethod(_NidasRuntimeENV, "NidasRuntimeENV")
     env.AddMethod(_NidasProgram, "NidasProgram")
     env.AddMethod(_NidasUtilProgram, "NidasUtilProgram")
     env.AddMethod(_NidasPlainProgram, "NidasPlainProgram")
@@ -230,6 +248,7 @@ def generate(env):
 
     global _options
     if not _options:
+        default_nidas_path = env.get('NIDAS_PATH', USE_PKG_CONFIG)
         _options = env.GlobalVariables()
         _options.Add('NIDAS_PATH',
 """Set the NIDAS prefix paths, and enable builds of components
@@ -239,7 +258,7 @@ against a NIDAS installation whose other dependencies are installed
 under another prefix.  Relative paths will be converted to absolute
 paths relative to the top directory.
 Set NIDAS_PATH to '""" + USE_PKG_CONFIG + """', the default, to use the settings from the system pkg-config.""",
-                     USE_PKG_CONFIG)
+                     default_nidas_path)
     _options.Update(env)
     if env.GetOption('help'):
         return
