@@ -163,9 +163,21 @@ def generate(env):
     Builder and Installer for shared libraries and their associated symbolic links.
 
     Usage:
-        env.Append(SHLIBMAJORVERSION = '3')
-        env.Append(SHLIBMINORVERSION = '5')
-        env.Append(USE_ARCHLIBDIR = 1)
+        # GitInfo tool can be used to set REPO_TAG in environment
+        env.GitInfo("include/revision.h", "#")
+
+        # If REPO_TAG is in the form "vX.Y" or "VX.Y", where X and Y are
+        # integers, then this generate function will set
+            env["SHLIBMAJORVERSION"] = X
+            env["SHLIBMINORVERSION"] = Y
+
+        # If not using GitInfo, set SHLIBMAJORVERSION and SHLIBMINORVERSION
+        # by hand
+        if not env.has_key("REPO_TAG"):
+            env["SHLIBMAJORVERSION"] = "3"
+            env["SHLIBMINORVERSION"] = '5'
+
+        env["USE_ARCHLIBDIR"] = 1
 
         # if modules in libfoo.so use symbols from libbar.so, add LIBS=['bar']
         libs = env.SharedLibrary3('foo',['foo.c'],
@@ -232,10 +244,14 @@ def generate(env):
     with the -lxxx option.  That is why symbolic link .so's, without major
     and minor numbers, are sometimes found only in -devel RPMs.
 
-    To create the above three libraries with this builder, do:
+    To create the above three libraries with this builder, set "REPO_TAG",
+    or "SHLIBMAJORVERSION" and "SHLIBMINORVERSION" in the environment:
 
+        env['REPO_TAG'] = 'v3.4'
+        # or
         env['SHLIBMAJORVERSION'] = '3'
         env['SHLIBMINORVERSION'] = '4'
+
         lib = env.SharedLibrary3('xxx',objects)
 
     This builder will set the -soname in the real library file, and the other
@@ -258,6 +274,13 @@ def generate(env):
     library suffix and the major and minor version numbers in the
     library file name.
     """
+
+    if not env.has_key("SHLIBMAJORVERSION") and env.has_key("REPO_TAG"):
+        rev = re.match("[Vv]([0-9]+)\.([0-9]+)",env["REPO_TAG"])
+        if rev:
+            env["SHLIBMAJORVERSION"] = rev.group(1)
+            env["SHLIBMINORVERSION"] = rev.group(2)
+
 
     # Special builder for shared libraries.
     # Some of these build parameters were stolen from the definition
