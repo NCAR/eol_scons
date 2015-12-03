@@ -2,8 +2,7 @@
 
 ## Installing eol_scons
 
-SCons version 2.3 searches in the following locations for python packages, where ./site_scons is in the same directory as the SConstruct file. See the documentation for the --site-dir command line option:
-
+By default, SCons version 2.3 searches in the following locations for python packages, where ./site_scons is in the same directory as the SConstruct file (see the documentation for the SCons --site-dir command line option):
 * Windows
    * %ALLUSERSPROFILE/Application Data/scons/site_scons
    * %USERPROFILE%/Local Settings/Application Data/scons/site_scons
@@ -30,9 +29,9 @@ SCons version 2.3 searches in the following locations for python packages, where
    * $HOME/.scons/site_scons
    * ./site_scons
 
-Therefore one needs to install eol_scons in one of the above places, or specify a --site-dir command line option.
+Therefore one needs to install eol_scons in one of the above places, or use the --site-dir command line option.
 
-SCons prior to version 2.3 only searches ./site_scons.
+SCons prior to version 2.3 only searches ./site_scons by default.
 
 Another option is to create an eol_scons Python package and install it in the usual locations. Support for this should be provided soon. Note that SCons ignores the PYTHONPATH environment variable.
 
