@@ -34,5 +34,3 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/scons/site_scons/eol_scons
 
 %changelog
-* Wed Sep 02 2015 Gordon Maclean <maclean@ucar.edu> 1.0-1
-- Initial
