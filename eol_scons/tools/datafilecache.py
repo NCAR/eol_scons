@@ -56,7 +56,7 @@ def generate(env):
     # the targets of this alias can be the actual cached files built by the
     # download builders, and the separate _sync_cache function would be
     # unnecessary.
-    env.Alias('datasync', None, _sync_cache)
+    env.AlwaysBuild(env.Alias('datasync', None, _sync_cache))
 
 def exists(env):
     return True
