@@ -183,6 +183,13 @@ def test_parsevalgrind():
     assert results['nerrors'] == 17
 
 
+def ValgrindLog_emit(source, target, env):
+    # If the target is a default, generate a target from the source.
+    if target and str(target[0]) == str(source[0]):
+        target = [str(source[0]) + '-vglog']
+    return target, source
+
+
 def ValgrindLog(target, source, env):
     # Perhaps Node.get_contents() could be used here, but valgrind logs
     # can be very very large, so stick with the file stream.
@@ -202,7 +209,8 @@ def generate(env):
     valgrind = getValgrindPath(env)
     env['ENV']['VALGRIND_PATH'] = valgrind
     env['VALGRIND_PATH'] = valgrind
-    env.Append(BUILDERS = {'ValgrindLog' : Builder(action = ValgrindLog) })
+    env.Append(BUILDERS = {'ValgrindLog' : Builder(action = ValgrindLog,
+                                                   emitter = ValgrindLog_emit) })
 
 
 def exists(env):
