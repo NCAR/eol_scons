@@ -2,8 +2,8 @@
 # Copyright 2007 UCAR, NCAR, All Rights Reserved
 
 """
-API for transparently caching data files and synchronizing them from
-remote locations as needed.
+Transparently cache data files within a pool of local directories and
+synchronize them from a master remote location as needed.
 
 There are two parts to caching data files: the local directory in which the
 data files are cached, and the remote directory specifier from which data
@@ -17,29 +17,28 @@ and used, if needed.
 The data cache needs to make sure exactly the right data file is found, and
 that the local copy matches the remote master copy.  Matching by filename
 is not enough, since for example there are multiple RAF netcdf files with
-the same name on the server.  Therefore, data files must be found relative
-to one of the directories on a search path.  The concatenation of search
-directory and relative data file path identify exactly the full path to a
-data file.  The relative data file path is used to uniquely identify the
-file in the cache and sync it when necessary.
+the same name on the server.  Therefore, data files are identified by their
+path relative to a remote prefix, where the remote prefix typically
+includes a host specifier.  It is up to the caller to make sure the
+relative paths of all files are unique.  The concatenation of a local cache
+directory and the relative data file path identify exactly the full path to
+a locally cached data file.  The relative data file path is used to
+uniquely identify the file in the cache and sync it when necessary.
 
-Typically, the search path includes a remote directory specifier such as
-'barolo:/scr/raf_data'.  Then clients request data files from the cache
-using a relative path like 'HIPPO/prod_data/HIPPO-2rf06.nc'.  The data file
-is stored locally in the cache with its relative path,
+Typically, the remote prefix includes a remote host specifier and a
+directory, such as 'barolo:/scr/raf_data'.  Clients request data files from
+the cache using a relative path like 'HIPPO/prod_data/HIPPO-2rf06.nc'.  The
+data file is stored locally in the cache by its relative path,
 <datacache>/HIPPO/prod_data/HIPPO-2rf06.nc, and it is synchronized from its
-remote specifier: 'barolo:/scr/raf_data//HIPPO/prod_data/HIPPO-2rf06.nc'.
-
-We want the file name to stay the same, since it may affect how further
-file names are derived, so the cache maintains the whole relative path to
-distinguish from other files in the cache which might have the same name.
+fully qualified remote specifier:
+'barolo:/scr/raf_data/HIPPO/prod_data/HIPPO-2rf06.nc'.
 
 The hostname portion of the master file path just makes it convenient to
 use the path with rsync, using ssh for the remote connection.  However,
 rather than use the exact host name like barolo, use something that must be
 added to the ssh config but that does not collide with hostnames that may
-already have configurations, eg, rafdata.  This entry in .ssh/config
-defines a ssh host alias called rafdata:
+already have configurations.  This entry in .ssh/config defines a ssh host
+alias called rafdata:
 
    Host rafdata
    HostName barolo.eol.ucar.edu
@@ -61,10 +60,8 @@ import os
 
 class DataFileCache(object):
     """
-    Provide an API to lookup and search for test data files on the local
-    filesystem without requiring tests to know how they are stored and
-    where.  Someday eventually this can include the ability to fetch data
-    files remotely and cache them on the local filesystem.
+    Lookup and search for data files on the local filesystem without
+    requiring clients to know how they are stored and where.
     """
 
     def __init__(self, cachepath=None):
@@ -80,6 +77,10 @@ class DataFileCache(object):
         self.cachepaths = [path]
 
     def setRemotePrefix(self, prefix):
+        """
+        Set the prefix for data files to create the remote specifier from which
+        local files can be synchronized.
+        """
         self._remote_prefix = prefix
 
     # Backwards compatible but deprecated method.
@@ -177,11 +178,10 @@ class DataFileCache(object):
         that local path is registered and returned.  If not, then the file
         is registered with the path under the first local directory which
         exists.  If the file is later downloaded from the remote prefix, it
-        will be stored at the local path.
+        will be written to the local path registered here.
 
-        Files are registered using the relative filepath, and once
-        registered the relative path maps to the full path underneath data
-        file cache directory.
+        Files are registered using the relative filepath, and that maps to
+        the full path within a data file cache directory.
         """
         path = self._cached_paths.get(filepath)
         if not path:
