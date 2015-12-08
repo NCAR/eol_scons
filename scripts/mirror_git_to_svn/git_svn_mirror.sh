@@ -27,15 +27,13 @@ if ! [ $JENKINS_HOME ]; then
 
 fi
 
-if ! [ -f .git/config ] || ! grep -F -q svn-remote .git/config; then
-    cat << EOD >> .git/config
-[svn-remote "svn"]
-    url = $svnurl
-    fetch = :refs/remotes/git-svn
-EOD
+# setup svn-remote configuration
+if ! git config --get-regexp svn-remote.svn > /dev/null; then
+    git config svn-remote.svn.url $svnurl
+    git config svn-remote.svn.fetch ":refs/remotes/git-svn"
 fi
 
-# fetch from above svn-remote named "svn"
+# fetch from svn-remote named "svn"
 # takes a long time the first time it is run from a large repo
 git svn fetch svn 
 
@@ -43,7 +41,7 @@ git svn fetch svn
 # must be done after above git svn fetch
 git show-ref --verify --quiet refs/heads/svn || git branch svn git-svn
 
-# create tmp-master branch pointing at latest commit
+# create new tmp-master branch pointing at latest commit
 git show-ref --verify --quiet refs/heads/tmp-master && git branch -D tmp-master
 git branch tmp-master $GIT_COMMIT
 git checkout tmp-master
@@ -52,9 +50,8 @@ git checkout tmp-master
 # takes a long time the first time it is run on a large repo
 git rebase svn
 
-git checkout svn
-
 # fast-forward merge the new commits to svn
+git checkout svn
 git merge --ff-only tmp-master
 
 # push new commits to subversion
