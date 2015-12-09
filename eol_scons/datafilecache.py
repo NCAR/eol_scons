@@ -65,16 +65,36 @@ class DataFileCache(object):
     """
 
     def __init__(self, cachepath=None):
-        self.cachepaths = []
+        self._cachepaths = []
         self._remote_prefix = None
         if cachepath:
-            self.cachepaths = [cachepath]
+            self._cachepaths = [cachepath]
         self._cached_paths = {}
         self._enable_download = True
 
+    def getCachePath(self):
+        "Return the current cache path list."
+        return self._cachepaths
+
     def setDataCachePath(self, path):
-        "Replace the current cache paths list with a single directory."
-        self.cachepaths = [path]
+        """
+        Replace the current list of cache paths with a single directory.
+        """
+        self._cachepaths = [path]
+
+    def insertCachePath(self, path):
+        """
+        Insert a cache directory at the front of the cache path list.
+
+        This will be the first directory searched for existing copies of
+        data files, and if it already exists it will also be the default
+        location for newly downloaded copies.
+        """
+        self._cachepaths.insert(0, path)
+
+    def appendCachePath(self, path):
+        "Append a cache directory to the list of cache paths."
+        self._cachepaths.append(path)
 
     def setRemotePrefix(self, prefix):
         """
@@ -102,6 +122,9 @@ class DataFileCache(object):
 
     def enableDownload(self, enable):
         self._enable_download = enable
+
+    def downloadEnabled(self):
+        return self._enable_download
 
     def download(self, filepath):
         """
@@ -167,7 +190,7 @@ class DataFileCache(object):
 
     def expandedCachePaths(self):
         dirs = []
-        for cdir in self.cachepaths:
+        for cdir in self._cachepaths:
             dirs.append(os.path.expandvars(os.path.expanduser(cdir)))
         return dirs
 
