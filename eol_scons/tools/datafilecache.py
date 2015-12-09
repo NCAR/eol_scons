@@ -4,6 +4,9 @@ integrates with SCons builders to download data files and create
 dependencies on the cached copies.
 """
 
+import SCons
+from SCons.Variables import BoolVariable
+
 def _sync_cache(target, source, env):
     dfcache = env.DataFileCache()
     if dfcache.sync():
@@ -14,18 +17,25 @@ def _sync_file(target, source, env):
     dfcache = env.DataFileCache()
     if dfcache.download(str(source[0])):
         return None
-    raise SCons.Errors.StopError("datasync failed.")
+    msg = "datasync failed."
+    if not dfcache.downloadEnabled():
+        msg = "datasync failed, download disabled."
+    raise SCons.Errors.StopError(msg)
 
 def _download_data_file(env, filepath):
     # Create a scons builder which downloads the source file into the cache.
     dfcache = env.DataFileCache()
+    dfcache.enableDownload(env['download'])
     target = env.Command(dfcache.getFile(filepath),
                          env.Value(filepath), _sync_file)
     # Do not allow scons to erase the data file before re-synchronizing it.
     env.Precious(target)
     print("created command builder to download %s to %s" %
           (filepath, target[0].abspath))
-    return target[0].abspath
+    # return target[0].abspath
+    # Return just the single node rather than the list that a builder
+    # would actually return, so it can be substitued easily for a file path.
+    return target[0]
 
 def _get_cache_instance(env):
     import eol_scons.datafilecache as datafilecache
@@ -39,15 +49,24 @@ def _get_cache_instance(env):
         #if not os.path.isdir(path):
         #    os.makedirs(path)
         dfcache = datafilecache.DataFileCache()
-        dfcache.cachepaths.append(path)
+        # Provide fallback cache directory for scons environments.
+        dfcache.appendCachePath(path)
         env['DATA_FILE_CACHE'] = dfcache
         # No point downloading anything for clean and help options.
         if env.GetOption('clean') or env.GetOption('help'):
             dfcache.enableDownload(False)
     return dfcache
 
+_options = None
 
 def generate(env):
+    global _options
+    if not _options:
+        _options = env.GlobalVariables()
+        _options.Add(BoolVariable('download',
+                                  "Enable or disable downloading of data files "
+                                  "to the local data file cache.", True))
+    _options.Update(env)
     env.AddMethod(_get_cache_instance, "DataFileCache")
     env.AddMethod(_download_data_file, "DownloadDataFile")
     # Automatically provide a datasync alias for now, but this may be
