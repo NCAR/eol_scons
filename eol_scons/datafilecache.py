@@ -227,7 +227,7 @@ class DataFileCache(object):
 
 def test_datafilecache(tmpdir):
     dfcache = DataFileCache(str(tmpdir))
-    assert(dfcache.cachepaths == [str(tmpdir)])
+    assert(dfcache.getCachePath() == [str(tmpdir)])
     assert(dfcache.localDownloadPath() == str(tmpdir))
 
     dfcache.setPrefix('rafdata:/scr/raf_data')
@@ -251,19 +251,19 @@ def test_datafilecache(tmpdir):
 
     dfcache = DataFileCache(str(tmpdir))
     dfcache.setPrefix('rafdata:/scr/raf_data')
-    dfcache.cachepaths.insert(0, "/tmp")
+    dfcache.insertCachePath("/tmp")
     assert(dfcache.getFile(target) == xpath)
     
     
 def test_cachepaths():
     dfcache = DataFileCache()
-    dfcache.cachepaths.append("/abc")
+    dfcache.appendCachePath("/abc")
     assert(dfcache.localDownloadPath() == "/abc")
     assert(not os.path.exists("/abc"))
-    dfcache.cachepaths.append("/xyz")
+    dfcache.appendCachePath("/xyz")
     assert(dfcache.localDownloadPath() == "/xyz")
     assert(not os.path.exists("/xyz"))
-    dfcache.cachepaths.insert(1, "/tmp")
+    dfcache.insertCachePath("/tmp")
     assert(dfcache.localDownloadPath() == "/tmp")
 
     assert(dfcache.getFile("anyfile") == "/tmp/anyfile")
