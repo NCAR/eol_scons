@@ -80,8 +80,8 @@ def _download_data_file(env, filepath):
         env.AlwaysBuild(target)
     # Do not allow scons to erase the data file before re-synchronizing it.
     env.Precious(target)
-    print("created command builder to download %s to %s" %
-          (filepath, target[0].abspath))
+    env.LogDebug("created command builder to download %s to %s" %
+                 (filepath, target[0].abspath))
     # Add the target to the datasync alias, so one alias can be used to
     # update all the cache files and also the scons dependencies cache.
     # However, the syncs do not happen if the file already appears updated,

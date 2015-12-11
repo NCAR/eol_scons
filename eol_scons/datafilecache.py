@@ -156,7 +156,6 @@ class DataFileCache(object):
             os.makedirs(destdir)
         args = ['rsync', '-v', filepath, destdir]
         print(" ".join(args))
-        print("downloading %s..." % (filepath))
         retcode = sp.call(args, shell=False)
         if retcode == 0 and os.path.isfile(destpath):
             return destpath
@@ -215,8 +214,9 @@ class DataFileCache(object):
                     break
             if not path:
                 path = os.path.join(self.localDownloadPath(), filepath)
-            print("registering file %s with data cache path: %s" %
-                  (filepath, path))
+            if False:
+                print("registering file %s with data cache path: %s" %
+                      (filepath, path))
             self._cached_paths[filepath] = path
         return path
 
