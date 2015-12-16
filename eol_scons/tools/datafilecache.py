@@ -78,8 +78,10 @@ def _download_data_file(env, filepath):
                          env.Value(filepath), syncfile)
     if env.get('download', 'auto') == 'force':
         env.AlwaysBuild(target)
-    # Do not allow scons to erase the data file before re-synchronizing it.
+    # Do not allow scons to erase the data file before re-synchronizing it,
+    # nor remove the file when cleaning.
     env.Precious(target)
+    env.NoClean(target)
     env.LogDebug("created command builder to download %s to %s" %
                  (filepath, target[0].abspath))
     # Add the target to the datasync alias, so one alias can be used to
