@@ -1,57 +1,39 @@
-"""\
-Simple scons tool to find a valgrind executable and set the VALGRIND_PATH
-construction variable accordingly.  The value will also be available in
-the runtime environment, such as for test scripts executed by scons.
+"""
+Simple scons tool to test programs with valgrind tools.
 
-Also set VALGRIND_COMMAND according to these options provided to the
-scons environment.  If valgrind is 'off', then VALGRIND_COMMAND will be
-empty.  Set VALGRIND_VERSION to the valgrind version string
-using 'valgrind --version'.
+This tool finds a valgrind executable and sets the VALGRIND_PATH
+construction variable accordingly.  The value will also be available in the
+runtime environment, such as for test scripts executed by scons.
 
- valgrind={valgrind|callgrind|off}    
-    Whether to run valgrind or callgrind or neither.
- 
-The valgrind Action runs another Action using valgrind
+By default VALGRIND_COMMAND is the concatenation of VALGRIND_PATH and
+VALGRIND_OPTIONS, but it can be overridden in the usual way with keyword
+arguments to scons calls.
 
-These are the expected uses of this tool:
+The Valgrind() pseudo-builder works like a Command() builder.  The first
+argument is an alias instead of a target file, but the rest of the
+arguments are the usual, sources then actions.  The pseudo-builder creates
+two builders.  One builder creates the usual Command() target named
+<alias>, but it replaces $VALGRIND_COMMAND with an empty string.  The
+second builder runs the same actions, without replacing VALGRIND_COMMAND,
+but it filters the output to a log file and adds a ValgrindLog() builder to
+that.  The alias which runs valgrind is called <alias>-vg.  Both builders
+are always created, so either or both can be specified as scons targets.
 
- * Run a test script which runs a test program using VALGRIND_COMMAND:
-     $VALGRIND_COMMAND ./test_program <program_options>   > test.log
-   The script can add a suppressions file if it likes:
-     if [ -n "$VALGRIND_COMMAND" ]; then
-        vgopts="--suppressions=vg.suppresions"
-     fi
- * Build a summary report of a valgrind log file which results in a failure
-   when certain errors are detected.
-     env.ValgrindLog("test.log", VALGRIND_LEAK_THRESHOLD=0, 
-                                 VALGRIND_ERROR_THRESHOLD=0)
+If a suppressions file is detected as one of the source files, then that
+file is added automatically as an argument to the valgrind command.
 
-So everything can be combined with this:
+The VALGRIND_COMMAND variable must appear somewhere in the actions to run
+valgrind, for example:
 
-   env.Valgrind("test_command ...options...", VALGRIND_ settings...)
+    sfile = env.File("vg.suppressions.txt")
 
-or
+    memcheck = env.Valgrind('memcheck', [test_program, sfile],
+                            "cd ${SOURCE.dir} && "
+                            "${VALGRIND_COMMAND} ./${SOURCE.file} ${GTESTS}")
 
-   env.ValgrindLog(env.Test(...), VALGRIND_ settings...)
-
-The Valgrind() builder first wraps the command in a Test() builder,
-then parses the output.
-
-If valgrind is not enabled, then ValgrindLog() and Valgrind() do not do
-anything except run the test program.
-
-Add a TEST_LOGFILE construction variable for Test() pseudo-builder, so the
-logfile will be the target of the Test().  Can xtest still be an alias to
-run the test in that case?
-
-Valgrind builders should be added to the test alias too?  Or perhaps I have
-this backwards: the Test() pseudo-builders should add the valgrind actions
-instead of the other way around, eg, env.Test("command") will call the
-valgrind builder automatically if enabled.  The test should run and have
-the 'test' and 'xtest' aliases whether valgrind is run as part of it or
-not.
-
-
+The ValgrindLog() builder parses the output from valgrind and fails the
+build if there are excessive errors.  It can be used separately to test a
+valgrind log file rather than through the Valgrind() method.
 """
 
 import os
@@ -187,6 +169,7 @@ def ValgrindLog_emit(source, target, env):
     # If the target is a default, generate a target from the source.
     if target and str(target[0]) == str(source[0]):
         target = [str(source[0]) + '-vglog']
+    env.AlwaysBuild(source)
     return target, source
 
 
@@ -205,12 +188,54 @@ def ValgrindLog(target, source, env):
     return None
 
 
+def Valgrind(env, alias, sources, actions, **kw):
+    """
+    Use the Command builder to create two target aliases, one which passes
+    VALGRIND_COMMAND in the action script and logs the output to a valgrind
+    logfile, and one which does not.  If the source contains a file called
+    vg.suppressions.txt, then add that as a suppression file option to the
+    valgrind call.
+    """
+    print("Creating non-valgrind target %s" % (alias))
+    vgcmd = kw.get('VALGRIND_COMMAND')
+    kw['VALGRIND_COMMAND'] = ''
+    novg = env.Command(alias, sources, actions, **kw)
+    suppfile = [src for src in env.Flatten(sources)
+                if str(src).endswith("vg.suppressions.txt")]
+    suppressions=""
+    if suppfile:
+        suppressions=" --suppressions=%s" % (str(suppfile[0]))
+
+    # Save off the valgrind output into a log file, without filtering
+    # anything, then parse the valgrind output.
+    logfile = env.File(alias+'.vg.log')
+    logaction = env.LogAction([Action(actions)], logfile.get_abspath())
+    vgalias = alias+'-vg'
+    print("Creating valgrind alias %s" % (vgalias))
+    if not vgcmd:
+        vgcmd = env.get('VALGRIND_COMMAND')
+    kw['VALGRIND_COMMAND'] = vgcmd + suppressions
+    vg = env.ValgrindLog(vgalias, env.Command(logfile, sources, logaction, **kw))
+    return novg + vg
+
+
 def generate(env):
+    # Need LogAction
+    env.Require('testing')
     valgrind = getValgrindPath(env)
     env['ENV']['VALGRIND_PATH'] = valgrind
     env['VALGRIND_PATH'] = valgrind
+    if not env.has_key('VALGRIND_COMMAND'):
+        env['VALGRIND_COMMAND'] = "${VALGRIND_PATH} ${VALGRIND_OPTIONS}"
+    # These need to propagate for valgrind, because it uses them to generate
+    # the pipe filenames for the embedded gdb server, and they must match the
+    # filenames that the remote gdb client will generate with the 'target
+    # remote' command.
+    env['ENV']['HOSTNAME'] = os.getenv('HOSTNAME')
+    env['ENV']['USER'] = os.getenv('USER')
     env.Append(BUILDERS = {'ValgrindLog' : Builder(action = ValgrindLog,
                                                    emitter = ValgrindLog_emit) })
+    env.AddMethod(Valgrind)
 
 
 def exists(env):
