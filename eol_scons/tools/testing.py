@@ -1,4 +1,5 @@
-"""SCons tool to run test programs and to log or filter the output.
+"""
+SCons tool to run test programs and to log or filter the output.
 
 All test pseudo-builder methods take a name for the test (the alias) and
 the list of actions to execute to run that test, typically a shell command.
@@ -56,7 +57,6 @@ own main().  These tools are not defined until this tool has been loaded,
 so the testing tool must always be required first:
 
 env = Environment(tools=['default', 'testing', 'gtest'])
-
 """
 
 import subprocess
@@ -179,6 +179,10 @@ class LogAction(ListAction):
             spawner.close()
             env['SPAWN'] = spawnsave
         return status
+
+
+def _create_log_action(env, *args, **kw):
+    return LogAction(*args, **kw)
 
 
 def _test_builder(env, alias, sources, actions, logfile=None):
@@ -304,6 +308,7 @@ def generate(env):
     env.AddMethod(_TestRun, "TestRun")
     env.AddMethod(_DefaultTest, "DefaultTest")
     env.AddMethod(_get_page_instance, "ImageComparisonPage")
+    env.AddMethod(_create_log_action, "LogAction")
 
 def exists(env):
     return True
