@@ -35,7 +35,8 @@ cd ..
 
 tmplog=$(mktemp /tmp/${script}_XXXXXX.log)
 tmpspec=$(mktemp /tmp/${script}_XXXXXX.spec)
-trap "{ rm -f $tmplog $tmpspec; }" EXIT
+awkcom=$(mktemp /tmp/${script}_XXXXXX.awk)
+trap "{ rm -f $tmplog $tmpspec $awkcom; }" EXIT
 
 set -o pipefail
 
@@ -59,10 +60,31 @@ version=${gitdesc%-*}      # 2.0
 release=${gitdesc#*-}       # 14
 [ $gitdesc == "$release" ] && release=0 # no dash
 
-# create change log from git log messages since v2.0
+# In the RPM changelog, copy up to 100 recent commit
+# subject lines since this tag.
+sincetag=v2.0
+
+cat << \EOD > $awkcom
+/^[0-9a-f]+/ {
+    hash = $0
+    cmd = "git describe --match '[vV][0-9]*' " hash " 2>/dev/null"
+    res = (cmd | getline version)
+    close(cmd)
+    if (res == 0) {
+        version = ""
+    }
+}
+/^\*/ { print $0,version }
+/^-/ { print $0 }
+/^$/ { print $0 }
+EOD
+
+# create change log from git log messages since $sincetag
+# Put SHA hash by itself on first line. Above awk script then
+# converts it to the output of git describe, and appends it to "*" line.
 # Truncate subject line at 60 characters 
 # git convention is that the subject line is supposed to be 50 or shorter
-git log --format="* %cd %aN%n- (%h) %s%d%n" --date=local v2.0.. | sed -r 's/[0-9]+:[0-9]+:[0-9]+ //'  | sed -r 's/(^- \([^)]+\) .{,60}).*/\1/' | cat scripts/${pkg}.spec - > $tmpspec
+git log --max-count=100 --date-order --format="%h%n* %cd %aN%n- %s%n" --date=local ${sincetag}.. | sed -r 's/[0-9]+:[0-9]+:[0-9]+ //' | sed -r 's/(^- .{,60}).*/\1/' | awk -f $awkcom | cat scripts/${pkg}.spec - > $tmpspec
 
 [ -d $topdir/SOURCES ] || mkdir -p $topdir/SOURCES
 
