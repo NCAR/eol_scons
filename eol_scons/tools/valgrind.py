@@ -10,26 +10,43 @@ VALGRIND_OPTIONS, but it can be overridden in the usual way with keyword
 arguments to scons calls.
 
 The Valgrind() pseudo-builder works like a Command() builder.  The first
-argument is an alias instead of a target file, but the rest of the
-arguments are the usual, sources then actions.  The pseudo-builder creates
-two builders.  One builder creates the usual Command() target named
-<alias>, but it replaces $VALGRIND_COMMAND with an empty string.  The
-second builder runs the same actions, without replacing VALGRIND_COMMAND,
-but it filters the output to a log file and adds a ValgrindLog() builder to
-that.  The alias which runs valgrind is called <alias>-vg.  Both builders
-are always created, so either or both can be specified as scons targets.
+argument is the targets, then sources, then actions.  The pseudo-builder
+can create one of two builders.  One builder is created with Command(),
+except $VALGRIND_COMMAND is replaced with an empty string.  The other
+builder runs the same actions, without replacing VALGRIND_COMMAND, but it
+filters the output to a log file and adds a ValgrindLog() builder to that.
+The default builder is selected by setting the VALGRIND_DEFAULT keyword to
+'on' or 'off', but it is off by default.  Then the valgrind command can be
+enabled or disabled for a particular scons run by setting the 'valgrind'
+option to 'on' or 'off'.
 
 If a suppressions file is detected as one of the source files, then that
-file is added automatically as an argument to the valgrind command.
+file is added automatically as an argument to the valgrind command, and it
+is removed from the sources for the plain Command() builder.
 
 The VALGRIND_COMMAND variable must appear somewhere in the actions to run
 valgrind, for example:
 
     sfile = env.File("vg.suppressions.txt")
-
     memcheck = env.Valgrind('memcheck', [test_program, sfile],
                             "cd ${SOURCE.dir} && "
                             "${VALGRIND_COMMAND} ./${SOURCE.file} ${GTESTS}")
+
+The above target can be triggered by calling `scons memcheck`.  It will run
+the test program directly and not under valgrind, since VALGRIND_DEFAULT
+was not specified.  The same builder can be created with the code below,
+but valgrind will run by default:
+
+    sfile = env.File("vg.suppressions.txt")
+    memcheck = env.Valgrind('memcheck', [test_program, sfile],
+                            "cd ${SOURCE.dir} && "
+                            "${VALGRIND_COMMAND} ./${SOURCE.file} ${GTESTS}",
+                            VALGRIND_DEFAULT='on')
+
+Either of the above two targets can be run with valgrind by explicitly
+forcing it with a command-line setting:
+
+    scons -u memcheck valgrind=on
 
 The ValgrindLog() builder parses the output from valgrind and fails the
 build if there are excessive errors.  It can be used separately to test a
@@ -41,6 +58,7 @@ import re
 import SCons
 from SCons.Builder import Builder
 from SCons.Action import Action
+from SCons.Variables import EnumVariable
 
 class ValgrindWarning(SCons.Warnings.Warning):
     pass
@@ -188,39 +206,68 @@ def ValgrindLog(target, source, env):
     return None
 
 
-def Valgrind(env, alias, sources, actions, **kw):
+def Valgrind(env, targets, sources, actions, **kw):
     """
-    Use the Command builder to create two target aliases, one which passes
-    VALGRIND_COMMAND in the action script and logs the output to a valgrind
-    logfile, and one which does not.  If the source contains a file called
-    vg.suppressions.txt, then add that as a suppression file option to the
-    valgrind call.
+    Use a Command builder to create the targets, but also add a valgrind
+    log file and parse it.  If valgrind is explicitly off, then just return
+    a Command builder with the VALGRIND_COMMAND replaced with an empty
+    string.  Pass VALGRIND_DEFAULT keyword as False to disable valgrind by
+    default, meaning valgrind will only run for these targets when the
+    'valgrind' option is explicitly set to 'on'.
     """
-    print("Creating non-valgrind target %s" % (alias))
+    runvalgrind = env.get('valgrind', 'default')
     vgcmd = kw.get('VALGRIND_COMMAND')
-    kw['VALGRIND_COMMAND'] = ''
-    novg = env.Command(alias, sources, actions, **kw)
-    suppfile = [src for src in env.Flatten(sources)
+    sources = env.Flatten(sources)
+    suppfile = [src for src in sources
                 if str(src).endswith("vg.suppressions.txt")]
     suppressions=""
     if suppfile:
         suppressions=" --suppressions=%s" % (str(suppfile[0]))
 
-    # Save off the valgrind output into a log file, without filtering
-    # anything, then parse the valgrind output.
-    logfile = env.File(alias+'.vg.log')
-    logaction = env.LogAction([Action(actions)], logfile.get_abspath())
-    vgalias = alias+'-vg'
-    print("Creating valgrind alias %s" % (vgalias))
-    if not vgcmd:
-        vgcmd = env.get('VALGRIND_COMMAND')
-    kw['VALGRIND_COMMAND'] = vgcmd + suppressions
-    vg = env.ValgrindLog(vgalias, env.Command(logfile, sources, logaction, **kw))
-    return novg + vg
+    if kw.get('VALGRIND_DEFAULT') != 'on' or runvalgrind == 'off':
+        print("Creating builder for %s with valgrind off by default" %
+              (str(targets[0])))
+        kw['VALGRIND_COMMAND'] = ''
+        output = env.Command(targets, sources, actions, **kw)
+    else:
+        print("Creating builder for %s with valgrind on by default" %
+              (str(targets[0])))
+        # Save off the valgrind output into a log file, without filtering
+        # anything, then parse the valgrind output.
+        logfile = str(targets[0])+'.vg.log'
+        logfile = kw.get('VALGRIND_LOG', logfile)
+        logfile = env.File(logfile)
+        logaction = env.LogAction([Action(actions)], logfile.get_abspath())
+        if not vgcmd:
+            vgcmd = env.get('VALGRIND_COMMAND')
+        kw['VALGRIND_COMMAND'] = vgcmd + suppressions
+        targets.append(logfile)
+        output = env.ValgrindLog(str(logfile)+"-analyze",
+                                 env.Command(targets, sources, logaction, **kw))
+    return output
+
+
+
+
+
+
+_variables = None
+
+def _setup_variables(env):
+    global _variables
+    if not _variables:
+        _variables = env.GlobalVariables()
+        _variables.Add(EnumVariable('valgrind',
+                                    "Force valgrind analysis on or off.",
+                                    'default',
+                                    allowed_values=('default', 'on', 'off'),
+                                    ignorecase=2))
+    _variables.Update(env)
 
 
 def generate(env):
     # Need LogAction
+    _setup_variables(env)
     env.Require('testing')
     valgrind = getValgrindPath(env)
     env['ENV']['VALGRIND_PATH'] = valgrind
