@@ -154,7 +154,7 @@ class DataFileCache(object):
                 filepath = lpath
         if not os.path.isdir(destdir):
             os.makedirs(destdir)
-        args = ['rsync', '-v', filepath, destdir]
+        args = ['rsync', '-tv', filepath, destdir]
         print(" ".join(args))
         retcode = sp.call(args, shell=False)
         if retcode == 0 and os.path.isfile(destpath):
