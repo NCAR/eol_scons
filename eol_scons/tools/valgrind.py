@@ -95,33 +95,44 @@ def getValgrindPath(env):
 
 def _parseValgrindOutput(log):
     # Parse valgrind error summary lines
-
     rxmap = { 'nerrors' : re.compile(r"ERROR SUMMARY: *([\d,]+) *"),
               'dlost' : re.compile(r"definitely lost: *([\d,]+) bytes"),
               'plost' : re.compile(r"possibly lost: *([\d,]+) bytes"),
               'ilost' : re.compile(r"indirectly lost: *([\d,]+) bytes") }
     results = {}
-    l = log.readline()
-    # The first line gives the tool
-    match = re.search(r"==\d+== (Memcheck|Helgrind), "
-                      r"a (memory|thread) error detector", l)
+    # Look for the tool in the first 10 lines of the file.  Limit the line
+    # lengths in case this is a binary file with no newlines.  If the
+    # valgrind tool line is not found in the first 10 lines or 2560 bytes,
+    # then it must not be a valgrind log file.
+    rxtool = re.compile(r"==\d+== (Memcheck|Helgrind), "
+                        r"a (memory|thread) error detector")
+    match = None
+    line = log.readline(256)
+    lineno = 0
+    while line and not match and lineno < 10:
+        lineno += 1
+        match = rxtool.search(line)
+        line = log.readline(256)
+
     if not match:
-        msg = "not a valgrind log file from memcheck or helgrind tool"
-        raise SCons.Errors.StopError, msg
+        return None
     results['tool'] = match.group(1)
-    while l:
-        l = l.strip()
+    while line:
+        l = line.strip()
         for vname, rx in rxmap.items():
-            match = rx.search(l)
+            match = rx.search(line)
             if match:
-                print("found %s in %s" % (vname, l))
+                print("found %s in %s" % (vname, line))
                 results[vname] = int(match.group(1).replace(',',''))
-        l = log.readline()
+        line = log.readline()
 
     return results
         
 
 _valgrind_example = """\
+11111
+22222 Random leader text here...
+33333
 ==9158== Memcheck, a memory error detector
 ==9158== Copyright (C) 2002-2013, and GNU GPL'd, by Julian Seward et al.
 ==9158== Using Valgrind-3.9.0 and LibVEX; rerun with -h for copyright info
@@ -183,20 +194,28 @@ def test_parsevalgrind():
     assert results['nerrors'] == 17
 
 
-def ValgrindLog_emit(source, target, env):
+def ValgrindLog_emit(target, source, env):
     # If the target is a default, generate a target from the source.
     if target and str(target[0]) == str(source[0]):
         target = [str(source[0]) + '-vglog']
-    env.AlwaysBuild(source)
+    # env.AlwaysBuild(source)
     return target, source
 
 
 def ValgrindLog(target, source, env):
     # Perhaps Node.get_contents() could be used here, but valgrind logs
     # can be very very large, so stick with the file stream.
-    log = open(str(source[0]), "r")
-    results = _parseValgrindOutput(log)
-    log.close()
+    results = None
+    for s in source:
+        log = open(str(s), "r")
+        results = _parseValgrindOutput(log)
+        log.close()
+        if results:
+            break
+    if not results:
+        msg = "No valgrind log file found from memcheck or helgrind tool."
+        raise SCons.Errors.StopError, msg
+
     maxleaked = env.get('VALGRIND_LEAK_THRESHOLD', 0)
     maxerrors = env.get('VALGRIND_ERROR_THRESHOLD', 0)
     if results['nerrors'] > maxerrors:
@@ -215,23 +234,28 @@ def Valgrind(env, targets, sources, actions, **kw):
     default, meaning valgrind will only run for these targets when the
     'valgrind' option is explicitly set to 'on'.
     """
-    runvalgrind = env.get('valgrind', 'default')
+    _variables.Update(env)
+    valgrind = env.get('valgrind', 'default')
+    env.LogDebug("valgrind=%s" % (valgrind))
     vgcmd = kw.get('VALGRIND_COMMAND')
     sources = env.Flatten(sources)
+    targets = env.Flatten([targets])
     suppfile = [src for src in sources
                 if str(src).endswith("vg.suppressions.txt")]
     suppressions=""
     if suppfile:
-        suppressions=" --suppressions=%s" % (str(suppfile[0]))
+        suppfile = env.File(suppfile[0])
+        suppressions = " --suppressions=%s" % (suppfile.get_abspath())
 
-    if kw.get('VALGRIND_DEFAULT') != 'on' or runvalgrind == 'off':
-        print("Creating builder for %s with valgrind off by default" %
-              (str(targets[0])))
+    # The only way to trigger the valgrind build is if valgrind is on
+    # or default and the builder's default is on.
+    if bool(valgrind == 'off' or
+            kw.get('VALGRIND_DEFAULT') == 'off' and valgrind == 'default'):
+        env.LogDebug("Creating builder for %s, valgrind=off" % (str(targets[0])))
         kw['VALGRIND_COMMAND'] = ''
         output = env.Command(targets, sources, actions, **kw)
     else:
-        print("Creating builder for %s with valgrind on by default" %
-              (str(targets[0])))
+        env.LogDebug("Creating builder for %s, valgrind=on" % (str(targets[0])))
         # Save off the valgrind output into a log file, without filtering
         # anything, then parse the valgrind output.
         logfile = str(targets[0])+'.vg.log'
@@ -242,8 +266,12 @@ def Valgrind(env, targets, sources, actions, **kw):
             vgcmd = env.get('VALGRIND_COMMAND')
         kw['VALGRIND_COMMAND'] = vgcmd + suppressions
         targets.append(logfile)
-        output = env.ValgrindLog(str(logfile)+"-analyze",
-                                 env.Command(targets, sources, logaction, **kw))
+        # First run the command under valgrind, then analyze the log file,
+        # and the targets of both builders are returned as the output
+        # nodes for this pseudo-builder.
+        output = env.Command(targets, sources, logaction, **kw)
+        output.extend(env.ValgrindLog(str(logfile)+"-analyze", logfile))
+
     return output
 
 
