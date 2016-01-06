@@ -128,11 +128,23 @@ class DataFileCache(object):
 
     def download(self, filepath):
         """
-        Run rsync to download the canonical filepath into the cache.  As an
-        optimization, see if the file exists locally at the master path,
-        meaning we're running on the data server.  If so, the hostname
-        specifier can be stripped.  If downloading is disabled, then just
-        return true if the file already exists, false otherwise.
+        Run rsync to download the canonical filepath into the cache.
+
+        If downloading is disabled, then just return true if the file
+        already exists, false otherwise.
+
+        If the file exists locally at the master path (ie, with any
+        hostname specifier stripped), assume that's the source data file
+        and that we're running on the data host itself or else the file is
+        mounted here.  If so, symbolically link the file into the cache.
+        We want to be careful not to do anything that might expose the data
+        file to accidental modification, so that's why it is not just used
+        in place.  Actually copying the file into the cache would be safer
+        still, but for now I'll consider a link to be safe enough.
+
+        Stripping the hostname when the file already exists locally helps
+        the data cache work in batch operations like jenkins when it is not
+        authorized to rsync through ssh.
         """
         destpath = self.getFile(filepath)
         destdir = os.path.dirname(destpath)
@@ -141,29 +153,59 @@ class DataFileCache(object):
         # The prefix is still needed, esp if it specifies the remote host.
         if not self._remote_prefix:
             raise Exception("Need a remote prefix to download data file.")
-        filepath = os.path.join(self._remote_prefix, filepath)
-        # Rsync directly if the master path is on this host.  This helps
-        # the data cache work in batch operations like jenkins when it is
-        # not authorized to rsync through ssh.  We could also just add the
-        # local part of the prefix to the cache search path and use the
-        # file directly from there, but that seems more dangerous to access
-        # a master copy of the data file directly.
-        (host, colon, lpath) = filepath.partition(':')
-        if colon:
-            if os.path.exists(lpath):
-                filepath = lpath
         if not os.path.isdir(destdir):
             os.makedirs(destdir)
-        args = ['rsync', '-tv', filepath, destdir]
+        filepath = os.path.join(self._remote_prefix, filepath)
+        (host, colon, lpath) = filepath.partition(':')
+        if colon and os.path.exists(lpath):
+            filepath = lpath
+            print("Using local datafile as source: %s" % (filepath))
+            colon = None
+        # If we are using the hostname specifier (colon is not None), then
+        # we must rsync, otherwise we link.  It is also possible there is
+        # no host specifier but the source file does not exist, in which
+        # case we fail saying just that.
+        if colon:
+            destpath = self._rsync(filepath, destpath)
+        elif not os.path.exists(filepath):
+            print("*** Datafile source path does not exist: %s ***"
+                  % filepath)
+            destpath = None
+        else:
+            destpath = self._link(filepath, destpath)
+        if not destpath and colon:
+            print("*** Check that host %s is configured in ssh/config."
+                  % (host))
+            print("*** Is remote host is accessible. Is VPN enabled?")
+        return destpath
+
+    def _rsync(self, filepath, destpath):
+        args = ['rsync', '-tv', filepath, destpath]
         print(" ".join(args))
         retcode = sp.call(args, shell=False)
         if retcode == 0 and os.path.isfile(destpath):
             return destpath
         print("*** rsync failed to download: %s" % (filepath))
-        if host:
-            print("*** Check that host %s is configured in ssh/config." % (host))
-        print("*** Check that remote host is accessible. Is VPN enabled?")
         return None
+
+    def _link(self, filepath, destpath):
+        # See if link exists and is already correct.
+        if os.path.islink(destpath):
+            if os.path.realpath(destpath) == os.path.realpath(filepath):
+                print("Link already exists: %s" % (destpath))
+                return destpath
+            print("Removing and fixing link: %s" % (destpath))
+            os.unlink(destpath)
+        elif os.path.exists(destpath):
+            # Entry is not a link.  Do not remove it automatically in case
+            # it's important.
+            print("*** File exists where link needs to be created: %s ***" %
+                  (destpath))
+            return None
+        # Create the link.
+        print("ln -s %s %s" % (filepath, destpath))
+        os.symlink(filepath, destpath)
+        return destpath
 
     def getFile(self, filepath):
         """
