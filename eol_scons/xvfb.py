@@ -21,20 +21,22 @@ class Xvfb(object):
         dpipe = os.pipe()
         cmd = ['Xvfb', '-displayfd', str(dpipe[1])]
         # The -displayfd option causes Xvfb to look for an available
-        # display number, but it writes error messages for each failed
-        # attempt to open a display.  It would be nice to create a pipe for
-        # stderr to filter out the error messages, but that gets
+        # display number, but it writes error messages apparently when
+        # attempts to open a display fail.  It would be nice to create a
+        # pipe for stderr to filter out the error messages, but that gets
         # complicated because we would need to keep reading from that pipe
         # after starting Xvfb or else risk blocking the Xvfb process.
-        # Likely there would not be any output once the display number is
-        # written back over the pipe, but that is not guaranteed.  Instead
-        # it works to use the shell to pipe and filter with grep.
-        cmd = "Xvfb -displayfd %d |& grep -v 'SocketCreateListener() failed' "
-        cmd += " | grep -v 'server already running'"
-        cmd = cmd % (dpipe[1])
-        print(cmd)
+        # Probably there would not be any output once the display number is
+        # written back over the pipe, but that is not guaranteed.  It works
+        # to use the shell to pipe and filter with grep, but then the
+        # kill() only goes to the shell and not to the actual Xvfb process.
+        # So it's back to the simplest approach and just ignoring the error
+        # messages.
+        print(" ".join(cmd))
+        print("Looking for available displays..."
+              "Ignore errors about servers already running.")
         self.proc = sp.Popen(cmd, close_fds=False, stdout=None, stderr=None,
-                             shell=True)
+                             shell=False)
         rfds = [dpipe[0]]
         displaybuf = ""
         # Since I cannot figure out how to open the pipe fds nonblocking,
@@ -70,3 +72,13 @@ class Xvfb(object):
         else:
             del os.environ['DISPLAY']
 
+
+
+def test_xvfb_stop():
+    import time
+    xvfb = Xvfb()
+    xvfb.start()
+    pid = xvfb.proc.pid
+    time.sleep(2)
+    xvfb.stop()
+    
