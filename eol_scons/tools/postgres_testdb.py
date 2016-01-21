@@ -75,6 +75,7 @@ commands.
 """
 
 
+import SCons
 import zlib
 import os
 import subprocess as sp
@@ -510,7 +511,7 @@ def exists(env):
     pgctl = env.WhereIs('pg_ctl')
     if not pgctl:
         SCons.Warnings.warn(
-            SvnInfoWarning,
+            SCons.Warnings.Warning,
             "Could not find pg_ctl program.  "
             "postgres_testdb tool not available.")
         return False
