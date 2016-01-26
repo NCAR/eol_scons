@@ -508,7 +508,7 @@ def enable_modules(self, modules, debug=False) :
                           os.path.join(hdir, module), self)
             else:
                 Debug("enabling module %s with QT4DIR=%s" %
-                      (module, env['QT4DIR']), self)
+                      (module, self['QT4DIR']), self)
                 # Module library directory can apparently be either
                 # <QT4DIR>/lib/<module> or just <QT4DIR>/lib.  Use the
                 # longer one if the directory exists, otherwise the shorter
