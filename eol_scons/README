@@ -13,6 +13,7 @@
 @li @ref eolsconsdetails
 @li @ref configuration
 @li @ref doxygen
+@li @ref optimization
 @li @ref subsets
 @li @ref comparison
 
@@ -857,6 +858,14 @@ be specified explicitly, typically in the SConstruct  file:
 
 In this example from aeros, there is a set of tag files stored in the
 source tree, and the TAGDIR variable points to that directory.
+
+
+@section optimization Speeding Up SCons (Go Fast Buttons)
+
+There are a few ways to speed up iterative scons builds using eol_scons.
+See these tools for ideas: ninja, rerun, and dump_trace.
+
+Also see: https://bitbucket.org/scons/scons/wiki/GoFastButton
 
 
 @section subsets Building Subsets of the Source Tree
