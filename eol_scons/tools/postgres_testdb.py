@@ -75,7 +75,6 @@ commands.
 """
 
 
-import SCons
 import zlib
 import os
 import subprocess as sp
@@ -510,6 +509,7 @@ def generate(env):
 def exists(env):
     pgctl = env.WhereIs('pg_ctl')
     if not pgctl:
+        import SCons
         SCons.Warnings.warn(
             SCons.Warnings.Warning,
             "Could not find pg_ctl program.  "
