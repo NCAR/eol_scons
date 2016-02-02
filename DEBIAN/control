@@ -1,0 +1,8 @@
+Package: eol-scons
+Version: 2.0
+Section: devel
+Priority: optional
+Architecture: all
+Depends: scons
+Maintainer: Gordon Maclean <maclean@ucar.edu>
+Description: Scons tools developed at NCAR EOL
