@@ -65,6 +65,7 @@ def _calculate_settings(env, settings):
 def generate(env):
     if not _settings:
         _calculate_settings(env, _settings)
+    env.Require(['z'])
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
     env.Append(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=_settings['LIBPATH'])
