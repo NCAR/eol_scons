@@ -1,8 +1,10 @@
 Package: eol-scons
-Version: 2.0
+Version: 2.0-0
 Section: devel
 Priority: optional
 Architecture: all
-Depends: scons
+Depends: scons, python
 Maintainer: Gordon Maclean <maclean@ucar.edu>
 Description: Scons tools developed at NCAR EOL
+ Scons tools developed at NCAR EOL, which are installed to
+ /usr/share/scons/site_scons.

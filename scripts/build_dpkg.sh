@@ -22,7 +22,8 @@ while [ $# -gt 0 ]; do
         repo=$1
         ;;
     *)
-        dest=$(readlink -e $1)
+        dest=$1
+        [ -d $dest ] || mkdir -p $dest || exit 1
         ;;
     esac
     shift
@@ -30,8 +31,12 @@ done
 
 pkg=eol-scons
 
-dir=$(dirname $0)/..
-cd $dir
+sdir=$(dirname $0)
+dir=$sdir/..
+
+pushd $dir > /dev/null
+
+umask 0022
 
 gitdesc=$(git describe --match "v[0-9]*")     # v2.0-14-gabcdef123
 gitdesc=${gitdesc%-*}       # v2.0-14
@@ -42,38 +47,57 @@ trap "{ rm -rf $tmpdir; }" EXIT
 pkgdir=$tmpdir/$pkg
 mkdir -p $pkgdir
 
-rsync --exclude=.git -a DEBIAN $pkgdir
+rsync --exclude=.git -a --no-perms --no-owner --chmod=g-w --no-owner DEBIAN $pkgdir
 
 sed -ri "s/^Version:.*/Version: $gitdesc/" $pkgdir/DEBIAN/control
 
 ddir=$pkgdir/usr/share/scons/site_scons
 mkdir -p $ddir
 
-rsync --exclude=.git -a eol_scons $ddir
+rsync --exclude=.git -a --no-perms --no-owner --chmod=g-w eol_scons $ddir
 
-cd $ddir > /dev/null
+# cd $ddir
+# python << EOD
+# import compileall
+# compileall.compile_dir("eol_scons", force=1)
+# EOD
 
-python << EOD
-import compileall
-compileall.compile_dir("eol_scons", force=1)
+ddir=$pkgdir/usr/share/doc/eol-scons
+mkdir -p $ddir
+
+cp copyright $ddir
+
+$sdir/changelog.sh | gzip -9 -c > $ddir/changelog.Debian.gz
+cp $ddir/changelog.Debian.gz /tmp
+
+cat << EOD | gzip -9 -c > $ddir/changelog.gz
+eol-scons Debian maintainer and upstream author are identical.
+Therefore see also normal changelog file for Debian changes.
 EOD
 
-cd $pkgdir > /dev/null
+cd $pkgdir
+
 chmod -R g-ws DEBIAN
+chmod -R g-w .
 
 cd ..
-dpkg-deb -b  $pkg
+fakeroot dpkg-deb --build  $pkg
 
 # dpkg-name: info: moved 'eol-scons.deb' to './eol-scons_2.0-56_all.deb'
 newname=$(dpkg-name $pkg.deb | sed -r "s/^[^']+'[^']+' to '([^']+).*/\1/")
 newname=${newname##*/}
 
-$sign && dpkg-sig --sign builder -k '<eol-prog@eol.ucar.edu>' $newname
+lintian $newname
+
+$sign && fakeroot dpkg-sig --sign builder -k '<eol-prog@eol.ucar.edu>' $newname
 
 if [ -n "$repo" ]; then
+    flock $repo reprepro -V -b $repo remove jessie $pkg
     flock $repo reprepro -V -b $repo includedeb jessie $newname
 fi
 
-[ -n "$dest" ] && cp $newname $dest
+popd > /dev/null
 
-echo "$dest/$newname"
+if [ -n "$dest" ]; then
+    cp $tmpdir/$newname $dest && echo "$dest/$newname is ready"
+fi
