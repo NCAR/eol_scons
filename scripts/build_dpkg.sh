@@ -36,11 +36,11 @@ dir=$sdir/..
 
 pushd $dir > /dev/null
 
-umask 0022
 
 gitdesc=$(git describe --match "v[0-9]*")     # v2.0-14-gabcdef123
 gitdesc=${gitdesc%-*}       # v2.0-14
 gitdesc=${gitdesc/#v}       # 2.0-14
+gitdesc=${gitdesc/-/.}       # 2.0.14
 
 tmpdir=$(mktemp -d /tmp/${0##*/}_XXXXXX)
 trap "{ rm -rf $tmpdir; }" EXIT
@@ -67,8 +67,8 @@ mkdir -p $ddir
 
 cp copyright $ddir
 
-$sdir/changelog.sh | gzip -9 -c > $ddir/changelog.Debian.gz
-cp $ddir/changelog.Debian.gz /tmp
+$sdir/deb_changelog.sh | gzip -9 -c > $ddir/changelog.Debian.gz
+# cp $ddir/changelog.Debian.gz /tmp
 
 cat << EOD | gzip -9 -c > $ddir/changelog.gz
 eol-scons Debian maintainer and upstream author are identical.
@@ -89,9 +89,11 @@ newname=${newname##*/}
 
 lintian $newname
 
-$sign && fakeroot dpkg-sig --sign builder -k '<eol-prog@eol.ucar.edu>' $newname
+$sign && fakeroot dpkg-sig --sign builder -k "$key" $newname
 
 if [ -n "$repo" ]; then
+    # allow group write
+    umask 0002
     flock $repo reprepro -V -b $repo remove jessie $pkg
     flock $repo reprepro -V -b $repo includedeb jessie $newname
 fi
