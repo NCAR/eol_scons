@@ -30,11 +30,12 @@ def PythonLint(env, name, sources, **kw):
     return target
 
 
+pylintrc = os.path.join(os.path.dirname(__file__), "pylintrc")
+
 def generate(env):
     env.AddMethod(find_python_files, "FindPythonFiles")
     env.AddMethod(PythonLint, "PythonLint")
     env.SetDefault(PYLINT='pylint')
-    pylintrc = os.path.join(os.path.dirname(__file__), "pylintrc")
     env.SetDefault(PYLINTRC=pylintrc)
     env.SetDefault(PYLINTARGS='')
     env.SetDefault(PYLINTPYTHONPATH=env.Dir('.').path)
@@ -43,3 +44,12 @@ def generate(env):
 def exists(env):
     return env.Detect('pylint')
 
+
+if __name__ == "__main__":
+    # Given python files on the command line, run the same pylint command
+    # on them with the same options as would be used as part of a SCons
+    # build.
+    import sys
+    pylint = ["pylint", "--rcfile="+pylintrc]
+    print(" ".join(pylint))
+    os.execvp(pylint[0], pylint+sys.argv[1:])
