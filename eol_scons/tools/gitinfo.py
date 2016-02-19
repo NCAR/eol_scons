@@ -502,8 +502,9 @@ else:
         # Use the default location for the subversion Windows installer.
         if env['PLATFORM'] == 'win32':
             gitbin=r'c:\Tools\git\bin'
-            env['GIT'] = os.path.join(gitbin, "git")
-            env['GITVERSION'] = os.path.join(gitbin, "gitversion")
+	    env.PrependENVPath('PATH', gitbin)
+            # env['GIT'] = os.path.join(gitbin, "git")
+            # env['GITVERSION'] = os.path.join(gitbin, "gitversion")
     
         env.AddMethod(LoadGitInfo, "LoadGitInfo")
         env.LoadGitInfo('#')
