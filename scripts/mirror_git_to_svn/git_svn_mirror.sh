@@ -26,6 +26,8 @@ if ! [ $JENKINS_HOME ]; then
 
 fi
 
+git status
+
 # setup svn-remote configuration
 if ! git config --get-regexp svn-remote.svn > /dev/null; then
     git config svn-remote.svn.url $svnurl
@@ -49,7 +51,7 @@ git checkout tmp-master
 # takes a long time the first time it is run on a large repo
 git rebase svn
 
-# fast-forward merge the new commits to svn
+# fast-forward merge the new commits to the svn branch
 git checkout svn
 git merge --ff-only tmp-master
 

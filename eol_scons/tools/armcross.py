@@ -33,7 +33,7 @@ def generate(env,**kw):
     if not exists(env):
         env.AppendENVPath('PATH', '/opt/arcom/bin')
         if not exists(env):
-            print("*** arm-linux-gcc and arm-linux-g++ not found on path: %s",
+            print("*** arm-linux-gcc and arm-linux-g++ not found on path: %s" %
                   env['ENV']['PATH'])
             return
 

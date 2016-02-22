@@ -33,7 +33,7 @@ def generate(env,**kw):
     # fails.
 
     if not exists(env):
-        print("*** %s not found on path: %s",
+        print("*** %s not found on path: %s" %
                   env['CC'], env['ENV']['PATH'])
         return
 

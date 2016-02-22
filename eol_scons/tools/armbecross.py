@@ -33,7 +33,7 @@ def generate(env,**kw):
     if not exists(env):
         env.AppendENVPath('PATH', '/opt/arcom/bin')
         if not exists(env):
-            print("*** armbe-linux-gcc, armbe-linux-g++ not found on path: %s",
+            print("*** armbe-linux-gcc, armbe-linux-g++ not found on path: %s" %
                   env['ENV']['PATH'])
             return
 
