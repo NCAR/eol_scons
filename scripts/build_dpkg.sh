@@ -94,9 +94,9 @@ $sign && fakeroot dpkg-sig --sign builder -k "$key" $newname
 if [ -n "$repo" ]; then
     # allow group write
     umask 0002
-    flock $repo -c sh "
-        reprepro -V -b $repo remove jessie $pkg;
-        reprepro -V -b $repo deleteunreferenced;
+    flock $repo sh -c "
+        reprepro -V -b $repo remove jessie $pkg
+        reprepro -V -b $repo deleteunreferenced
         reprepro -V -b $repo includedeb jessie $newname"
 fi
 
