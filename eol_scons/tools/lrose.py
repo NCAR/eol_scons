@@ -22,7 +22,7 @@ def CheckLROSE(context):
 
 _settings = {}
 
-lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'NcfMdv', 'Mdv', 'titan', 
+lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'Mdv', 'titan', 
              'dsserver', 'Radx', 'rapformats',
              'euclid', 'rapmath', 'physics',
              'didss', 'toolsa', 'dataport', 'tdrp']
