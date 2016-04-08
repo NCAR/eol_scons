@@ -34,7 +34,7 @@ def generate(env,**kw):
 
     if not exists(env):
         print("*** %s not found on path: %s" %
-                  env['CC'], env['ENV']['PATH'])
+                  (env['CC'], env['ENV']['PATH']))
         return
 
     print("armelcross: found %s and %s" % 
