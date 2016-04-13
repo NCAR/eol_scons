@@ -133,6 +133,9 @@ def generate(env, **kw):
         #   KERNELDIR is /usr/src/kernels/`uname -r`
         #
         kdir = '/usr/src/kernels/' + krel
+	# Debian
+        if not os.path.exists(kdir):
+		kdir = '/usr/src/linux-headers-' + krel
         if not os.path.exists(kdir):
             kmach = Popen(['uname','-m'],stdout=PIPE).communicate()[0].rstrip("\n")
             kdir = '/usr/src/kernels/' + krel + '-' + kmach
