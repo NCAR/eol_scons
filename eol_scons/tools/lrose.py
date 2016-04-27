@@ -47,7 +47,7 @@ def _calculate_settings(env, settings):
     
     # Libs will be in <prefix>/lib
     libdir = os.path.join(prefix, 'lib')
-    settings['LIBPATH'] = [ libdir ]
+    settings['LIBDIR'] = libdir
     
     # Headers will be in <prefix>/include
     headerdir = os.path.join(prefix, 'include')
@@ -62,7 +62,7 @@ def _calculate_settings(env, settings):
     clone.Replace(LIBS=lroseLibs)
     clone.Require(dep_tools)
     clone.AppendUnique(CPPPATH=settings['CPPPATH'])
-    clone.AppendUnique(LIBPATH=settings['LIBPATH'])
+    clone.AppendUnique(LIBPATH=[settings['LIBDIR']])
     conf = clone.Configure(custom_tests = { "CheckLROSE" : CheckLROSE })
     if not conf.CheckLROSE():
         msg = "Failed to link to LROSE. Check config.log."
@@ -75,8 +75,8 @@ def generate(env):
     env.Require(dep_tools)
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
     env.Append(LIBS=_settings['LIBS'])
-    env.AppendUnique(LIBPATH=_settings['LIBPATH'])
-
+    env.AppendUnique(LIBPATH=[_settings['LIBDIR']])
+    env.AppendUnique(LINKFLAGS = ['-Wl,-rpath,' + _settings['LIBDIR']])
 
 def exists(env):
     return True
