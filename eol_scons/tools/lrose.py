@@ -4,6 +4,9 @@ import os, os.path
 import string
 import SCons
 
+# LROSE requires these tools which are not provided in the LROSE distribution
+dep_tools=['z', 'fftw', 'bz2']
+
 _lrose_source_file = """
 #include <toolsa/udatetime.h>
 int main(int argc, char **argv)
@@ -22,10 +25,13 @@ def CheckLROSE(context):
 
 _settings = {}
 
-lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'Mdv', 'titan', 
+lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'Mdv', 'titan',
              'dsserver', 'Radx', 'rapformats',
              'euclid', 'rapmath', 'physics',
-             'didss', 'toolsa', 'dataport', 'tdrp']
+             'didss', 'toolsa', 'dataport', 'tdrp',
+             'netcdf_c++', 'netcdf',
+             'hdf5_hl_cpp', 'hdf5_cpp', 'hdf5_hl', 'hdf5',
+             'udunits2']
 
 def _calculate_settings(env, settings):
     # Assume that LROSE is installed under /usr/local/lrose or /opt/local/lrose
@@ -54,6 +60,7 @@ def _calculate_settings(env, settings):
 
     clone = env.Clone()
     clone.Replace(LIBS=lroseLibs)
+    clone.Require(dep_tools)
     clone.AppendUnique(CPPPATH=settings['CPPPATH'])
     clone.AppendUnique(LIBPATH=settings['LIBPATH'])
     conf = clone.Configure(custom_tests = { "CheckLROSE" : CheckLROSE })
@@ -65,7 +72,7 @@ def _calculate_settings(env, settings):
 def generate(env):
     if not _settings:
         _calculate_settings(env, _settings)
-    env.Require(['z'])
+    env.Require(dep_tools)
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
     env.Append(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=_settings['LIBPATH'])
