@@ -273,8 +273,8 @@ Set NIDAS_PATH to '""" + USE_PKG_CONFIG + """', the default, to use the settings
     if env['NIDAS_PATH'] == USE_PKG_CONFIG:
         try:
             # env['ENV'] may have PKG_CONFIG_PATH
-            env.EnableNIDAS = subprocess.Popen(['pkg-config', 'nidas'],
-                                               env=env['ENV']).wait() == 0
+            env.EnableNIDAS = (lambda: (subprocess.Popen(['pkg-config', 'nidas'],
+                                               env=env['ENV']).wait() == 0))
         except:
             pass
         if env.EnableNIDAS():
