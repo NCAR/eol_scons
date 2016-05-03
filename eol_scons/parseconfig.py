@@ -42,7 +42,7 @@ def _get_config(env, search_paths, config_script, args):
             config = config_script
         env.LogDebug("Found: %s" % config)
     if not result and config:
-        child = Popen([config] + args, stdout=PIPE)
+        child = Popen([config] + args, stdout=PIPE, env=env['ENV'])
         result = child.communicate()[0].strip()
         cache.store(env, name, "%s,%s" % (child.returncode, result))
         result = (child.returncode, result)

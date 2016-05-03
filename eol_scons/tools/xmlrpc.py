@@ -15,9 +15,33 @@ def generate(env):
 
     # If xmlrpcpp pkg-config file exists, which is installed by the
     # xmlrpc++ RPM, this should be all that's necessary
-    if (os.system('pkg-config --exists xmlrpcpp') == 0):
+
+    # In order to test for a pkg-config file, you can't just do
+    #   os.system('pkg-config --exists xmlrpcpp')
+    # since that won't get PKG_CONFIG_PATH from env['ENV'].
+    # Instead:
+    #   subprocess.Popen(['pkg-config','xmlrpcpp'],env=env['ENV']).wait()
+    # or
+    #   env.Execute('pkg-config xmlrpcpp')
+    # but I don't know how to suppress the "scons: "*** Error" message
+    # from the latter.
+    #
+    # Likewise you can catch the OSError exception from ParseConfig,
+    # but there doesn't seem to be a way to suppress the error message,
+    # which looks like:
+    #   Package xmlrpcpp was not found in the pkg-config search path.
+    #   Perhaps you should add the directory containing `xmlrpcpp.pc'
+    #   to the PKG_CONFIG_PATH environment variable
+    #   No package 'xmlrpcpp' found
+
+    # For speed, and since that error message may lead folks to make
+    # more use of pkg-config :-), we're not doing the double check here.
+
+    try:
         env.ParseConfig('pkg-config --cflags --libs xmlrpcpp')
         return
+    except OSError:
+        pass
 
     # There are some older packages with the newer library file name
     # but without the pkg-config files, so those must be found by

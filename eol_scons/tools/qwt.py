@@ -1,5 +1,6 @@
 
 import os
+import subprocess
 from SCons.Variables import PathVariable
 import platform
 
@@ -102,7 +103,9 @@ class QwtTool:
         # In the absence of pkg-config files, we've created Qwt.pc on local systems
         for qname in ['qwt','Qwt']:
             try:
-                if (os.system('pkg-config --exists ' + qname) == 0):
+                # env['ENV'] may contain PKG_CONFIG_PATH
+                if subprocess.Popen(['pkg-config', qname],
+                                    env=env['ENV']).wait() == 0:
                     self.pkgConfigName = qname
                     return True
             except:

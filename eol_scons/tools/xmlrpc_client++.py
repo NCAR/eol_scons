@@ -1,6 +1,7 @@
 # Tool for xmlrpc-c client with C++ interface
 # Docs for the API are available at http://xmlrpc-c.sourceforge.net/
 import os
+import subprocess
 import SCons.Errors
 
 def generate(env):
@@ -13,6 +14,7 @@ def generate(env):
         raise SCons.Errors.StopError
 
 def exists(env):
-    status = os.system('pkg-config --exists xmlrpc_client++')
-    return(status == 0)
+    status = subprocess.Popen(['pkg-config', 'xmlrpc_client++'],
+                              env=env['ENV']).wait()
+    return status == 0
 

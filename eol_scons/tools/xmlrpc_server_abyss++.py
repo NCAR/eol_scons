@@ -2,6 +2,7 @@
 # Docs for the API are available at http://xmlrpc-c.sourceforge.net/
 import os
 import SCons.Errors
+import subprocess
 
 def generate(env):
     # Use pkg-config to get C flags and libraries
@@ -14,6 +15,7 @@ def generate(env):
         raise SCons.Errors.StopError
 
 def exists(env):
-    status = os.system('pkg-config --exists xmlrpc_server_abyss++')
-    return(status == 0)
+    status = subprocess.Popen(['pkg-config', 'xmlrpc_server_abyss++'],
+                              env=env['ENV']).wait()
+    return status == 0
 
