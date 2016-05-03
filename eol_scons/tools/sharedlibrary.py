@@ -90,10 +90,8 @@ def SharedLibrary3Install(env,target,source,**kw):
 
     """
     Install source library to a library subdirectory of target.
-    If env["USE_ARCHLIBDIR"] is defined, the source will be installed
-    on target/$ARCHLIBDIR otherwise to target/lib.
-
-    ARCHLIBDIR is defined as "lib64" on Linux 64 bit systems, otherwise "lib".
+    If env["ARCHLIBDIR"] is defined, the source will be installed
+    to target/$ARCHLIBDIR, otherwise to target/lib.
 
     See the discussion for SharedLibrary3 about how library versions 
     are handled.
@@ -118,7 +116,7 @@ def SharedLibrary3Install(env,target,source,**kw):
     # add passed keywords to environment
     env = env.Clone(**kw)
 
-    if env.has_key("USE_ARCHLIBDIR"):
+    if env.has_key("ARCHLIBDIR"):
         targetDir = env.Dir(target + '/' + env['ARCHLIBDIR'])
     else:
         targetDir = env.Dir(target + '/lib')
@@ -177,8 +175,6 @@ def generate(env):
             env["SHLIBMAJORVERSION"] = "3"
             env["SHLIBMINORVERSION"] = '5'
 
-        env["USE_ARCHLIBDIR"] = 1
-
         # if modules in libfoo.so use symbols from libbar.so, add LIBS=['bar']
         libs = env.SharedLibrary3('foo',['foo.c'],
             LIBS=['bar'],LIBPATH=['/opt/bar/lib'])
@@ -190,12 +186,11 @@ def generate(env):
     2. symbolic link: libfoo.so.3 -> libfoo.so.3.5
     3. symbolic link: libfoo.so -> libfoo.so.3.5
 
-    The SharedLibrary3Install statement will create that same file
-    and links to it on /opt/foo/lib or /opt/foo/lib64, depending
-    on whether the build system is 64 big.
+    The SharedLibrary3Install statement will install the library and
+    its links on /opt/foo/$ARCHLIBDIR.
 
-    If USE_ARCHLIBDIR is 0, then the libraries will be installed on
-    /opt/foo/lib, in either 32 or 64 bit systems.
+    If ARCHLIBDIR is not pre-defined it will set to 'lib64' on 64 bit systems
+    'lib' on 32 bit systems.
 
     For a reference on Linux conventions for shared library names see
     http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html
@@ -261,11 +256,11 @@ def generate(env):
 
         env.SharedLibrary3Install('/opt/mystuff',lib)
 
-    If the environment token USE_ARCHLIBDIR is not defined, the
-    libraries will be installed to /opt/mystuff/lib.  If USE_ARCHLIBDIR
-    is defined, the libraries will be installed in /opt/mystuff/env['ARCHLIBDIR'].
-    ARCHLIBDIR will have a value of "lib64" on linux 64 bit systems, otherwise
-    "lib".
+    If the environment token ARCHLIBDIR not defined, it will be set to
+    "lib64" on 64 bit systems and "lib" on 32.
+
+    In the install step, the libraries will be installed in
+    /opt/mystuff/env['ARCHLIBDIR'].
 
     As of this writing, this builder has only been tested on Linux.
     Support for other architectures needs to be added as necessary.
@@ -296,7 +291,8 @@ def generate(env):
             )
     env.Append(BUILDERS = {"SharedLibrary3": builder})
     env.AddMethod(SharedLibrary3Install)
-    GetArchLibDir(env)
+    if not env.has_key('ARCHLIBDIR'):
+        GetArchLibDir(env)
 
 
 def exists(env):
