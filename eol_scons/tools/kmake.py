@@ -92,6 +92,10 @@ def Kmake(env,target,source):
     srcdir = os.path.dirname(source[0].abspath)
     return env.Execute('cd ' + srcdir + '; ' + env['KMAKE'])
 
+def kemitter(target, source, env):
+    # Add Module.symvers to what will be built by this builder
+    return (target + ['Module.symvers'], source)
+
 def generate(env, **kw):
 
     # Get KERNELDIR from kw dictionary argument that is passed 
@@ -153,9 +157,11 @@ def generate(env, **kw):
         env['KCFLAGS'] = '-I' + env.Dir("#").get_abspath()
 
     if not env.has_key('KMAKE'):
-        env['KMAKE'] = "make KERNELDIR=$KERNELDIR KCFLAGS=\"$KCFLAGS\""
+        env['KMAKE'] = \
+            'make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" KBUILD_EXTRA_SYMBOLS="$KBUILD_EXTRA_SYMBOLS"'
 
     k = env.Builder(action=Kmake,
+                    emitter=kemitter,
                     source_scanner=SCons.Tool.SourceFileScanner)
     env.Append(BUILDERS = {'Kmake':k})
 
