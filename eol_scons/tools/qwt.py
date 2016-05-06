@@ -1,9 +1,8 @@
 
 import os
-import subprocess
 from SCons.Variables import PathVariable
 import platform
-
+import eol_scons.parseconfig as pc
 
 _options = None
 myKey = 'HAS_PACKAGE_QWT'
@@ -95,17 +94,20 @@ class QwtTool:
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
 
-    def findPkgConfig(self):
-        #
-        # See if pkg-config knows about Qwt on this system
-        #
-        # as of Fedora 18, qwt-devel-6.0 is distributed with /usr/lib*/pkgconfig/qwt.pc
-        # In the absence of pkg-config files, we've created Qwt.pc on local systems
-        for qname in ['qwt','Qwt']:
+    def findPkgConfig(self, env):
+        """
+        See if pkg-config knows about Qwt on this system.
+
+        This gets the pkg-config results specific to this Environment, to
+        account for settings like PKG_CONFIG_PATH. However, only one
+        instance of QwtTool is ever created by this tool, on the assumption
+        that the qwt settings would be the same for all environments.  So
+        this may break for cross-builds or situations where different
+        Environments need to use a different PKG_CONFIG_PATH.
+        """
+        for qname in ['qwt', 'Qwt']:
             try:
-                # env['ENV'] may contain PKG_CONFIG_PATH
-                if subprocess.Popen(['pkg-config', qname],
-                                    env=env['ENV']).wait() == 0:
+                if pc.CheckConfig(env, 'pkg-config ' + qname):
                     self.pkgConfigName = qname
                     return True
             except:
@@ -148,7 +150,7 @@ qwt_tool = QwtTool()
 def find_qwtdir(env):
     qwtdir = None
 
-    pkgConfigKnowsQwt = qwt_tool.findPkgConfig()
+    pkgConfigKnowsQwt = qwt_tool.findPkgConfig(env)
 
     # 
     # Try to find the Qwt installation location, trying in order:

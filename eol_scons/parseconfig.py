@@ -20,15 +20,40 @@ def _extract_results(text):
         return (-1, text)
 
 
-def _get_config(env, search_paths, config_script, args):
-    """Return a (result, returncode) tuple for a call to @p config_script."""
+def getConfigCache(env):
+    cache = env.get("_config_cache")
+    if cache is None:
+        cache = {}
+        env["_config_cache"] = cache
+    return cache
 
+
+def _get_config(env, search_paths, config_script, args):
+    """
+    Return a (returncode, output) tuple for a call to @p config_script.
+
+    By collecting both the return code and the output result from the same
+    call to the config script, it is not necessary to first call the config
+    script just to test whether the package's config script is installed.
+    If there is a non-zero return code from the config script command, then
+    tools can continue with other methods of configuring the tool.
+
+    The config results are cached in the calling Environment, so the
+    command does not need to be run every time a tool needs to run the same
+    config script.  However, the results are specific to the Environment,
+    since the results can change depending upon the Environment running
+    them.  For example, PKG_CONFIG_PATH might be different for different
+    environments, and cross-build environments will return different
+    results.  The goal is to avoid redundant runs of the same config script
+    when called for the same environment, such as redundant applications of
+    the same tool.
+    """
     result = None
     if _debug: print("_get_config(%s,%s): " % (config_script, ",".join(args)))
     # See if the output for this config script call has already been cached.
     name = re.sub(r'[^\w]', '_', config_script + " ".join(args))
-    cache = env.CacheVariables()
-    result = cache.lookup(env, name)
+    cache = getConfigCache(env)
+    result = cache.get(name)
     if result:
         if _debug: print("  cached: %s" % (result))
         return _extract_results(result)
@@ -44,7 +69,7 @@ def _get_config(env, search_paths, config_script, args):
     if not result and config:
         child = Popen([config] + args, stdout=PIPE, env=env['ENV'])
         result = child.communicate()[0].strip()
-        cache.store(env, name, "%s,%s" % (child.returncode, result))
+        cache[name] = "%s,%s" % (child.returncode, result)
         result = (child.returncode, result)
     if not result:
         result = (-1, "")
@@ -53,6 +78,9 @@ def _get_config(env, search_paths, config_script, args):
 
 
 def RunConfig(env, command):
+    """
+    Run the config script command and return tuple (returncode, output).
+    """
     args = command.split()
     config_script = args[0]
     args = args[1:]
@@ -60,11 +88,34 @@ def RunConfig(env, command):
 
 
 def CheckConfig(env, command):
-    "Return the return code from a pkg-config-like command."
+    """
+    Return True if the pkg-config-like command succeeds (returns 0).
+
+    The output is cached in the environment, so subsequent requests for the
+    same config command will not need to execute the command again.
+    """
     args = command.split()
     config_script = args[0]
     args = args[1:]
-    return _get_config(env, None, config_script, args)[0]
+    return _get_config(env, None, config_script, args)[0] == 0
+
+
+def ParseConfig(env, command, function=None, unique=True):
+    """
+    Like Environment.ParseConfig, except do not raise OSError if the
+    command fails, and the config script results are cached in the
+    Environment.  If the command succeeds, then merge the results flags
+    into the Environment and return True.  Otherwise return False.
+    """
+    args = command.split()
+    result = _get_config(env, None, args[0], args[1:])
+    if result[0] == 0:
+        if not function:
+            env.MergeFlags(result[1], unique)
+        else:
+            function(result[1], unique)
+        return True
+    return False
 
 
 def _filter_ldflags(flags):

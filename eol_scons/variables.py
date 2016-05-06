@@ -61,7 +61,19 @@ def GlobalOptions(cfile=None, env=None):
     raise SCons.Errors.StopError, errmsg                       
 
 class VariableCache(SCons.Variables.Variables):
-
+    """
+    Add a file-backed cache store to Variables, originally to be used to
+    cache locations of tool files embedded in the source tree and to cache
+    output from expensive config scripts across builds.  The file store is
+    disabled by default now, since it can cause confusion when tool files
+    change in the tree but are not discovered because of the cache.  Also,
+    the results of config scripts will change depending upon the
+    environment running them.  For example, PKG_CONFIG_PATH might be
+    different for different environments, and cross-build environments will
+    return different results.  Therefore this cache is no longer used for
+    config script results, and it is only used for tool file locations if
+    explicitly enabled.
+    """
     def __init__(self, path):
         SCons.Variables.Variables.__init__(self, path)
         self.cfile = path

@@ -53,9 +53,10 @@ both cases, so that the same SConscript can work either way.
 
 import sys
 import os
-import subprocess
+import subprocess as sp
 import re
 import eol_scons
+import eol_scons.parseconfig as pc
 import sharedlibrary
 from SCons.Variables import EnumVariable
 import SCons.Warnings
@@ -198,7 +199,7 @@ def _NidasAppFindFile(env, name):
 
 def _check_nc_server(env, lib):
     lddcmd = ["ldd", lib]
-    lddprocess = subprocess.Popen(lddcmd, stdout=subprocess.PIPE)
+    lddprocess = sp.Popen(lddcmd, stdout=sp.PIPE, env=env['ENV'])
     found = False
     lddout = lddprocess.communicate()[0]
     return bool(re.search('libnc_server_rpc', lddout))
@@ -273,8 +274,8 @@ Set NIDAS_PATH to '""" + USE_PKG_CONFIG + """', the default, to use the settings
     if env['NIDAS_PATH'] == USE_PKG_CONFIG:
         try:
             # env['ENV'] may have PKG_CONFIG_PATH
-            env.EnableNIDAS = (lambda: (subprocess.Popen(['pkg-config', 'nidas'],
-                                               env=env['ENV']).wait() == 0))
+            exists = pc.CheckConfig(env, 'pkg-config nidas')
+            env.EnableNIDAS = (lambda: exists)
         except:
             pass
         if env.EnableNIDAS():

@@ -1,4 +1,5 @@
 import os
+import eol_scons.parseconfig as pc
 
 def generate(env):
 
@@ -16,32 +17,24 @@ def generate(env):
     # If xmlrpcpp pkg-config file exists, which is installed by the
     # xmlrpc++ RPM, this should be all that's necessary
 
-    # In order to test for a pkg-config file, you can't just do
-    #   os.system('pkg-config --exists xmlrpcpp')
-    # since that won't get PKG_CONFIG_PATH from env['ENV'].
-    # Instead:
-    #   subprocess.Popen(['pkg-config','xmlrpcpp'],env=env['ENV']).wait()
-    # or
-    #   env.Execute('pkg-config xmlrpcpp')
-    # but I don't know how to suppress the "scons: "*** Error" message
-    # from the latter.
+    # Use the ParseConfig function from the eol_scons.parseconfig module
+    # to make sure ENV is passed when calling the script and to avoid
+    # the OSError exception which can be raised by Environment.ParseConfig().
     #
-    # Likewise you can catch the OSError exception from ParseConfig,
-    # but there doesn't seem to be a way to suppress the error message,
-    # which looks like:
+    # The --silence-errors option suppresses the error message when a package
+    # is not found, which looks like:
+    #
     #   Package xmlrpcpp was not found in the pkg-config search path.
     #   Perhaps you should add the directory containing `xmlrpcpp.pc'
     #   to the PKG_CONFIG_PATH environment variable
     #   No package 'xmlrpcpp' found
 
-    # For speed, and since that error message may lead folks to make
-    # more use of pkg-config :-), we're not doing the double check here.
+    # Since other ways will be tried to configure for xmlrpc++, it is not
+    # an error if the pkg-config attempt fails.
 
-    try:
-        env.ParseConfig('pkg-config --cflags --libs xmlrpcpp')
+    if pc.ParseConfig(env,
+                      'pkg-config --silence-errors --cflags --libs xmlrpcpp'):
         return
-    except OSError:
-        pass
 
     # There are some older packages with the newer library file name
     # but without the pkg-config files, so those must be found by

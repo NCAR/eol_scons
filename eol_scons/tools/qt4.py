@@ -31,8 +31,7 @@ import SCons.Util
 from SCons.Variables import PathVariable
 from SCons.Script import Scanner
 
-from eol_scons.parseconfig import RunConfig
-from eol_scons.parseconfig import CheckConfig
+import eol_scons.parseconfig as pc
 import eol_scons
 from eol_scons import Debug
 
@@ -224,7 +223,7 @@ def _locateQt4Command(env, command) :
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if (env['QT4DIR'] == USE_PKG_CONFIG):
-            qt4Prefix = RunConfig(env, 'pkg-config --variable=prefix QtCore')
+            qt4Prefix = pc.RunConfig(env, 'pkg-config --variable=prefix QtCore')
             qt4BinDir = os.path.join(qt4Prefix, 'bin')
         # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
         else:
@@ -318,7 +317,7 @@ def checkPkgConfig(env):
     #
     global _pkgConfigKnowsQt4
     if _pkgConfigKnowsQt4 == None:
-        check = (CheckConfig(env, 'pkg-config --exists QtCore') == 0)
+        check = pc.CheckConfig(env, 'pkg-config --exists QtCore')
         _pkgConfigKnowsQt4 = check
     return _pkgConfigKnowsQt4
 
@@ -473,26 +472,26 @@ def enable_modules(self, modules, debug=False) :
                 # 'pkg-config --variable=headerdir Qt'. If that's empty 
                 # (this happens on CentOS 5 systems...), try 
                 # 'pkg-config --variable=prefix QtCore' and append '/include'.
-                hdir = RunConfig(self, 'pkg-config --variable=headerdir Qt')
+                hdir = pc.RunConfig(self, 'pkg-config --variable=headerdir Qt')
                 if (hdir == ''):
-                    prefix = RunConfig(self, 
-                                       'pkg-config --variable=prefix QtCore')
+                    prefix = pc.RunConfig(self, 
+                                          'pkg-config --variable=prefix QtCore')
                     if (prefix == ''):
                         print('Unable to build Qt header dir for adding module ' +
                               module)
                         return False
                     hdir = os.path.join(prefix, 'include')
 
-                if (CheckConfig(self, 'pkg-config --exists ' + module) == 0):
+                if pc.CheckConfig(self, 'pkg-config --exists ' + module):
                     # Retrieve LIBS and CFLAGS separately, so CFLAGS can be
                     # added just once (unique=1).  Otherwise projects like
                     # ASPEN which require qt modules many times over end up
                     # with dozens of superfluous CPP includes and defines.
-                    cflags = RunConfig(self,
-                                       'pkg-config --cflags ' + module)
+                    cflags = pc.RunConfig(self,
+                                          'pkg-config --cflags ' + module)
                     self.MergeFlags(cflags, unique=1)
-                    libflags = RunConfig(self,
-                                         'pkg-config --libs ' + module)
+                    libflags = pc.RunConfig(self,
+                                            'pkg-config --libs ' + module)
                     self.MergeFlags(libflags, unique=0)
                 else:
                     # warn if we haven't already

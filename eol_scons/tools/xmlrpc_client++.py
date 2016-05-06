@@ -1,20 +1,16 @@
 # Tool for xmlrpc-c client with C++ interface
 # Docs for the API are available at http://xmlrpc-c.sourceforge.net/
 import os
-import subprocess
 import SCons.Errors
+import eol_scons.parseconfig as pc
 
 def generate(env):
     cmd = 'pkg-config --libs --cflags xmlrpc_client++'
-    try:
-        env.ParseConfig(cmd)
-    except OSError:
+    if not pc.ParseConfig(env, cmd):
         print "Error loading tool xmlrpc_client++:", sys.exc_info()[0]
         print "Have you installed package 'xmlrpc-c-devel' (or similar)?"
         raise SCons.Errors.StopError
 
 def exists(env):
-    status = subprocess.Popen(['pkg-config', 'xmlrpc_client++'],
-                              env=env['ENV']).wait()
-    return status == 0
+    return pc.CheckConfig(env, 'pkg-config xmlrpc_client++')
 
