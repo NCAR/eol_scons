@@ -73,6 +73,7 @@ TODO:
 import os
 import re
 import subprocess
+import string
 import SCons.Errors
 import SCons
 
@@ -90,11 +91,24 @@ def Kmake(env,target,source):
     # Have the shell subprocess do a cd to the source directory.
     # If scons/python does it, then the -j multithreaded option doesn't work.
     srcdir = os.path.dirname(source[0].abspath)
-    return env.Execute('cd ' + srcdir + '; ' + env['KMAKE'])
+
+    # Grab the Module.symvers sources, put them in a KBUILD_EXTRA_SYMBOLS make option
+    symvers = []
+    for s in source:
+        spath = os.path.basename(s.path) 
+        if spath == 'Module.symvers':
+            symvers += [s.abspath]
+        elif spath == 'Makefile':
+            srcdir = os.path.dirname(s.abspath)
+
+    symopt = ''
+    if len(symvers) > 0:
+        symopt = ' KBUILD_EXTRA_SYMBOLS="' + string.join(symvers, ' ') + '"'
+
+    return env.Execute('cd ' + srcdir + '; ' + env['KMAKE'] + symopt)
 
 def kemitter(target, source, env):
-    # Add Module.symvers to what will be built by this builder
-    return (target + ['Module.symvers'], source)
+    return ([target, 'Module.symvers'], source)
 
 def generate(env, **kw):
 
@@ -157,8 +171,7 @@ def generate(env, **kw):
         env['KCFLAGS'] = '-I' + env.Dir("#").get_abspath()
 
     if not env.has_key('KMAKE'):
-        env['KMAKE'] = \
-            'make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" KBUILD_EXTRA_SYMBOLS="$KBUILD_EXTRA_SYMBOLS"'
+        env['KMAKE'] = 'make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS"'
 
     k = env.Builder(action=Kmake,
                     emitter=kemitter,
