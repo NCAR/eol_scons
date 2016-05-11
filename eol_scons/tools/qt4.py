@@ -452,6 +452,24 @@ def generate(env):
 
     env[myKey] = True
 
+
+def _checkQtCore(env):
+    if env.has_key('QT4_CORE_CHECK'):
+        return env['QT4_CORE_CHECK']
+    conf = env.Clone(LIBS=[]).Configure()
+    hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')
+    conf.Finish()
+    if not hasQt:
+        # This print is a bit verbose, and not really a debug
+        # thing, so it's commented out.  
+        #
+        Debug("QtCore/Qt header file not found. "
+              "Do \"scons --config=force\" to redo the check. "
+              "See config.log for more information", self)
+    env['QT4_CORE_CHECK'] = hasQt
+    return hasQt
+
+
 no_pkgconfig_warned = []
 def enable_modules(self, modules, debug=False) :
 
@@ -552,17 +570,8 @@ def enable_modules(self, modules, debug=False) :
             # causes all kinds of unexpected build behavior...
             skipconfig = self.GetOption('help') or self.GetOption('clean')
             if module == "QtCore" and not skipconfig:
-                conf = self.Clone(LIBS=[]).Configure()
-                hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')
-                conf.Finish()
-                if not hasQt:
-                    # This print is a bit verbose, and not really a debug
-                    # thing, so it's commented out.  
-                    #
-                    Debug("QtCore/Qt header file not found. "
-                          "Do \"scons --config=force\" to redo the check. "
-                          "See config.log for more information", self)
-                    return hasQt
+                if not _checkQtCore(self):
+                    return False
         return True
 
     if sys.platform == "win32" :
