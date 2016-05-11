@@ -67,7 +67,14 @@ def _get_config(env, search_paths, config_script, args):
             config = config_script
         env.LogDebug("Found: %s" % config)
     if not result and config:
-        child = Popen([config] + args, stdout=PIPE, env=env['ENV'])
+        psenv = env['ENV']
+        if False:
+            # This is not done by default because it violates the scons
+            # principle of precisely controlling the build environment.
+            psenv = {}
+            psenv.update(env['ENV'])
+            PassPkgConfigPath(env, psenv)
+        child = Popen([config] + args, stdout=PIPE, env=psenv)
         result = child.communicate()[0].strip()
         cache[name] = "%s,%s" % (child.returncode, result)
         result = (child.returncode, result)
@@ -75,6 +82,26 @@ def _get_config(env, search_paths, config_script, args):
         result = (-1, "")
     if _debug: print("   command: %s" % (str(result)))
     return result
+
+
+def PassPkgConfigPath(env, psenv=None):
+    """
+    Propagate PKG_CONFIG_PATH to the scons process environment (ENV) if
+    it's set anywhere in the scons construction or process environment.
+    This is not done by default because it violates the scons principle of
+    precisely controlling the build environment.  If a build did not
+    explicitly pass PKG_CONFIG_PATH into ENV, then it may have a good
+    reason for that.
+    """
+    if psenv is None:
+        psenv = env['ENV']
+    pcp = 'PKG_CONFIG_PATH'
+    if psenv.has_key(pcp):
+        pass
+    elif env.has_key(pcp):
+        psenv[pcp] = env[pcp]
+    elif os.environ.get(pcp):
+        psenv[pcp] = os.environ.get(pcp)
 
 
 def RunConfig(env, command):

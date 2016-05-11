@@ -309,13 +309,26 @@ Set NIDAS_PATH to '""" + USE_PKG_CONFIG + """', the default, to use the settings
         env.Append(LIBPATH=libpaths)
 
         # Find the nidas library so we can test it for nc_server_rpc.
-        for p in env['LIBPATH']:
+        elibpath = env['LIBPATH']
+        # Suspend this check for now.  If nidas was built against
+        # nc_server, as is usually the case, then the link should work even
+        # without specifying the nc_server library since it's named in the
+        # nidas_dynld library.  This may need to be revisited for the
+        # corner cases where nc_server is not installed in a system
+        # location.
+        for p in []:
             pnidas = os.path.join(str(p), 'libnidas.so')
             if os.path.exists(pnidas):
                 if _check_nc_server(env, pnidas):
-                    nidas_libs += ['nc_server_rpc']
-                    env.Append(LIBPATH=[p+'/../../nc_server/lib',
-                                        '/opt/nc_server/lib'])
+                    # Really the only support for building with nc_server
+                    # is using pkg-config, so use it.  Pass any
+                    # PKG_CONFIG_PATH settings into the process environment
+                    # so it can be overridden, but beware, that changes the
+                    # path for all other calls to pkg-config by this
+                    # environment.
+                    #
+                    pc.PassPkgConfigPath(env)
+                    env.ParseConfig('pkg-config --cflags --libs nc_server')
                 break
 
         # The nidas library contains nidas_util already, so only the nidas
