@@ -80,12 +80,14 @@ ul { margin-top: 2px; margin-bottom: 2px }
         image['title'] = title
         self.images.append(image)
 
-    def writePage(self, page):
+    def writePage(self, page, images=None):
         if not self.pagetitle:
             self.pagetitle = page
         out = open(page, 'wb')
         out.write(self.header % self.__dict__)
-        for image in self.images:
+        if images is None:
+            images = self.images
+        for image in images:
             props = {}
             props.update(image)
             if self.image_width is None:
@@ -101,9 +103,24 @@ ul { margin-top: 2px; margin-bottom: 2px }
         out.close()
         return None
 
+    def resolvePath(self, page, image):
+        # Assume if parameters are not strings then they are SCons Nodes.
+        if not isinstance(page, str) and not isinstance(image, str):
+            return image.get_path(page.dir)
+        return image
+
     def builder(self, target, source, env):
-        pagepath = target[0].get_path()
-        return self.writePage(pagepath)
+        page = target[0]
+        pagepath = page.get_path()
+        # Resolve all the image paths relative to the page path.
+        resolved = []
+        for image in self.images:
+            rimage = {}
+            rimage.update(image)
+            for key in ['before', 'after', 'srcbefore', 'srcafter']:
+                rimage[key] = self.resolvePath(page, image[key])
+            resolved.append(rimage)
+        return self.writePage(pagepath, resolved)
 
     def build(self, env, pagepath):
         """
