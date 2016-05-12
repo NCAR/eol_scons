@@ -460,12 +460,9 @@ def _checkQtCore(env):
     hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')
     conf.Finish()
     if not hasQt:
-        # This print is a bit verbose, and not really a debug
-        # thing, so it's commented out.  
-        #
-        Debug("QtCore/Qt header file not found. "
-              "Do \"scons --config=force\" to redo the check. "
-              "See config.log for more information", self)
+        Debug('QtCore/Qt header file not found. '
+              'Do "scons --config=force" to redo the check. '
+              'See config.log for more information', env)
     env['QT4_CORE_CHECK'] = hasQt
     return hasQt
 
