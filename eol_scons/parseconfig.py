@@ -4,9 +4,38 @@
 import os
 import re
 
-from subprocess import *
+import subprocess as sp
 
 _debug = False
+
+import SCons.Util
+
+is_String = SCons.Util.is_String
+is_List = SCons.Util.is_List
+
+def _string_env(env):
+    """
+    This is taken from SCons.Action._subproc to convert non-string
+    environment values to to strings.
+    """
+    new_env = {}
+    for key, value in env.items():
+        if is_List(value):
+            # If the value is a list, then we assume it is a path list,
+            # because that's a pretty common list-like value to stick
+            # in an environment variable:
+            value = SCons.Util.flatten_sequence(value)
+            new_env[key] = os.pathsep.join(map(str, value))
+        else:
+            # It's either a string or something else.  If it's a string,
+            # we still want to call str() because it might be a *Unicode*
+            # string, which makes subprocess.Popen() gag.  If it isn't a
+            # string or a list, then we just coerce it to a string, which
+            # is the proper way to handle Dir and File instances and will
+            # produce something reasonable for just about everything else:
+            new_env[key] = str(value)
+    return new_env
+
 
 def _extract_results(text):
     # The string result and integer returncode are coded in the cached
@@ -67,14 +96,17 @@ def _get_config(env, search_paths, config_script, args):
             config = config_script
         env.LogDebug("Found: %s" % config)
     if not result and config:
-        psenv = env['ENV']
+        # The env dictionary must be converted to strings or else
+        # execve() complains.
+        psenv = _string_env(env['ENV'])
         if False:
             # This is not done by default because it violates the scons
             # principle of precisely controlling the build environment.
-            psenv = {}
-            psenv.update(env['ENV'])
             PassPkgConfigPath(env, psenv)
-        child = Popen([config] + args, stdout=PIPE, env=psenv)
+        if _debug:
+            print("calling Popen([%s])" % ",".join([config]+args))
+            print("\n".join(["%s=%s" % (k,v) for k,v in psenv.items()]))
+        child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv)
         result = child.communicate()[0].strip()
         cache[name] = "%s,%s" % (child.returncode, result)
         result = (child.returncode, result)
