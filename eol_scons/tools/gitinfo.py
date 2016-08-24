@@ -139,6 +139,8 @@ class GitInfo:
         else:
             self.gitcmd = 'git'
 
+        self.match = env.get('GIT_DESCRIBE_MATCH', '[vV][0-9]*')
+
         # Initialize the repo values.
         self.values = {}
         for k in self._variable_map.keys():
@@ -217,7 +219,7 @@ class GitInfo:
         error        = []
 
         # Run git describe, and extract the tag, number of commits, and object name
-        cmd_out = self._get_output([self.gitcmd, 'describe', '--match', '[vV][0-9]*'])
+        cmd_out = self._get_output([self.gitcmd, 'describe', '--match', self.match])
         if self._cmd_out_ok(cmd_out, error):
             describe = cmd_out.split('-')
             if len(describe) > 0:
