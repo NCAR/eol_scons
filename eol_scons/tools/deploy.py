@@ -76,7 +76,10 @@ def deploy_program(target, source, env):
     for k in libraries:
         libfile = libraries[k]
         libdest = os.path.join(libdir, libfile.name)
-        actions.append (Copy(libdest, libfile))
+        # Use an explicit cp command rather than Copy. Both the Copy() API and default 
+        # behavior regarding deep/shallow copies changed in scons v2.3.5. This created
+        # a problem when copying symlinked objects such as system dynamic libraries.
+        actions.append (Action('cp ' + libfile.get_abspath() + ' ' + libdest))
     return env.Execute(actions)
 
 
