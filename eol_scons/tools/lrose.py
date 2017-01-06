@@ -37,9 +37,8 @@ def _calculate_settings(env, settings):
     # Look for LROSE under $LROSE_INSTALL_DIR, /usr/local/lrose,
     # or /opt/local/lrose
     prefix = None
-    lroseInstallDir = os.environ['LROSE_INSTALL_DIR']
-    if (lroseInstallDir):
-        paths = [lroseInstallDir]
+    if (os.environ.has_key('LROSE_INSTALL_DIR')):
+        paths = [os.environ['LROSE_INSTALL_DIR']]
     else:
         paths = []
     paths += ['/usr/local/lrose', '/opt/local/lrose']
@@ -48,7 +47,7 @@ def _calculate_settings(env, settings):
             prefix = path
             break
     if not prefix:
-        msg = "Unable to find LROSE. No directory in [%s] exists." % (','.join(paths))
+        msg = "Unable to find LROSE. No directory in [%s] exists." % (', '.join(paths))
         raise SCons.Errors.StopError, msg
     else:
         print "Using LROSE directory", prefix
