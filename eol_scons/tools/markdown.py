@@ -1,17 +1,19 @@
 """
 Add a Markdown builder which automatically detects a default markdown
 converter program but also allows overriding it with the MARKDOWN option.
-If no default conterter is found, print a warning but use 'markdown2' as a
+If no default converter is found, print a warning but use 'markdown2' as a
 fallback.
 
 Use it like this:
 
     readme = env.Markdown("README.html", "README")
-
 """
+
+import subprocess as sp
 
 import SCons
 from SCons.Script import Builder
+from SCons.Script import Action
 
 _options = None
 
@@ -29,9 +31,28 @@ def _detect(env):
     env['MARKDOWN_DEFAULT'] = None
     return False
 
+
+def MarkdownMessage(target, source, env):
+    return env.subst("${SOURCE} % ${MARKDOWN_DICT} | "
+                     "${MARKDOWN_COMMAND} > ${TARGET}",
+                     source=source, target=target)
+
+
+def MarkdownBuilder(target, source, env):
+    # Do simple python string replacement on the contents.
+    content = source[0].get_contents() % env.get('MARKDOWN_DICT', {})
+    cmd = env.subst("${MARKDOWN_COMMAND} > ${TARGET}", target=target)
+    mdp = sp.Popen(cmd, stdin=sp.PIPE, shell=True)
+    mdp.stdin.write(content)
+    mdp.stdin.close()
+    return mdp.wait()
+
+
 # The builder does not change with each environment, only the setting of
 # the MARKDOWN command.
-_builder = Builder(action="${MARKDOWN_COMMAND} ${SOURCE} > ${TARGET}")
+_builder = Builder(action=Action(MarkdownBuilder, MarkdownMessage,
+                                 varlist=["MARKDOWN_COMMAND",
+                                          "MARKDOWN_DICT"]))
 
 def generate(env):
     if env['BUILDERS'].get('Markdown'):
