@@ -68,19 +68,20 @@ Just specifying gitinfo as a tool causes the repository variables to be
 added to the environment. These variables are accessed as env['REPO_REVISION'],
 env['REPO_TAG'], as shown above. See the GitInfo class below for the full list.
 
-The tool adds a builder named GitInfo (same name as the helper class) to the environment, 
-which is used to create a file containing the C header text. 
+The tool adds a builder named GitInfo (same name as the helper class) to
+the environment, which is used to create a file containing the C header
+text.
 
 This code is adapted from the svninfo.py tool, which provides similar
 functionality for a subversion based source tree.
 
-The scons builder takes a working directory as the source argument (e.g. env.GitInfo('repoInfo.h', '#/').
-A new GitInfo instance is created and cached for each working directory that is specified. However,
-GitInfo does not currently use the source directory in any way. It was useful for the earlier
-svninfo tool, since subversion versioning information is dependent upon the directory 
-that svn info is applied to. The convention has been retained in gitinfo, as there may be a need
-for this later.
-
+The scons builder takes a working directory as the source argument
+(e.g. env.GitInfo('repoInfo.h', '#/').  A new GitInfo instance is created
+and cached for each working directory that is specified. However, GitInfo
+does not currently use the source directory in any way. It was useful for
+the earlier svninfo tool, since subversion versioning information is
+dependent upon the directory that svn info is applied to. The convention
+has been retained in gitinfo, as there may be a need for this later.
 """
 
 import os
@@ -98,24 +99,39 @@ def pdebug(msg):
 #####################################################################
 class GitInfo:
     """
-    Encapsulate the repository characteristics, making them avaiable via a dictionary.
+    Encapsulate the repository characteristics, making them avaiable via a
+    dictionary.
     
     Git commands used to extract the repository information:
-    git describe --match [vV][0-9]*: Looks for a tag starting with 'v'
-                or 'V' followed by a number followed by anything.
-                Returns string with up to three tokens: V3.2-4-g3189d8e. 
-                First token is the last matching tag on the branch.
-                Second token is the number of commits since the tag.
-                Third is the abbreviate object name of the last commit.
-                If the tag points to the most recent commit, then commit
-                is '0'.
+
+    git describe --match [vV][0-9]*:
+
+      Looks for a tag starting with 'v' or 'V' followed by a number
+      followed by anything.  Returns string with up to three tokens:
+      V3.2-4-g3189d8e.  First token is the last matching tag on the branch.
+      Second token is the number of commits since the tag.  Third is the
+      abbreviate object name of the last commit.  If the tag points to the
+      most recent commit, then commit is '0'.
                   
-    git config --get remote.origin.url: Get the repository URL that this branch was
-                  fetched from.
+    git config --get remote.origin.url:
+
+      Get the repository URL that this branch was fetched from.
                   
-    git log --pretty=format:"%cd %H" -1: Get the date and hash of the last commit: Wed Nov 26 16:42:30 2014 -0700 3189d8e443a6cf5827fc9617ebe8b95ab83d8eaf
+    git log --pretty=format:"%cd,%H" -1: 
+
+      Get the date and hash of the last commit in a form easily split.
+
+      Wed Nov 26 16:42:30 2014 -0700,3189d8e443a6cf5827fc9617ebe8b95ab83d8eaf
     
-    git rev-parse --show-toplevel: Find the top of the working diectory: /Users/martinc/git/aspen
+    git rev-parse --show-toplevel: 
+
+      Find the top of the working directory: /Users/martinc/git/aspen
+
+    git status --porcelain:
+
+      Get a list of any modified or unknown files in this checkout.  These
+      are stored in the REPO_DIRTY key.  If this is not empty, then the git
+      revision will have the suffix 'M'.
     """
 
     # The repository info keys.
@@ -129,16 +145,13 @@ class GitInfo:
         'REPO_TAG'             : None,
         'REPO_COMMITS'         : None,
         'REPO_HASH'            : None,
-        'REPO_BRANCH'          : None
+        'REPO_BRANCH'          : None,
+        'REPO_DIRTY'           : None
         }
 
     def __init__(self, env):
         # Specify the git command
-        if 'GIT' in env:
-            self.gitcmd = env['GIT']
-        else:
-            self.gitcmd = 'git'
-
+        self.gitcmd = env.get('GIT', 'git')
         self.match = env.get('GIT_DESCRIBE_MATCH', '[vV][0-9]*')
 
         # Initialize the repo values.
@@ -206,104 +219,91 @@ class GitInfo:
         REPO_HASH      = Hash identifier of the last commit on this branch. The unequivocal way to 
                          identify the exact source revision.
         REPO_ERROR     = Error messages encountered while building GitInfo.
+        REPO_DIRTY     = List of modified or unknown files in this repo.
         """
         
-        tag          = None
-        commits      = '0'
         objname      = None
-        date         = None
-        hash         = None
-        url          = None
-        dir          = None
-        branch       = None
         error        = []
 
-        # Run git describe, and extract the tag, number of commits, and object name
-        cmd_out = self._get_output([self.gitcmd, 'describe', '--match', self.match])
+        # Use the collected git details to populate the dicitionary items
+        gitrevision     = None
+        gitexternalrevs = None
+        gitdate         = None
+        giturl          = None
+        gitworkdir      = None
+        giterror        = None
+        gittag          = None
+        gitcommits      = None
+        githash         = None
+        gitbranch       = None
+        
+        # Run git describe, and extract the tag, number of commits, and
+        # object name.  Extract the hyphenated fields from right to left,
+        # in case the tag portion itself contains hyphens. --long ensures
+        # that the commits and objname fields are always output, even if
+        # the current commit exactly matches a tag.
+        cmd_out = self._get_output([self.gitcmd, 'describe', '--long',
+                                    '--match', self.match])
         if self._cmd_out_ok(cmd_out, error):
             describe = cmd_out.split('-')
-            if len(describe) > 0:
-                tag = describe[0]
-                if len(describe) > 1:
-                    commits = describe[1]
-                    if len(describe) > 2:
-                        objname = describe[2]
+            gittag = '-'.join(describe[0:-2])
+            gitcommits = describe[-2]
+            objname = describe[-1]
 
         # Run git config to fetch the URL
-        cmd_out = self._get_output([self.gitcmd, 'config', '--get', 'remote.origin.url'])
+        cmd_out = self._get_output([self.gitcmd, 'config', '--get',
+                                    'remote.origin.url'])
         if self._cmd_out_ok(cmd_out, error):
             # Normalize URL.
-            url = cmd_out
-            url = url.replace('\\', '/').strip()
+            giturl = cmd_out.replace('\\', '/').strip()
 
         # Run git log to fetch the date and hash of the last commit
-        cmd_out = self._get_output([self.gitcmd, 'log', '--pretty=format:%cd %H', '-1'])
+        cmd_out = self._get_output([self.gitcmd, 'log',
+                                    '--pretty=format:%cd,%H', '-1'])
         if self._cmd_out_ok(cmd_out, error):
-            datehash = cmd_out.split(' ')
-            pdebug(datehash)
-            if len(datehash) > 0:
-                hash = datehash[len(datehash)-1]
-                for i, s in zip(range(0, len(datehash)-1), datehash[:-1]):
-                    if i == 0:
-                        date = s
-                    else:
-                        date = date + ' ' + s
+            gitdate, githash = cmd_out.split(',')
 
         # Run git rev-parse to fetch the top level working directory
         cmd_out = self._get_output([self.gitcmd, 'rev-parse', '--show-toplevel'])
         if self._cmd_out_ok(cmd_out, error):
-            dir = cmd_out
             # Normalize path.
-            dir = dir.replace('\\', '/').strip()
+            gitworkdir = cmd_out.replace('\\', '/').strip()
         
         # Run git rev-parse to fetch the branch
-        cmd_out = self._get_output([self.gitcmd, 'rev-parse', '--abbrev-ref', 'HEAD'])
+        cmd_out = self._get_output([self.gitcmd, 'rev-parse',
+                                    '--abbrev-ref', 'HEAD'])
         if self._cmd_out_ok(cmd_out, error):
-            branch = cmd_out
+            gitbranch = cmd_out.strip()
         
-        # Use the collected git details to populate the dicitionary items
-        gitrevision     = 'unknown'
-        gitexternalrevs = 'unknown'
-        gitdate         = 'unknown'
-        giturl          = 'unknown'
-        gitworkdir      = 'unknown'
-        giterror        = ''
-        gittag          = 'unknown'
-        gitcommits      = 'unknown'
-        githash         = 'unknown'
-        gitbranch       = 'unknown'
-        
-        if tag and commits:
-            gitrevision = tag + "-" + commits
-        if date:
-            gitdate = date
-        if url:
-            giturl = url
-        if dir:
-            gitworkdir = dir
-        if error:
-            giterror = str(error)
-        if tag:
-            gittag = tag
-        if commits:
-            gitcommits = commits
-        if hash:
-            githash = hash
-        if branch:
-            gitbranch = branch.strip()
+        gitdirty = None
+        cmd_out = self._get_output([self.gitcmd, 'status', '--porcelain'])
+        if self._cmd_out_ok(cmd_out, error):
+            gitdirty = ",".join(cmd_out.splitlines())
+
+        # Derive the revision string which describes the state of the
+        # current checkout.  If the current commit exactly matches a tag,
+        # then leave off the -0.  If the checkout is not clean, add the
+        # 'M' modifier.
+        if gittag and gitcommits == '0':
+            gitrevision = gittag
+        elif gittag and gitcommits:
+            gitrevision = gittag + "-" + gitcommits
+        if gitrevision and gitdirty:
+            gitrevision += "M"
 
         # populate the dictionary
         git_dict = {}
-        git_dict['REPO_REVISION']     = gitrevision
-        git_dict['REPO_EXTERNALS']    = gitexternalrevs
-        git_dict['REPO_DATE']         = gitdate
-        git_dict['REPO_URL']          = giturl
-        git_dict['REPO_WORKDIR']      = gitworkdir
-        git_dict['REPO_ERROR']        = giterror
-        git_dict['REPO_TAG']          = gittag
-        git_dict['REPO_COMMITS']      = gitcommits
-        git_dict['REPO_HASH']         = githash
-        git_dict['REPO_BRANCH']       = gitbranch
+        git_dict['REPO_REVISION']     = gitrevision or 'unknown'
+        git_dict['REPO_EXTERNALS']    = gitexternalrevs or 'unknown'
+        git_dict['REPO_DATE']         = gitdate or 'unknown'
+        git_dict['REPO_URL']          = giturl or 'unknown'
+        git_dict['REPO_WORKDIR']      = gitworkdir or 'unknown'
+        git_dict['REPO_ERROR']        = (error and str(error)) or ''
+        git_dict['REPO_TAG']          = gittag or 'unknown'
+        git_dict['REPO_COMMITS']      = gitcommits or 'unknown'
+        git_dict['REPO_HASH']         = githash or 'unknown'
+        git_dict['REPO_BRANCH']       = gitbranch or 'unknown'
+        git_dict['REPO_DIRTY']        = gitdirty or 'unknown'
         
         pdebug('GitInfo._git_info git_dict:')
         for k,v in git_dict.iteritems():
@@ -311,7 +311,6 @@ class GitInfo:
        
         # return the dictionary
         return git_dict
-        
 
     def getRepoInfo(self):
         """
