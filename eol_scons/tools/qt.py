@@ -93,11 +93,7 @@ def qt3(env):
     # doesn't use user's LD_LIBRARY_PATH
     env.AppendENVPath ('LD_LIBRARY_PATH',qtlib)
     env.Append(LIBS = [ env['QT_LIB'] ])
-    if not env.has_key('QT_DOXDIR'):
-      env['QT_DOXDIR'] = os.path.join(qt_root,'doc','html')
-    if not env.has_key('QT_DOXREF'):
-      env['QT_DOXREF'] = 'qt:%s' % env['QT_DOXDIR']
-    env.AppendDoxref (env['QT_DOXREF'])
+    env.AppendDoxref("$QT_DOXREF")
 
 #
 # Parse the Qt major version number from a version string

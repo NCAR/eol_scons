@@ -38,7 +38,7 @@ def generate(env):
     
     if (env['ACE_NTRACE']):
         env.Append(CPPDEFINES = ['ACE_NTRACE=1'])
-    env.AppendDoxref("ace:%s/html/ace" % (ace_root))
+    env.AppendDoxref("$ACE_DOXREF")
     env[mykey] = 1
     
   env.Append(LIBS=['ACE', ])

@@ -79,7 +79,8 @@ def generate(env):
         env['ENV']['TAO_ROOT'] = tao_root
         # add TAO_ROOT and TAO_ROOT/orbsvcs to the include path
         env.Append(CPPPATH=[tao_root, os.path.join(tao_root, "orbsvcs")])
-        env.AppendDoxref("tao:%s/html/tao" % (env['ACE_ROOT']))
+        env.SetDefault(TAO_DOXREF="tao:$ACE_ROOT/html/tao")
+        env.AppendDoxref("$TAO_DOXREF")
         tao_idl_generate(env)
         env[mykey] = 1
 

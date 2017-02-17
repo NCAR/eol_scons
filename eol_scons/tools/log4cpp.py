@@ -9,7 +9,7 @@ def generate(env):
     # location, then make sure the prefixoptions tool is loaded and
     # OPT_PREFIX set accordingly.
     env.AppendUnique(CPPDEFINES=["LOG4CPP_FIX_ERROR_COLLISION", ])
-    env.AppendDoxref("log4cpp:http://log4cpp.sourceforge.net/api/")
+    env.AppendDoxref("$LOG4CPP_DOXREF")
 
 def exists(env):
     return True

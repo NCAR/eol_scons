@@ -40,14 +40,14 @@ def apidocssubdir(node):
     return subdir
 
 
-def tagfile (node):
+def tagfilename(node):
     """
     Construct the name of the tag file for the source directory
     in the given node.
     """
     subdir = apidocssubdir(node)
     qtag = subdir + '.tag'
-    dprint("tagfile(%s) ==> %s" % (str(node), qtag))
+    dprint("tagfilename(%s) ==> %s" % (str(node), qtag))
     return qtag
 
 
@@ -86,7 +86,8 @@ def CheckMissingHeaders(subdir, doxfiles, ignores):
 
 
 def Doxyfile_Emitter (target, source, env):
-    """Modify the source list to create the correct dependencies.  Due to an
+    """
+    Modify the source list to create the correct dependencies.  Due to an
     error on Gary's part which established a poorly-thought-out convention,
     the source nodes are used to generate the INPUT setting in the
     Doxyfile, even though they are not actual dependencies for the Doxyfile
@@ -106,7 +107,8 @@ def Doxyfile_Emitter (target, source, env):
     dprint("entering doxyfile_emitter(%s,%s):" %
            (",".join([str(t) for t in target]),
             ",".join([str(s) for s in source])))
-    source[:] = [ env.Value(Doxyfile_contents(target, source, env)) ]
+    contents = Doxyfile_contents(target, source, env)
+    source = [ env.Value(contents) ]
     try:
         source.append(env.File(env['DOXYFILE_FILE']))
         dprint("added Doxyfile dependency: " + str(source[-1]))
@@ -117,11 +119,6 @@ def Doxyfile_Emitter (target, source, env):
         dprint("leaving doxyfile_emitter: targets=(%s), sources=(%s)" %
                (",".join([str(t) for t in target]),
                 ",".join([hashlib.md5(str(s)).hexdigest() for s in source])))
-
-    # We used to add dependencies on external html references here (using
-    # the index.html file as a proxy), I think so doxytag could be re-run
-    # if the html changed.  However, doxytag has been deprecated so there's
-    # no point.  Either an external tag file is up-to-date or it's not.
     return target, source
     
 
@@ -307,61 +304,54 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
     dfile.write("RTF_OUTPUT             = rtf\n")
     dfile.write("MAN_OUTPUT             = man\n")
     dfile.write("GENERATE_TAGFILE       = %s\n" % \
-                os.path.join(outputdir, tagfile(source[0])))
+                os.path.join(outputdir, tagfilename(source[0])))
 
     # Parse DOXREF for references to other tag files, internal and
     # external.  Each name in the tag reference refers to the full path of
-    # the part of source tree it comes from.  That way all tag files and
-    # subdirectories under the documentation directory will be unique.  The
-    # names are flattened by replacing slashes with underscoers, so the
+    # the part of the source tree it comes from.  That way all tag files
+    # and subdirectories under the documentation directory will be unique.
+    # The names are flattened by replacing slashes with underscoers, so the
     # path for references between local documentation will always be
     # obvious, just '../<tagname>/html'.
 
-    # If the tag file already exists, then use it as is.  If the docpath is
-    # also explicitly given, then use that as is too.  Otherwise use
-    # doxytag to generate the tag file from an external source given the
-    # path to the html files.
-
-    # doxytag was declared obsolete in release 1.8, so the only way to link
-    # to external docs now is to reference an existing tag file and
-    # existing html documentation.  If a tag reference does not exist or
-    # does not have a location associated with it, then it is omitted.
+    # If the tagfile already exists and has a reference (docpath), then use
+    # it as is.  Since doxytag was declared obsolete in release 1.8, it is
+    # no longer possible to generate the tag file directly, so the only way
+    # to link to external docs is to reference an existing tag file and
+    # existing html documentation.  If the tagfile does not have a docpath,
+    # then we assume the tagfile and the apidocs are generated from this
+    # source, so we generate the implicit docpath for that tagfile.  If the
+    # tagfile has an explicit reference but the tagfile itself does not
+    # already exist, then there's no point in including it in the tagfile
+    # list.
 
     doxref = env['DOXREF']
     dprint("Parsing DOXREF for tag references: %s" % (str(doxref)))
     tagfiles={}
-    for tag in doxref:
-        i = string.find(tag,':')
-        qtag=tag
-        if i > 0:
-            qtag=tag[0:i]
-            docpath=tag[i+1:]
-            tagpath=qtag
+    for tagref in doxref:
+        tag = env.subst(tagref)
+        (tagpath, colon, docpath) = tag.partition(':')
+        if not tagpath:
+            print("Ignoring empty doxref: %s" % (tagref))
+        elif docpath:
+            # docpath is explicit, use it as is.
             if os.path.exists(tagpath):
                 tagfiles[tag] = "%s=%s" % (tagpath, docpath)
-                dprint("Using explicit doxref: %s" % tagfiles[tag])
-                continue
-
-        qtag=string.replace(qtag,"/","_")
-        tagdir="%s/../%s" % (outputdir, qtag)
-        tagpath="%s/%s.tag" % (tagdir, qtag)
-        docpath="../../%s/html" % (qtag)
-        tagfiles[tag] = "%s=%s" % (tagpath, docpath)
-
-        # Check for external tag reference and generate if necessary
-        if i > 0:
-            docpath=tag[i+1:]
-            toptagpath=tagpath
-            topdocpath=os.path.join(docsdir, docpath)
-            toptagdir=os.path.join(tagdir)
-            if os.access(toptagpath, os.R_OK):
-                dprint("+ %s exists." % toptagpath)
+                dprint("Using explicit doxref: %s" % (tagfiles[tag]))
             else:
-                dprint("+ %s does not exist, "
-                       "tag reference ignored." % toptagpath)
-        
+                print("Tagfile with explicit doxref does not exist, ignored: %s" %
+                      (tag))
+        else:
+            # Assume the tagfile will be generated under apidocs
+            qtag=tagpath.replace("/","_")
+            tagdir="%s/../%s" % (outputdir, qtag)
+            tagpath="%s/%s.tag" % (tagdir, qtag)
+            docpath="../../%s/html" % (qtag)
+            tagfiles[tag] = "%s=%s" % (tagpath, docpath)
+            dprint("Expanded tagfile reference: %s" % (tagfiles[tag]))
+
     if len(tagfiles) > 0:
-        dfile.write("TAGFILES = %s\n" % string.join(tagfiles.values()))
+        dfile.write("TAGFILES = %s\n" % (" ".join(tagfiles.values())))
 
     # The last of the customizations.  They have to go here for the case
     # of generating output in unusual locations, where it's up to the
@@ -479,6 +469,20 @@ def Doxygen_Emitter (target, source, env):
         else:
             source.append(env.File(ip))
 
+    # Tagfiles are also dependencies, and they are especially important
+    # because inter-project links will not work if the subproject's tag
+    # file is not generated before the project.
+
+    tagspecs = dfile.get('TAGFILES', "").split()
+    for spec in tagspecs:
+        # A tag file is a dependency no matter what.  Either it is being
+        # generated from this source tree, or it must already exist.
+        (tagfile, equals, locn) = spec.partition('=')
+        tagnode = env.File(tagfile)
+        dprint("found tagfile specifier: %s, adding tagfile source: %s" %
+               (spec, str(tagnode)))
+        source.append(tagnode)
+
     output = dfile.get('OUTPUT_DIRECTORY', "")
     env['DOXYGEN_OUTPUT_DIRECTORY'] = output
     html = os.path.join(output, dfile.get('HTML_OUTPUT', 'html'))
@@ -492,6 +496,11 @@ def Doxygen_Emitter (target, source, env):
     if str(target[0]) == str(source[0]):
         t = [ env.File(os.path.join(html, "index.html")) ]
         dprint("doxygen_emitter: target set to %s" % (str(t[0])))
+
+    # This builder may also generate a tag file.
+    tagfile = dfile.get('GENERATE_TAGFILE')
+    if tagfile:
+        t.append(env.File(tagfile))
 
     dprint("leaving Doxygen_Emitter")
     return t, source
@@ -519,8 +528,24 @@ def Doxygen(env, target=None, source=None, **kw):
     return tdoxygen
 
 
-def Apidocs (env, source, **kw):
+# Accumulate all the SOURCES and keywords passed into all Apidocs() builds
+# into a single shared dictionary, so that all the sources in a source tree
+# can be added to one Doxyfile.
+
+_project = {}
+
+def _projectAddApidocs(env, source, **kw):
+    global _project
+    _project.update(kw)
+    sources = _project.get("SOURCE", [])
+    sources.extend([env.File(s) for s in source])
+    _project["SOURCE"] = sources
+    return _project
+
+
+def Apidocs(env, source, **kw):
     "Pseudo-builder to generate documentation under apidocs directory."
+    _projectAddApidocs(env, source, **kw)
     target = os.path.join(apidocsdir(env), 'Doxyfile')
     doxyfile = env.Doxyfile(target=target, source=source, **kw)
     # This just keeps scons from removing the target before the builder
@@ -529,6 +554,27 @@ def Apidocs (env, source, **kw):
     env.Precious(doxyfile)
     tdoxygen = env.Doxygen(source=doxyfile, **kw)
     return tdoxygen
+
+
+def ApidocsProject(env, name, version, **kw):
+    """
+    Pseudo-builder to generate documentation from all the source files
+    accumulated by the global project dictionary.
+    """
+    kw['PROJECT_NAME'] = name
+    kw['PROJECT_NUMBER'] = version
+    project = _projectAddApidocs(env, [], **kw)
+    
+    docsdir = os.path.join(env['APIDOCSDIR'], name)
+    target = os.path.join(docsdir, 'Doxyfile')
+    kw = {}
+    kw.update(project)
+    del kw['SOURCE']
+    doxyfile = env.Doxyfile(target=target, source=project['SOURCE'], **kw)
+    env.Precious(doxyfile)
+    tdoxygen = env.Doxygen(source=doxyfile, **kw)
+    return tdoxygen
+    
 
 def ApidocsIndex (env, source, **kw):
     doxyconf = """
@@ -557,6 +603,13 @@ GENERATE_HTML          = YES
 from SCons.Script import Environment
 
 def SetDoxref(env, name, tagfile, url):
+    """
+    Generate the correct DOXREF syntax for the given tagfile and url, and
+    assign that doxref to the construction variable given by name.  The
+    variable name should match what the corresponding tool adds to DOXREF,
+    usually by calling AppendDoxref().  See AppendDoxref() in the default
+    eol_scons Environment.
+    """
     env[name] = env.File(env.subst(tagfile)).get_abspath() + ":" + url
 
 
@@ -573,6 +626,7 @@ def generate(env):
     env.SetDefault(DOXYGEN_COM='$DOXYGEN $DOXYGEN_FLAGS $SOURCE')
     env.SetDefault(APIDOCSDIR='#apidocs')
     env.AddMethod(Apidocs, "Apidocs")
+    env.AddMethod(ApidocsProject, "ApidocsProject")
     env.AddMethod(Doxygen, "Doxygen")
     env.AddMethod(ApidocsIndex, "ApidocsIndex")
     env.AddMethod(SetDoxref, "SetDoxref")

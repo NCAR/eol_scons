@@ -72,9 +72,8 @@ class QwtTool:
         except KeyError:
             return
 
-        if not env.has_key('QWT_DOXREF'):
-            env['QWT_DOXREF'] = self.settings['QWT_DOXREF']
-        env.AppendDoxref(env['QWT_DOXREF'])
+        env.SetDefault(QWT_DOXREF=self.settings['QWT_DOXREF'])
+        env.AppendDoxref('$QWT_DOXREF')
 
         if (self.settings['QWTDIR'] == USE_PKG_CONFIG):
             # Don't try here to make things unique in CFLAGS; just do an append

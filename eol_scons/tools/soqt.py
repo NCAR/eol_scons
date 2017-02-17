@@ -67,9 +67,8 @@ Use the first soqt-config found in this list of paths:
             env['SOQT_DOXDIR'] = '/usr/share/Coin2/SoQt'
         else:
             env['SOQT_DOXDIR'] = '%s/share/SoQt/html' % (prefix)
-    if not env.has_key('SOQT_DOXREF'):
-        env['SOQT_DOXREF'] = 'soqt:%s' % env['SOQT_DOXDIR']
-    env.AppendDoxref(env['SOQT_DOXREF'])
+    env.SetDefault(SOQT_DOXREF='soqt:$SOQT_DOXDIR')
+    env.AppendDoxref('$SOQT_DOXREF')
 #    env.Append(DEPLOY_SHARED_LIBS=['SoQt'])
     if (env['PLATFORM'] != 'win32') and (env['PLATFORM'] != 'darwin'):
         env.Append(LIBS=['Xi'])

@@ -32,13 +32,10 @@ Requires the xerces-c27-devel package to be installed.""",
         env.AppendUnique(CPPPATH=[os.path.join(prefix, 'include'),])
 
     # Supply a hard-coded default for finding doxygen docs
-    if not env.has_key('XERCESCROOT'):
-        env['XERCESCROOT'] = '/net/src/prog-tools/xerces-c-src_2_6_0'
-
-    if not env.has_key('XERCESC_DOXDIR'):
-        env['XERCESC_DOXDIR'] = "%s/doc/html/apiDocs" % env['XERCESCROOT']
-    doxref= "xercesc:%s" % env['XERCESC_DOXDIR']
-    env.AppendDoxref(doxref)
+    env.SetDefault(XERCESCROOT='/net/src/prog-tools/xerces-c-src_2_6_0')
+    env.SetDefault(XERCESC_DOXDIR="$XERCESCROOT/doc/html/apiDocs")
+    env.SetDefault(XERCESC_DOXREF="xercesc:$XERCESC_DOXDIR")
+    env.AppendDoxref("$XERCESC_DOXREF")
 
     # If no prefix was set explicitly, and the 2.7 handling is enabled,
     # then look for special paths for the xerces-c27 package on Fedora.

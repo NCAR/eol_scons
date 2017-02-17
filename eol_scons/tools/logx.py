@@ -6,12 +6,12 @@ def generate(env):
     # source directory.
     #env.Append(LIBPATH= ['#/logx',])
     #env.Append(LIBS=['logx',])
-    env.AppendLibrary ("logx")
-    if env.GetGlobalTarget("liblogx"):
-        env.AppendDoxref("logx")
-    else:
-        env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
-    env.Tool ('log4cpp')
+    env.AppendLibrary("logx")
+    # By default expect logx to be built in the tree, but allow the doxref
+    # to be overridden either way.
+    env.SetDefault(LOGX_DOXREF="logx")
+    env.AppendDoxref("$LOGX_DOXREF")
+    env.Tool('log4cpp')
 
 def exists(env):
     return True

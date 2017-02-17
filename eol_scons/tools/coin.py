@@ -37,12 +37,11 @@ for the Coin version on which Quarter depends.""",
         # When installed into the system as the Coin2-devel package,
         # the doxygen html has a custom path.
         if prefix == '/usr':
-            env['COIN_DOXDIR'] = '/usr/share/Coin2/Coin'
+            env['COIN_DOXDIR'] = '/usr/share/Coin3/Coin'
         else:
             env['COIN_DOXDIR'] = "%s/share/Coin/html" % (prefix)
-    if not env.has_key('COIN_DOXREF'):
-        env['COIN_DOXREF'] = "coin:%s" % env['COIN_DOXDIR']
-    env.AppendDoxref(env['COIN_DOXREF'])
+    env.SetDefault(COIN_DOXREF='${COIN_DOXDIR}/coin.tag:${COIN_DOXDIR}')
+    env.AppendDoxref('$COIN_DOXREF')
 
 
 def exists(env):

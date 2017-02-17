@@ -38,7 +38,8 @@ def generate(env):
     env.Append(LIBPATH=[libpath, ])
     env.AppendUnique(RPATH=[libpath])
 
-    env.AppendDoxref("dds:%s/html/dds" % (dds_root))
+    env.SetDefault(DDS_DOXREF="dds:%s/html/dds" % (dds_root))
+    env.AppendDoxref("$DDS_DOXREF")
     env[mykey] = 1
 
   env.DdsLibrary = DdsLibrary
