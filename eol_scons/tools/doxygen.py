@@ -534,6 +534,12 @@ def Doxygen(env, target=None, source=None, **kw):
 
 _project = {}
 
+_disable_subprojects = False
+
+def ApidocsDisable(env, disable):
+    global _disable_subprojects
+    _disable_subprojects = disable
+
 def _projectAddApidocs(env, source, **kw):
     global _project
     _project.update(kw)
@@ -546,6 +552,8 @@ def _projectAddApidocs(env, source, **kw):
 def Apidocs(env, source, **kw):
     "Pseudo-builder to generate documentation under apidocs directory."
     _projectAddApidocs(env, source, **kw)
+    if _disable_subprojects:
+        return env.Dir('#/apidocs')
     target = os.path.join(apidocsdir(env), 'Doxyfile')
     doxyfile = env.Doxyfile(target=target, source=source, **kw)
     # This just keeps scons from removing the target before the builder
@@ -556,15 +564,17 @@ def Apidocs(env, source, **kw):
     return tdoxygen
 
 
-def ApidocsProject(env, name, version, **kw):
+def ApidocsProject(env, name, version, source=None, **kw):
     """
     Pseudo-builder to generate documentation from all the source files
-    accumulated by the global project dictionary.
+    accumulated by the global project dictionary.  The name and version are
+    required to override any settings made by the subprojects.  Additional
+    source files can be passed via @p source.
     """
-    kw['PROJECT_NAME'] = name
-    kw['PROJECT_NUMBER'] = version
-    project = _projectAddApidocs(env, [], **kw)
-    
+    doxdict = kw.get('DOXYFILE_DICT', {})
+    doxdict.update({'PROJECT_NAME':name, 'PROJECT_NUMBER':version})
+    kw['DOXYFILE_DICT'] = doxdict
+    project = _projectAddApidocs(env, source or [], **kw)
     docsdir = os.path.join(env['APIDOCSDIR'], name)
     target = os.path.join(docsdir, 'Doxyfile')
     kw = {}
@@ -626,6 +636,7 @@ def generate(env):
     env.SetDefault(DOXYGEN_COM='$DOXYGEN $DOXYGEN_FLAGS $SOURCE')
     env.SetDefault(APIDOCSDIR='#apidocs')
     env.AddMethod(Apidocs, "Apidocs")
+    env.AddMethod(ApidocsDisable, "ApidocsDisable")
     env.AddMethod(ApidocsProject, "ApidocsProject")
     env.AddMethod(Doxygen, "Doxygen")
     env.AddMethod(ApidocsIndex, "ApidocsIndex")
