@@ -3,6 +3,7 @@
 
 "Module for the ImageComparisonPage class."
 
+import StringIO
 
 class ImageComparisonPage(object):
 
@@ -80,10 +81,12 @@ ul { margin-top: 2px; margin-bottom: 2px }
         image['title'] = title
         self.images.append(image)
 
-    def writePage(self, page, images=None):
+    def writePage(self, page, images=None, outs=None):
         if not self.pagetitle:
             self.pagetitle = page
-        out = open(page, 'wb')
+        out = outs
+        if outs is None:
+            out = open(page, 'wb')
         out.write(self.header % self.__dict__)
         if images is None:
             images = self.images
@@ -100,7 +103,8 @@ ul { margin-top: 2px; margin-bottom: 2px }
                 props['height'] = "height=%s" % (self.image_height)
             out.write(self.rowtemplate % props)
         out.write("</table>\n")
-        out.close()
+        if outs is None:
+            out.close()
         return None
 
     def resolvePath(self, page, image):
@@ -109,8 +113,10 @@ ul { margin-top: 2px; margin-bottom: 2px }
             return image.get_path(page.dir)
         return image
 
-    def builder(self, target, source, env):
-        page = target[0]
+    def contents(self, env, page):
+        """
+        Generate HTML contents with links relative to SCons node page.
+        """
         pagepath = page.get_path()
         # Resolve all the image paths relative to the page path.
         resolved = []
@@ -120,17 +126,39 @@ ul { margin-top: 2px; margin-bottom: 2px }
             for key in ['before', 'after', 'srcbefore', 'srcafter']:
                 rimage[key] = self.resolvePath(page, image[key])
             resolved.append(rimage)
-        return self.writePage(pagepath, resolved)
+        out = StringIO.StringIO()
+        self.writePage(pagepath, resolved, out)
+        return out.getvalue()
 
-    def build(self, env, pagepath):
+    def builder(self, target, source, env):
+        page = target[0]
+        with open(page.get_path(), 'wb') as out:
+            out.write(self.contents(env, page))
+        return None
+
+    def beforeImages(self):
+        "Return list of paths to all the before images."
+        return [image['before'] for image in self.images]
+
+    def afterImages(self):
+        "Return list of paths to all the after images."
+        return [image['after'] for image in self.images]
+
+    def build(self, env, pagepath, sources=None):
         """
-        "Instantiate a builder for the given page, with the current
-        images as the sources.
+        Instantiate a builder for the given page.  All images are sources
+        unless an explicit list is passed in the sources parameter.  The
+        file contents are always added as a Value() node dependency, so the
+        page will be rewritten if anything in the page would change.
         """
-        page = env.Command(pagepath, [env.Value(self)] +
-                           [image['before'] for image in self.images] +
-                           [image['after'] for image in self.images],
-                           self.builder)
+        contents = self.contents(env, env.File(pagepath))
+        if sources is None:
+            sources = self.beforeImages() + self.afterImages()
+        from SCons.Action import Action
+        action = Action(self.builder,
+                        cmdstr="Generating html comparison page $TARGET")
+        page = env.Command(pagepath, [env.Value(contents)] + sources,
+                           action)
         return page
 
 
