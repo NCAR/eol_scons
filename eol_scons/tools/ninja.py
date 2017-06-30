@@ -217,7 +217,7 @@ class NinjaNode(object):
 
     def isConfNode(self):
         "This is not as precise as it could be."
-        return self.node.get_dir().get_path().startswith(".sconf_temp")
+        return self.node.get_path().startswith(".sconf_temp")
 
     def getRule(self):
         """
