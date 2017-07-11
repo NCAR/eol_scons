@@ -217,7 +217,12 @@ class NinjaNode(object):
 
     def isConfNode(self):
         "This is not as precise as it could be."
-        return self.node.get_path().startswith(".sconf_temp")
+        # contains() is used instead of startswith() because variants might
+        # put their temporary directory under the variant dir, eg,
+        # build/.sconf_temp.  Maybe it would be enough to use get_dir() ==
+        # ".sconf_temp", but more likely any path containing .sconf_temp is
+        # a conf node.
+        return ".sconf_temp" in self.node.get_path()
 
     def getRule(self):
         """
