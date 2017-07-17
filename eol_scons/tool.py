@@ -102,13 +102,26 @@ def export_qt_module_tool(modules):
     module = modules[0]
     dependencies = [m.lower() for m in modules[1:]]
     def qtmtool(env):
-        if env.get('QT_VERSION') is None:
+        # Make sure explicit Qt5 modules apply qt5 tool.
+        deps = dependencies[:]
+        if module.startswith('Qt5'):
+            env.Require(['qt5'])
+        qtversion = env.get('QT_VERSION')
+        if qtversion is None:
             env.Require(['qt4'])
-        env.Require(dependencies)
+        if qtversion == 5:
+            # Qt5 modules have Qt5 as the prefix, so enforce that here.
+            # Then look up dependencies again.
+            if not module.startswith('Qt5') and module.startswith('Qt'):
+                m5 = "Qt5" + module[2:]
+                modules5 = [m for m in _qtmodules if m[0] == m5]
+                if not modules5:
+                    raise SCons.Errors.StopError, "no Qt5 module "+m5
+                deps = [m.lower() for m in modules5[0][1:]]
+        env.Require(deps)
         env.EnableQtModules([module])
     kw[module.lower()] = qtmtool
     SCons.Script.Export(**kw)
-    
 
 _qtmodules = [
     ('QtCore',),
@@ -128,7 +141,27 @@ _qtmodules = [
     ('QtMultimedia',),
     ('QtScript',),
     ('QtScriptTools', 'QtScript'),
-    ('QtUiTools', 'QtGui')
+    ('QtUiTools', 'QtGui'),
+
+    ('Qt5Core',),
+    ('Qt5Svg', 'Qt5Core'),
+    ('Qt5Widgets', 'Qt5Core'),
+    ('QtWidgets', 'Qt5Core'),
+    ('Qt5Network', 'Qt5Core'),
+    ('Qt5Xml', 'Qt5Core'),
+    ('Qt5XmlPatterns', 'Qt5Xml'),
+    ('Qt5Sql',),
+    ('Qt5OpenGL',),
+    ('Qt5Xml',),
+    ('Qt5Designer',),
+    ('Qt5Help',),
+    ('Qt5Test',),
+    ('Qt5WebKitWidgets',),
+    ('QtWebKitWidgets',),
+    ('Qt5DBus',),
+    ('Qt5Multimedia',),
+    ('Qt5Script',),
+    
 ]
 
 
