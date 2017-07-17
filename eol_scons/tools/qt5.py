@@ -605,14 +605,18 @@ def enable_modules(self, modules, debug=False) :
         self.AppendUnique(LIBPATH=['$QT5DIR/lib'])
         
     if sys.platform == "darwin" :
+
         # Use the frameworks on OSX 
-        # Homebrew installs the frameworks in /usr/local/lib.
-        self.AppendUnique(FRAMEWORKPATH=['/usr/local/lib',])
-        self.AppendUnique(FRAMEWORKS=modules)
+        # Homebrew installs the frameworks in /usr/local/opt.
+        self.AppendUnique(FRAMEWORKPATH=['/Library/Frameworks',])
+        self.AppendUnique(FRAMEWORKPATH=['/usr/local/Cellar',])
+        self.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib',])
+# FRAMEWORKS appears not to be used in Sierra.  Caused "ld: framework not found QtWidget".
+#        self.AppendUnique(FRAMEWORKS=modules)
         # Add include paths for the modules. One would think that the frameworks
         # would do this, but apparently not.
-        for m in modules:
-        	self.AppendUnique(CPPPATH=['/usr/local/lib/' + m + '.framework/Headers',])
+        for module in modules:
+            self.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers',])
         
     return True
 
