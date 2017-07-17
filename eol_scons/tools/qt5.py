@@ -500,16 +500,20 @@ def enable_modules(self, modules, debug=False) :
         if debug:
             modules = [module + "_debug" for module in modules]
         for module in modules:
+            # Qt5 modules have Qt5 as the prefix, so enforce that here.
+            if not module.startswith('Qt5') and module.startswith('Qt'):
+                module = "Qt5" + module[2:]
+
             if (self['QT5DIR'] == USE_PKG_CONFIG):
                 Debug("enabling module %s through pkg-config" % (module), self)
                 # Starting directory for headers.  First try 
                 # 'pkg-config --variable=headerdir Qt'. If that's empty 
                 # (this happens on CentOS 5 systems...), try 
                 # 'pkg-config --variable=prefix QtCore' and append '/include'.
-                hdir = pc.RunConfig(self, 'pkg-config --variable=headerdir Qt')
+                hdir = pc.RunConfig(self, 'pkg-config --variable=headerdir Qt5')
                 if (hdir == ''):
                     prefix = pc.RunConfig(self, 
-                                          'pkg-config --variable=prefix QtCore')
+                                          'pkg-config --variable=prefix Qt5Core')
                     if (prefix == ''):
                         print('Unable to build Qt header dir for adding module ' +
                               module)
