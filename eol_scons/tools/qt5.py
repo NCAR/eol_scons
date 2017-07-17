@@ -214,6 +214,7 @@ def _locateQt5Command(env, command) :
     # Look for <command>-qt5, followed by just <command>
     commandQt5 = command + '-qt5'
     cmds = [commandQt5, command]
+    Debug("qt5: checking for commands: %s" % (cmds))
 
     qt5BinDir = None
     #
@@ -227,7 +228,7 @@ def _locateQt5Command(env, command) :
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if (env['QT5DIR'] == USE_PKG_CONFIG):
-            qt5Prefix = pc.RunConfig(env, 'pkg-config --variable=prefix QtCore')
+            qt5Prefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt5Core')
             qt5BinDir = os.path.join(qt5Prefix, 'bin')
         # Otherwise, look for Qt5 binaries in <QT5DIR>/bin
         else:
@@ -244,6 +245,7 @@ def _locateQt5Command(env, command) :
 
     # Check the default path
     if not result:
+        Debug("qt5: checking path for commands: %s" % (cmds))
         result = env.Detect(cmds)
 
     if not result:
@@ -462,6 +464,10 @@ def generate(env):
     env.AppendUnique(PROGEMITTER =[AutomocStatic],
                      SHLIBEMITTER=[AutomocShared],
                      LIBEMITTER  =[AutomocStatic])
+
+    # Qt5 requires PIC.  This may have to be adjusted by platform and
+    # compiler.
+    env.AppendUnique(CCFLAGS=['-fPIC'])
 
     env[myKey] = True
 
