@@ -323,7 +323,7 @@ def checkPkgConfig(env):
     #
     global _pkgConfigKnowsQt5
     if _pkgConfigKnowsQt5 == None:
-        check = pc.CheckConfig(env, 'pkg-config --exists QtCore')
+        check = pc.CheckConfig(env, 'pkg-config --exists Qt5Core')
         _pkgConfigKnowsQt5 = check
     return _pkgConfigKnowsQt5
 
