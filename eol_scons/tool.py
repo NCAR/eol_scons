@@ -92,13 +92,20 @@ def generate(env, **kw):
     return env
 
 
-def export_qt4_module_tool(modules):
+def export_qt_module_tool(modules):
+    """
+    The qt4 or qt5 tool must have been required first to specify the 
+    Qt version for which this module should be added.  If not already
+    specified, then qt4 is assumed.
+    """
     kw = {}
     module = modules[0]
     dependencies = [m.lower() for m in modules[1:]]
     def qtmtool(env):
-        env.Require(['qt4']+dependencies)
-        env.EnableQt4Modules([module])
+        if env.get('QT_VERSION') is None:
+            env.Require(['qt4'])
+        env.Require(dependencies)
+        env.EnableQtModules([module])
     kw[module.lower()] = qtmtool
     SCons.Script.Export(**kw)
     
@@ -125,7 +132,7 @@ _qtmodules = [
 ]
 
 
-def DefineQt4Tools():
+def DefineQtTools():
     for qtmod in _qtmodules:
-        export_qt4_module_tool(qtmod)
+        export_qt_module_tool(qtmod)
 

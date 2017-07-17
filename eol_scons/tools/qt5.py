@@ -4,20 +4,20 @@
 This tool adds Qt5 include paths and libraries to the build
 environment.  Qt5 is similar to Qt4 in that it is divided into many
 different modules, and the modules can be applied to the environment
-individually using either the EnableQt5Modules() method or by listing the
+individually using either the EnableQtModules() method or by listing the
 module as a tool.  For example, these are equivalent:
 
     qtmods = ['QtSvg', 'QtCore', 'QtGui', 'QtNetwork', 'QtSql', 'QtOpenGL']
-    env.EnableQt5Modules(qtmods)
+    env.EnableQtModules(qtmods)
 
     env.Require(Split("qtsvg qtcore qtgui qtnetwork qtsql qtopengl"))
 
 If a Qt5 module is optional, such as disabling the build of a Qt GUI
 application when the QtGui module is not present, then the
-return value from the EnableQt5Modules() method must be used:
+return value from the EnableQtModules() method must be used:
 
     qt5Modules = Split('QtGui QtCore QtNetwork')
-    if not env.EnableQt5Modules(qt5Modules):
+    if not env.EnableQtModules(qt5Modules):
         Return()
 
 The qt5 tool must be included first to force all the subsequent qt modules to be
@@ -333,6 +333,13 @@ def generate(env):
     if env.has_key(myKey):
         return
 
+    if env.get('QT_VERSION', 5) != 5:
+        msg = str("Cannot require qt5 tool after another version "
+                  "(%d) already loaded." % (env.get('QT_VERSION')))
+        raise SCons.Errors.StopError, msg
+        
+    env['QT_VERSION'] = 5
+
     global _options
     if not _options:
         _options = env.GlobalVariables()
@@ -374,7 +381,7 @@ def generate(env):
             env['QT5DIR'] = '/usr/lib/qt5';
 
     import new
-    env.EnableQt5Modules = new.instancemethod(enable_modules, env, type(env))
+    env.EnableQtModules = new.instancemethod(enable_modules, env, type(env))
 
     if not env.has_key('QT5DIR'):
 	# Dont stop, just print a warning. Later, a user call of
@@ -425,6 +432,7 @@ def generate(env):
         SCons.Util.CLVar('$QT5_UIC $QT5_UICDECLFLAGS -o ${TARGETS[0]} $SOURCE'),
         ]
     env.Append( BUILDERS = { 'Uic5': uic5builder } )
+    env.Append( BUILDERS = { 'Uic': uic5builder } )
 
     # Metaobject builder
     env['QT5_MOCFROMHCMD'] = (
@@ -433,6 +441,7 @@ def generate(env):
         SCons.Util.CLVar('$QT5_MOC $QT5_MOCFROMCXXFLAGS -o ${TARGETS[0]} $SOURCE'),
         SCons.Action.Action(_checkMocIncluded,None)]
     env.Append( BUILDERS = { 'Moc5': mocBld } )
+    env.Append( BUILDERS = { 'Moc': mocBld } )
 
     # er... no idea what that was for
     static_obj, shared_obj = SCons.Tool.createObjBuilders(env)
@@ -520,10 +529,6 @@ def enable_modules(self, modules, debug=False) :
                         no_pkgconfig_warned.append(module)
                     # Add -l<module>
                     self.Append(LIBS = [module])
-                    # Add -I<Qt5HeaderDir>/<module>
-                    self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
-                    Debug("qt5.enable_modules appended %s to CPPPATH" %
-                          os.path.join(hdir, module), self)
             else:
                 Debug("enabling module %s with QT5DIR=%s" %
                       (module, self['QT5DIR']), self)

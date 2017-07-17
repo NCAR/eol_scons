@@ -4,20 +4,20 @@
 This tool adds Qt4 include paths and libraries to the build
 environment.  Since Qt4 is divided into many different modules, the modules
 can be applied to the environment individually using either the
-EnableQt4Modules() method or by listing the module as a tool.  For example,
+EnableQtModules() method or by listing the module as a tool.  For example,
 these are equivalent:
 
     qtmods = ['QtSvg', 'QtCore', 'QtGui', 'QtNetwork', 'QtSql', 'QtOpenGL']
-    env.EnableQt4Modules(qtmods)
+    env.EnableQtModules(qtmods)
 
     env.Require(Split("qtsvg qtcore qtgui qtnetwork qtsql qtopengl"))
 
 If a Qt4 module is optional, such as disabling the build of a Qt GUI
 application when the QtGui module is not present, then the
-return value from the EnableQt4Modules() method must be used:
+return value from the EnableQtModules() method must be used:
 
     qt4Modules = Split('QtGui QtCore QtNetwork')
-    if not env.EnableQt4Modules(qt4Modules):
+    if not env.EnableQtModules(qt4Modules):
         Return()
 """
 
@@ -325,6 +325,13 @@ def checkPkgConfig(env):
 def generate(env):
     """Add Builders and construction variables for qt4 to an Environment."""
 
+    if env.get('QT_VERSION', 4) != 4:
+        msg = str("Cannot require qt4 tool after another version "
+                  "(%d) already loaded." % (env.get('QT_VERSION')))
+        raise SCons.Errors.StopError, msg
+        
+    env['QT_VERSION'] = 4
+
     # Only need to setup any particular environment once.
     if env.has_key(myKey):
         return
@@ -370,7 +377,9 @@ def generate(env):
             env['QT4DIR'] = '/usr/lib/qt4';
 
     import new
-    env.EnableQt4Modules = new.instancemethod(enable_modules, env, type(env))
+    env.EnableQtModules = new.instancemethod(enable_modules, env, type(env))
+    # Backwards compatibility:
+    env.EnableQt4Modules = env.EnableQtModules
 
     if not env.has_key('QT4DIR'):
 	# Dont stop, just print a warning. Later, a user call of
@@ -421,6 +430,7 @@ def generate(env):
         SCons.Util.CLVar('$QT4_UIC $QT4_UICDECLFLAGS -o ${TARGETS[0]} $SOURCE'),
         ]
     env.Append( BUILDERS = { 'Uic4': uic4builder } )
+    env.Append( BUILDERS = { 'Uic': uic4builder } )
 
     # Metaobject builder
     env['QT4_MOCFROMHCMD'] = (
@@ -429,6 +439,7 @@ def generate(env):
         SCons.Util.CLVar('$QT4_MOC $QT4_MOCFROMCXXFLAGS -o ${TARGETS[0]} $SOURCE'),
         SCons.Action.Action(_checkMocIncluded,None)]
     env.Append( BUILDERS = { 'Moc4': mocBld } )
+    env.Append( BUILDERS = { 'Moc': mocBld } )
 
     # er... no idea what that was for
     static_obj, shared_obj = SCons.Tool.createObjBuilders(env)
