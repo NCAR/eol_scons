@@ -144,6 +144,7 @@ _qtmodules = [
     ('QtUiTools', 'QtGui'),
 
     ('Qt5Core',),
+    ('Qt5Gui', 'Qt5Core'),
     ('Qt5Svg', 'Qt5Core'),
     ('Qt5Widgets', 'Qt5Core'),
     ('QtWidgets', 'Qt5Core'),
