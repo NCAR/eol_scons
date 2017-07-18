@@ -1,3 +1,11 @@
+"""
+Qwt can be built against either Qt4 or Qt5, so this tool tries to
+figure out which is intended using the QT_VERSION variable.  If not set,
+then it defaults to Qt4 (for now).  This is sort of backwards, since Qwt
+depends on Qt and not the other way around, but it works.  Projects which
+need Qt5 and not Qt4 just need to require the qt5.py tool before any tools
+which depend on Qt.
+"""
 
 import os
 from SCons.Variables import PathVariable
@@ -85,8 +93,10 @@ class QwtTool:
 
         if (self.settings['QWTDIR'] == USE_PKG_CONFIG):
             # Don't try here to make things unique in CFLAGS; just do an append
-            env.ParseConfig('pkg-config --cflags ' + self.pkgConfigName, unique = False)
-            env.ParseConfig('pkg-config --libs ' + self.pkgConfigName, unique = False)
+            env.ParseConfig('pkg-config --cflags ' + self.pkgConfigName,
+                            unique = False)
+            env.ParseConfig('pkg-config --libs ' + self.pkgConfigName,
+                            unique = False)
             return
 
         if env['PLATFORM'] != 'darwin':
@@ -111,8 +121,20 @@ class QwtTool:
         that the qwt settings would be the same for all environments.  So
         this may break for cross-builds or situations where different
         Environments need to use a different PKG_CONFIG_PATH.
+
+        If Qt5 is enabled (rather than Qt4 or unspecified), then look
+        specifically for the Qt5Qwt6 package config provided by the qwt-qt5
+        package on fedora.  Note this hardcodes for Qwt version 6 and will
+        break when a different version is needed.
+
+        When there is a package which provides a qwt.pc or Qwt.pc for
+        building against Qt5, then the code below will need to be fixed,
+        because it assumes those are only for Qt4.
         """
-        for qname in ['qwt', 'Qwt']:
+        qwtpcnames = ['qwt', 'Qwt']
+        if env.get('QT_VERSION') == 5:
+            qwtpcnames = ['Qt5Qwt6']
+        for qname in qwtpcnames:
             try:
                 if pc.CheckConfig(env, 'pkg-config ' + qname):
                     self.pkgConfigName = qname
