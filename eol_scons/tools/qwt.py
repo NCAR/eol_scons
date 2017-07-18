@@ -49,7 +49,7 @@ class QwtTool:
             self.settings['LIBS'] = ['qwt']
             self.settings['LIBPATH'] = [qwt_libdir]
         else:
-            self.settings['FRAMEWORKPATH'] = '/usr/local/lib'
+            self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt/lib'
             self.settings['FRAMEWORKS']    = 'qwt'
 
         self.settings['RPATH'] = [qwt_libdir]
@@ -58,8 +58,16 @@ class QwtTool:
                 self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
             else:
                 self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
-        else:
-                self.settings['CPPPATH'] = '/usr/local/lib/qwt.framework/Headers'
+        if env['PLATFORM'] == 'win32':
+            # On Windows, the qwt top will be
+            # C:/Tools/MinGW/msys/1.0/local/qwt/
+            # and the include directory is
+            # C:/Tools/MinGW/msys/1.0/local/qwt/include/qwt
+            env.AppendUnique(CPPPATH=[env['QWTDIR']+'/include/qwt'])
+
+        if env['PLATFORM'] == 'darwin':
+                self.settings['CPPPATH'] = '/usr/local/opt/qwt/lib/qwt.framework/Headers'
+
         plugindir='$QWTDIR/designer/plugins/designer'
         self.settings['QT_UICIMPLFLAGS'] = ['-L', plugindir]
         self.settings['QT_UICDECLFLAGS'] = ['-L', plugindir]
