@@ -32,6 +32,31 @@ def _append_boost_library(env, libname):
     env.Append (LIBS = [libname + "-mt"])
 
 
+def boost_version(env):
+  """
+  The detection of the boost version depends on an unconventional use of
+  compiler options to query BOOST_VERSION from the boost/version.hpp header
+  file.
+  """
+  version = env.get('BOOST_VERSION')
+  if not version:
+    command = str('(echo "#include <boost/version.hpp>"; '
+                  'echo "BOOST_VERSION") | '
+                  '$CXX -E $CCFLAGS -o - - 2>/dev/null | '
+                  'egrep -v "^#"')
+    cmd = env.subst(command)
+    import subprocess as sp
+    # print(cmd)
+    version = sp.check_output(cmd, shell=True).strip()
+    if version:
+      version = int(version)
+      env['BOOST_VERSION'] = version
+    else:
+      version = None
+    print("BOOST_VERSION=%s" % (version))
+  return version
+
+
 def generate(env):
   if env.get('BOOST_TOOL_APPLIED'):
     return
@@ -70,6 +95,7 @@ def generate(env):
 
   # Finally add the method for appending specific boost libraries
   env.AddMethod(_append_boost_library, "AppendBoostLibrary")
+  env.AddMethod(boost_version, "BoostVersion")
 
 
 def exists(env):
