@@ -187,7 +187,7 @@ def _macdeployqt(target, source, env):
     # Run macdeployqt
     # For some reason, I couldn't get Execute(Command)) to work, so
     # fall back to using subprocess.
-    subprocess.check_call([env['MACDEPLOYQT'], tmpbundle,'-verbose=2'], stderr=subprocess.STDOUT, bufsize=1)
+    #subprocess.check_call([env['MACDEPLOYQT'], tmpbundle,'-verbose=2'], stderr=subprocess.STDOUT, bufsize=1)
     
     # Move temporary bundle back
     Execute(Move(bundle, tmpbundle))
