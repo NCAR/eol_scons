@@ -40,9 +40,15 @@ def boost_version(env):
   """
   version = env.get('BOOST_VERSION')
   if not version:
+    # This command is essentially a copy of CXXCOM, except it cannot
+    # contain the CXXFLAGS.  gcc thinks it is compiling C code since there
+    # is no source file extension to key off, so it complains that
+    # C++-specific flags like c++11 are invalid.  The _CCCOMCOM is
+    # important because it is the CPPPATH expansion.
+    # 
     command = str('(echo "#include <boost/version.hpp>"; '
                   'echo "BOOST_VERSION") | '
-                  '$CXX -E $CCFLAGS -o - - 2>/dev/null | '
+                  '$CXX -E $CCFLAGS $_CCCOMCOM -o - - 2>/dev/null | '
                   'egrep -v "^#"')
     cmd = env.subst(command)
     import subprocess as sp
