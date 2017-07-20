@@ -114,7 +114,12 @@ class PostgresTestDB(object):
         self.pgversion = None
         self.settingsfile = None
         self.setupTempConnection()
+        self.debug = False
         
+    def _log(self, msg):
+        if self.debug:
+            print(msg)
+
     def setupTempConnection(self):
         """
         Setup the connection parameters for a database server which runs in a
@@ -155,7 +160,7 @@ class PostgresTestDB(object):
 
     def getVersion(self):
         if not self.pgversion:
-            p = sp.Popen(['initdb', '--version'], stdout=sp.PIPE, shell=False)
+            p = self._popen(['initdb', '--version'], stdout=sp.PIPE)
             self.pgversion = p.communicate()[0].split()[2]
         return self.pgversion
 
@@ -164,6 +169,7 @@ class PostgresTestDB(object):
         Create the PGDATA directory, setup the configuration, and start the
         postgres server.
         """
+        self._log("enter init")
         self.destroy()
         print("Postgres version: %s" % (self.getVersion()))
         self._initdb()
@@ -178,6 +184,7 @@ class PostgresTestDB(object):
         self.start()
         if sqlfile:
             self.loadSQL(sqlfile)
+        self._log("leave init")
 
     def destroy(self):
         """
@@ -211,29 +218,37 @@ class PostgresTestDB(object):
         If it is already running then this will print errors and will not
         affect the running server.
         """
-        p = self._popen(["pg_ctl", "-w", "-o", "-i", "start"])
-        p.wait()
+        self._run(["pg_ctl", "-w", "-o", "-i", "start"])
 
     def stop(self):
         """
         Stop the background postgres server.
         """
-        p = self._popen(["pg_ctl", "-m", "fast", "-w", "stop"])
-        p.wait()
+        self._run(["pg_ctl", "-m", "fast", "-w", "stop"])
 
     def _popen(self, cmd, env=None, **args):
-        print("Running: %s" % " ".join(cmd))
+        scmd = " ".join(cmd)
+        print("Running: %s" % (scmd))
         if not env:
             env = self.getEnvironment()
-        return sp.Popen(cmd, shell=False, env=env, **args)
+        try:
+            return sp.Popen(cmd, shell=False, env=env, **args)
+        except Exception, ex:
+            print("   *** Exception: %s: %s" % (str(ex), scmd))
+            raise
+
+    def _run(self, cmd, env=None):
+        scmd = " ".join(cmd)
+        p = self._popen(cmd, env=env)
+        retcode = p.wait()
+        if retcode:
+            print("   *** Non-zero exit status: %s" % (scmd))
 
     def _initdb(self):
-        p = self._popen(["initdb"])
-        p.wait()
+        self._run(["initdb"])
 
     def _psql(self, database, command):
-        p = self._popen(["psql", database, "-c", command])
-        p.wait()
+        self._run(["psql", database, "-c", command])
 
     def dump(self, host=None, user=None, db=None, path=None, env=None, args=None):
         """
@@ -260,8 +275,7 @@ class PostgresTestDB(object):
             cmd += ["-f", path]
         if db:
             cmd += [db]
-        p = self._popen(cmd, env=env)
-        p.wait()
+        self._run(cmd, env=env)
 
     def getEnvironment(self, env=None):
         """
@@ -325,6 +339,7 @@ class PostgresTestDB(object):
 
     def action_init(target, source, env):
         pg = env.PostgresTestDB()
+        pg._log("enter action_init")
         # Look for an optional SQL source to load.
         sql = [s for s in source 
                if str(s).endswith('.sql') or str(s).endswith('.sql.gz')]
@@ -338,6 +353,7 @@ class PostgresTestDB(object):
         # programs can connect to the test database without knowing the
         # actual name.
         env['ENV'].update(pg.getEnvironment({}))
+        pg._log("leave action_init")
         return 0
 
     action_init = staticmethod(action_init)
