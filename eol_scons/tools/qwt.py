@@ -197,7 +197,8 @@ def find_qwtdir(env):
     elif pkgConfigKnowsQwt:
         qwtdir = USE_PKG_CONFIG
     elif (env.has_key('OPT_PREFIX') and 
-          os.path.exists(find_lib_subdir(env['OPT_PREFIX']), 'libqwt.so')):
+          os.path.exists(os.path.join(find_lib_subdir(env['OPT_PREFIX']),
+                                      'libqwt.so'))):
         qwtdir = env['OPT_PREFIX']
     else:
         qwtdir = "/usr"
