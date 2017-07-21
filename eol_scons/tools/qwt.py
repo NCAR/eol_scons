@@ -16,14 +16,17 @@ _options = None
 myKey = 'HAS_PACKAGE_QWT'
 USE_PKG_CONFIG = 'Using pkg-config'
 
-def is_64bit():
-    """ is this a 64-bit system? """
-    return platform.machine()[-2:] == '64'
+def find_lib_subdir(path):
+    libs = ['lib']
+    # Add lib64 if this is a 64-bit system
+    if platform.machine()[-2:] == '64':
+        libs[:0] = ['lib64']
+    for subdir in libs:
+        libpath = os.path.join(path, subdir)
+        if os.path.exists(libpath):
+            return libpath
+    return 
 
-if is_64bit():
-    lib_= 'lib64'
-else:
-    lib_= 'lib'
 
 class QwtTool:
 
@@ -43,8 +46,7 @@ class QwtTool:
             return
 
         self.settings['QWTDIR'] = qwt_dir
-        qwt_libdir = os.path.join(qwt_dir, lib_)
-        libqwt = os.path.join(qwt_libdir, 'libqwt.so')
+        qwt_libdir = find_lib_subdir(qwt_dir)
 
         # These settings apply whether located manually or with pkg-config
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')
@@ -186,7 +188,7 @@ def find_qwtdir(env):
     #    o command line QWTDIR option (or otherwise set in the environment)
     #    o OS environment QWTDIR
     #    o installation defined via pkg-config (this is the preferred method)
-    #    o lastly see if lib_/libqwt.so exists under OPT_PREFIX
+    #    o lastly see if libqwt.so exists under OPT_PREFIX
     #
     if (env.has_key('QWTDIR')):
         qwtdir = env['QWTDIR']
@@ -195,7 +197,7 @@ def find_qwtdir(env):
     elif pkgConfigKnowsQwt:
         qwtdir = USE_PKG_CONFIG
     elif (env.has_key('OPT_PREFIX') and 
-          os.path.exists(os.path.join(env['OPT_PREFIX'], lib_, 'libqwt.so'))):
+          os.path.exists(find_lib_subdir(env['OPT_PREFIX']), 'libqwt.so')):
         qwtdir = env['OPT_PREFIX']
     else:
         qwtdir = "/usr"
