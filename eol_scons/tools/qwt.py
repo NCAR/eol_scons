@@ -196,11 +196,11 @@ def find_qwtdir(env):
         qwtdir = os.environ['QWTDIR']
     elif pkgConfigKnowsQwt:
         qwtdir = USE_PKG_CONFIG
-    elif (env.has_key('OPT_PREFIX') and 
-          os.path.exists(os.path.join(find_lib_subdir(env['OPT_PREFIX']),
-                                      'libqwt.so'))):
-        qwtdir = env['OPT_PREFIX']
-    else:
+    elif (env.has_key('OPT_PREFIX')):
+        libdir = find_lib_subdir(env['OPT_PREFIX'])
+        if libdir and os.path.exists(os.path.join(libdir, 'libqwt.so')):
+            qwtdir = env['OPT_PREFIX']
+    if not qwtdir:
         qwtdir = "/usr"
     print("qwtdir set to '%s'" % (qwtdir))
     return qwtdir
