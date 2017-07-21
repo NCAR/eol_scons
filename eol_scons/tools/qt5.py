@@ -346,7 +346,10 @@ def generate(env):
     if not _options:
         _options = env.GlobalVariables()
         _options.AddVariables(PathVariable('QT5DIR',
-       'Parent directory of qt5 bin, include and lib sub-directories. The default location is determined from the path to qt5 tools and from pkg-config, so QT5DIR typically does not need to be specified.', None, PathVariable.PathAccept))
+            'Parent directory of qt5 bin, include and lib sub-directories. '
+            'The default location is determined from the path to qt5 tools '
+            'and from pkg-config, so QT5DIR typically does not need to be '
+            'specified.', None, PathVariable.PathAccept))
     _options.Update(env)
 
     # 
@@ -391,7 +394,7 @@ def generate(env):
 
         errmsg = "Qt5 not found, try setting QT5DIR."
         # raise SCons.Errors.StopError, errmsg
-	print errmsg
+	print(errmsg)
 	return
 
     # the basics
@@ -567,7 +570,12 @@ def enable_modules(self, modules, debug=False) :
 
                 hdir = os.path.join(self['QT5DIR'], 'include')
                 self.AppendUnique(CPPPATH = [hdir])
-                self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
+                # I tried taking out the module-specific header directory
+                # from the include path here, to enforce the use of
+                # module-qualified header includes, but that breaks qwt
+                # header files.
+                hcomp = module.replace('Qt5', 'Qt')
+                self.AppendUnique(CPPPATH = [os.path.join(hdir, hcomp)])
                 self.Append(LIBS = [module])
 
             # Kluge(?) so that moc can find the QtDesigner headers, necessary
