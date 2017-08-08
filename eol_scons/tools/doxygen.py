@@ -27,7 +27,18 @@ class DoxygenWarning(SCons.Warnings.Warning):
     pass
 
 def apidocssubdir(node):
+    """
+    Return the nominal subdirectory path for this node within the source
+    tree, to be used as a unique name and path under the top apidocs
+    destination directory.
+    """
+    if node.srcnode() != node:
+        dprint("apidocssubdir(%s): translating to source node '%s'" %
+               (node.abspath, str(node.srcnode())))
+        node = node.srcnode()
     if not node.isdir():
+        dprint("apidocssubdir(%s): converting non-dir to dir '%s'" %
+               (node.abspath, str(node.get_dir())))
         node = node.get_dir()
     top = node.Dir('#')
     dprint('top=%s' % str(top))
@@ -36,7 +47,7 @@ def apidocssubdir(node):
     else:
         subdir = str(node.get_path(top))
     subdir = string.replace(subdir, os.sep, '_')
-    dprint("apidocssubdir(%s) ==> %s" % (str(node), subdir))
+    dprint("apidocssubdir(%s) ==> %s" % (node.abspath, subdir))
     return subdir
 
 
@@ -54,7 +65,7 @@ def tagfilename(node):
 def apidocsdir(env):
     subdir = apidocssubdir(env.Dir('.'))
     docsdir = os.path.join(env['APIDOCSDIR'], subdir)
-    dprint("apidocsdir(%s) ==> %s" % (str(env.Dir('.')), str(docsdir)))
+    dprint("apidocsdir(%s) ==> %s" % (env.Dir('.').abspath, str(docsdir)))
     return docsdir
 
 
