@@ -8,6 +8,8 @@ which depend on Qt.
 """
 from __future__ import print_function
 
+from builtins import str
+from builtins import object
 import os
 from SCons.Variables import PathVariable
 import platform
@@ -29,7 +31,7 @@ def find_lib_subdir(path):
     return 
 
 
-class QwtTool:
+class QwtTool(object):
 
     def __init__(self):
         self.settings = {}

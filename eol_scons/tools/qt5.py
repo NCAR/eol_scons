@@ -26,6 +26,8 @@ of the header files and the library names contain libQt5<Module>.
 """
 from __future__ import print_function
 
+from builtins import str
+from builtins import object
 import re
 import os
 
@@ -81,7 +83,7 @@ def _find_file(filename, paths, node_factory):
             return node
     return None
 
-class _Automoc:
+class _Automoc(object):
     """
     Callable class, which works as an emitter for Programs, SharedLibraries and
     StaticLibraries.
