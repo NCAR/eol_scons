@@ -17,8 +17,11 @@ to be a full URL.
 """
 from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import SCons
 import os
 
@@ -40,8 +43,9 @@ def download_emitter (target, source, env):
         url = '$DOWNLOAD_DIRECTORY/%s' % url
     source = [URLNode(env.subst(url))]
     if env.get('eolsconsdebug'):
-        print("download_emitter returning ([%s],[%s])" % \
-              (",".join(map(str, target)),",".join(map(str, source))))
+        print("download_emitter returning ([%s],[%s])" %
+              (",".join([str(t) for t in target]),
+               ",".join([str(s) for s in source])))
     return target, source
 
 
@@ -53,7 +57,7 @@ def download(target, source, env):
     url = str(source[0]).strip("'")
     file = target[0].get_abspath()
     print("Downloading ", url)
-    (filename, headers) = urllib.urlretrieve (url, file, download_report)
+    (filename, headers) = urllib.request.urlretrieve (url, file, download_report)
     print("\nDownloaded ", filename)
 
 
