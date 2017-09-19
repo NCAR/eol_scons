@@ -146,7 +146,7 @@ class _Automoc:
                 except:
                     errmsg = "qt5/_Automoc_ got a bad source object: "
                     errmsg += str(obj)
-                    raise SCons.Errors.StopError, errmsg                    
+                    raise SCons.Errors.StopError(errmsg)
 
             if not obj.has_builder():
                 # binary obj file provided
@@ -161,7 +161,7 @@ class _Automoc:
                 # c or fortran source
                 continue
             #cpp_contents = comment.sub('', cpp.get_contents())
-            cpp_contents = cpp.get_contents()
+            cpp_contents = cpp.get_contents().decode()
             h=None
             for h_ext in header_extensions:
                 # try to find the header file in the corresponding source
@@ -174,7 +174,7 @@ class _Automoc:
                     Debug("scons: qt5: Scanning '%s' (header of '%s')" % 
                           (str(h), str(cpp)), env)
                     #h_contents = comment.sub('', h.get_contents())
-                    h_contents = h.get_contents()
+                    h_contents = h.get_contents().decode()
                     break
             if not h:
                 Debug("scons: qt5: no header for '%s'." % (str(cpp)), env)
@@ -221,13 +221,13 @@ def _locateQt5Command(env, command) :
     # If env['QT5DIR'] is defined, add the associated bin directory to our
     # search path for the commands
     #
-    if (env.has_key('QT5DIR')):
+    if 'QT5DIR' in env:
         # If we're using pkg-config, assume all Qt5 binaries live in 
         # <prefix_from_pkgconfig>/bin.  This is slightly dangerous,
         # but seems to match all installation schemes I've seen so far,
         # and the "prefix" variable appears to always be available (again,
         # so far...).
-        if (env['QT5DIR'] == USE_PKG_CONFIG):
+        if env['QT5DIR'] == USE_PKG_CONFIG:
             qt5Prefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt5Core')
             qt5BinDir = os.path.join(qt5Prefix, 'bin')
         # Otherwise, look for Qt5 binaries in <QT5DIR>/bin
@@ -238,10 +238,11 @@ def _locateQt5Command(env, command) :
     # This will make sure we get e.g., <myQT5DIR>/bin/moc ahead of 
     # /usr/bin/moc-qt5 in the case where we have a standard installation 
     # but we're trying to use a custom one by setting QT5DIR.
-    if (qt5BinDir):
+    if qt5BinDir:
         # check for the binaries in *just* qt5BinDir
-        result = reduce(lambda a,b: a or env.WhereIs(b, [qt5BinDir]), 
-                        cmds, None)
+        result = None
+        for cmd in cmds:
+            result = result or env.WhereIs(cmd, [qt5BinDir])
 
     # Check the default path
     if not result:
@@ -250,10 +251,10 @@ def _locateQt5Command(env, command) :
 
     if not result:
         msg = "Qt5 command " + commandQt5 + " (" + command + ")"
-        if (qt5BinDir):
+        if qt5BinDir:
             msg += " not in " + qt5BinDir + ","
         msg += " not in $PATH"
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
 
     cache.store(env, key, result)
     return result
@@ -268,6 +269,7 @@ mocBld = None
 
 def _scanResources(node, env, path, arg):
     contents = node.get_contents()
+    contents = contents.decode()
     includes = qrcinclude_re.findall(contents)
     return includes
 
@@ -338,7 +340,7 @@ def generate(env):
     if env.get('QT_VERSION', 5) != 5:
         msg = str("Cannot require qt5 tool after another version "
                   "(%d) already loaded." % (env.get('QT_VERSION')))
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
         
     env['QT_VERSION'] = 5
 
@@ -368,12 +370,11 @@ def generate(env):
     elif (os.environ.has_key('QT5DIR')):
         env['QT5DIR'] = os.environ['QT5DIR']
     elif (env['PLATFORM'] == 'win32'):
-        print
-        print "For Windows, QT5DIR must be set" + \
-            " on the command line or in the environment."
-        print "E.g.:"
-        print "    scons QT5DIR='/c/QtSDK/Desktop/Qt/4.7.4/mingw'"
-        print
+        print("""
+For Windows, QT5DIR must be set on the command line or in the environment.
+E.g.:
+  scons QT5DIR='/c/QtSDK/Desktop/Qt/4.7.4/mingw'
+""")
     elif checkPkgConfig(env):
         env['QT5DIR'] = USE_PKG_CONFIG
     else:
@@ -385,17 +386,16 @@ def generate(env):
         elif os.path.exists('/usr/lib/qt5'):
             env['QT5DIR'] = '/usr/lib/qt5';
 
-    import new
-    env.EnableQtModules = new.instancemethod(enable_modules, env, type(env))
+    env.AddMethod(enable_modules, "EnableQtModules")
 
-    if not env.has_key('QT5DIR'):
+    if 'QT5DIR' not in env:
 	# Dont stop, just print a warning. Later, a user call of
 	# EnableQtModules() will return False if QT5DIR is not found.
 
         errmsg = "Qt5 not found, try setting QT5DIR."
         # raise SCons.Errors.StopError, errmsg
-	print(errmsg)
-	return
+        print(errmsg)
+        return
 
     # the basics
     env['QT5_MOC'] = _locateQt5Command(env, 'moc')
@@ -490,14 +490,16 @@ def _checkQtCore(env):
 
 
 no_pkgconfig_warned = []
-def enable_modules(self, modules, debug=False) :
+def enable_modules(env, modules, debug=False) :
 
     # Return False if a module cannot be enabled, otherwise True
     import sys
 
-    if sys.platform == "linux2" :
+    env.LogDebug("Entering enable_modules() with sys.platform=%s..." %
+                 (sys.platform))
+    if sys.platform.startswith("linux"):
 
-	if not self.has_key('QT5DIR'):
+        if 'QT5DIR' not in env:
             return False
 
         if debug:
@@ -507,15 +509,15 @@ def enable_modules(self, modules, debug=False) :
             if not module.startswith('Qt5') and module.startswith('Qt'):
                 module = "Qt5" + module[2:]
 
-            if (self['QT5DIR'] == USE_PKG_CONFIG):
-                Debug("enabling module %s through pkg-config" % (module), self)
+            if (env['QT5DIR'] == USE_PKG_CONFIG):
+                Debug("enabling module %s through pkg-config" % (module), env)
                 # Starting directory for headers.  First try 
                 # 'pkg-config --variable=headerdir Qt'. If that's empty 
                 # (this happens on CentOS 5 systems...), try 
                 # 'pkg-config --variable=prefix QtCore' and append '/include'.
-                hdir = pc.RunConfig(self, 'pkg-config --variable=headerdir Qt5')
+                hdir = pc.RunConfig(env, 'pkg-config --variable=headerdir Qt5')
                 if (hdir == ''):
-                    prefix = pc.RunConfig(self, 
+                    prefix = pc.RunConfig(env, 
                                           'pkg-config --variable=prefix Qt5Core')
                     if (prefix == ''):
                         print('Unable to build Qt header dir for adding module ' +
@@ -523,17 +525,17 @@ def enable_modules(self, modules, debug=False) :
                         return False
                     hdir = os.path.join(prefix, 'include')
 
-                if pc.CheckConfig(self, 'pkg-config --exists ' + module):
+                if pc.CheckConfig(env, 'pkg-config --exists ' + module):
                     # Retrieve LIBS and CFLAGS separately, so CFLAGS can be
                     # added just once (unique=1).  Otherwise projects like
                     # ASPEN which require qt modules many times over end up
                     # with dozens of superfluous CPP includes and defines.
-                    cflags = pc.RunConfig(self,
+                    cflags = pc.RunConfig(env,
                                           'pkg-config --cflags ' + module)
-                    self.MergeFlags(cflags, unique=1)
-                    libflags = pc.RunConfig(self,
+                    env.MergeFlags(cflags, unique=1)
+                    libflags = pc.RunConfig(env,
                                             'pkg-config --libs ' + module)
-                    self.MergeFlags(libflags, unique=0)
+                    env.MergeFlags(libflags, unique=0)
                 else:
                     # warn if we haven't already
                     if not (module in no_pkgconfig_warned):
@@ -541,10 +543,10 @@ def enable_modules(self, modules, debug=False) :
                               ", doing what I can...")
                         no_pkgconfig_warned.append(module)
                     # Add -l<module>
-                    self.Append(LIBS = [module])
+                    env.Append(LIBS = [module])
             else:
                 Debug("enabling module %s with QT5DIR=%s" %
-                      (module, self['QT5DIR']), self)
+                      (module, env['QT5DIR']), env)
                 # Module library directory can apparently be either
                 # <QT5DIR>/lib/<module> or just <QT5DIR>/lib.  Use the
                 # longer one if the directory exists, otherwise the shorter
@@ -553,38 +555,38 @@ def enable_modules(self, modules, debug=False) :
                 # accessible in /usr/lib64/qt5/lib64.  Otherwise resort to
                 # the usual 'lib' subdir, which sometimes exists even on
                 # x86_64 .
-                libpath = os.path.join(self['QT5DIR'], 'lib64')
+                libpath = os.path.join(env['QT5DIR'], 'lib64')
                 if not os.path.exists(libpath):
-                    libpath = os.path.join(self['QT5DIR'], 'lib')
+                    libpath = os.path.join(env['QT5DIR'], 'lib')
                 longpath = os.path.join(libpath, module)
                 if os.path.isdir(longpath):
                     libpath = longpath
-                self.AppendUnique(LIBPATH = [libpath])
+                env.AppendUnique(LIBPATH = [libpath])
 		# if this does not look like a system path, add it to
 		# RPATH.  This is helpful when different components have
 		# been built against differents versions of Qt, but the one
 		# specified by this tool is the one that should take
 		# precedence.
                 if not libpath.startswith('/usr/lib'):
-                    self.AppendUnique(RPATH = [libpath])
+                    env.AppendUnique(RPATH = [libpath])
 
-                hdir = os.path.join(self['QT5DIR'], 'include')
-                self.AppendUnique(CPPPATH = [hdir])
+                hdir = os.path.join(env['QT5DIR'], 'include')
+                env.AppendUnique(CPPPATH = [hdir])
                 # I tried taking out the module-specific header directory
                 # from the include path here, to enforce the use of
                 # module-qualified header includes, but that breaks qwt
                 # header files.
                 hcomp = module.replace('Qt5', 'Qt')
-                self.AppendUnique(CPPPATH = [os.path.join(hdir, hcomp)])
-                self.Append(LIBS = [module])
+                env.AppendUnique(CPPPATH = [os.path.join(hdir, hcomp)])
+                env.Append(LIBS = [module])
 
             # Kluge(?) so that moc can find the QtDesigner headers, necessary
             # at least for Fedora 6 and 7 (and CentOS 5)
             if module == "QtDesigner":
-                self.AppendUnique(QT5_MOCFROMHFLAGS =
+                env.AppendUnique(QT5_MOCFROMHFLAGS =
                                   ['-I', os.path.join(hdir, module)])
             if module == "QtGui":
-                self.AppendUnique(CPPDEFINES = ["QT_GUI_LIB"])
+                env.AppendUnique(CPPDEFINES = ["QT_GUI_LIB"])
 
             # For QtCore at least, check that compiler can find the
             # library.  Do not propagate any current LIBS, since the
@@ -592,30 +594,30 @@ def enable_modules(self, modules, debug=False) :
             # paths and the compiler.  Otherwise scons will try to build
             # the library targets as part of the configure check, and that
             # causes all kinds of unexpected build behavior...
-            skipconfig = self.GetOption('help') or self.GetOption('clean')
+            skipconfig = env.GetOption('help') or env.GetOption('clean')
             if module == "QtCore" and not skipconfig:
-                if not _checkQtCore(self):
+                if not _checkQtCore(env):
                     return False
         return True
 
     if sys.platform == "win32" :
-	if not self.has_key('QT5DIR'):
+        if 'QT5DIR' not in env:
             return False
 
         if debug : debugSuffix = 'd'
         else : debugSuffix = ''
-        self.Append(LIBS=[lib+'5'+debugSuffix for lib in modules])
+        env.Append(LIBS=[lib+'5'+debugSuffix for lib in modules])
         if 'QtOpenGL' in modules:
-            self.Append(LIBS=['opengl32'])
-        self.AppendUnique(CPPPATH=[ '$QT5DIR/include/' ])
-        self.AppendUnique(CPPPATH=[ '$QT5DIR/include/'+module
+            env.Append(LIBS=['opengl32'])
+        env.AppendUnique(CPPPATH=[ '$QT5DIR/include/' ])
+        env.AppendUnique(CPPPATH=[ '$QT5DIR/include/'+module
             for module in modules])
-        self.AppendUnique(LIBPATH=['$QT5DIR/lib'])
+        env.AppendUnique(LIBPATH=['$QT5DIR/lib'])
         
     if sys.platform == "darwin" :
         # Use the frameworks on OSX 
         # Homebrew installs the frameworks in /usr/local/opt.
-        self.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib',])
+        env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib',])
 
         modulesMac = []
         for module in modules:
@@ -625,12 +627,12 @@ def enable_modules(self, modules, debug=False) :
             modulesMac.append(module)
 
 # FRAMEWORKS appears not to be used in Sierra.  Caused "ld: framework not found QtWidget".
-        self.AppendUnique(FRAMEWORKS=modulesMac)
+        env.AppendUnique(FRAMEWORKS=modulesMac)
 
         # Add include paths for the modules. One would think that the frameworks
         # would do this, but apparently not.
         for module in modulesMac:
-            self.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers',])
+            env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers',])
         
     return True
 
