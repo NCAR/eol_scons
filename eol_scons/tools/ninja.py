@@ -113,6 +113,8 @@ options.
 """
 from __future__ import print_function
 
+from builtins import str
+from builtins import object
 import os
 import SCons
 from SCons.Variables import BoolVariable
@@ -332,7 +334,7 @@ def NinjaCheck(env):
 
     targets = SCons.Script.BUILD_TARGETS
     fs = SCons.Node.FS.get_default_fs()
-    nodes = [_f for _f in map(lambda x: Entry(x, fs), targets) if _f]
+    nodes = [_f for _f in [Entry(x, fs) for x in targets] if _f]
     # nodes = [_f for _f in map(fs.Entry, targets) if _f]
 
     ninjanodes, sconsnodes = SeparateNodes(env, nodes, [], [])
