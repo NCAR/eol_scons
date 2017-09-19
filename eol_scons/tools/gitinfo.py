@@ -382,7 +382,7 @@ if __name__ == "__main__":
     gitinfo = GitInfo(env)
     gitinfo.getRepoInfo()
     gitinfo.applyToEnv(env)
-    for k,v in env.iteritems():
+    for k,v in env.items():
         print((k, v))
     headertxt = gitinfo.generateHeader()
     print('')
