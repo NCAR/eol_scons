@@ -25,7 +25,7 @@ def qt(env, minversion=None, maxversion=None):
   #    QSettings::sync: cannot open /.qt
   # so this sets the HOME setting explicitly in the QT_UIC command.
   #
-  if not env.has_key('HAS_PKG_QT'):
+  if 'HAS_PKG_QT' not in env:
     env['HAS_PKG_QT'] = 1
     
     if minversion == None: minversion = "3"
@@ -69,7 +69,7 @@ def qt3(env):
     # bother.
     env['ENV']['QTDIR'] = qt_root
     uic = os.path.join(qt_root,'bin','uic')
-    if os.environ.has_key('HOME'):
+    if 'HOME' in os.environ:
         env['ENV']['HOME'] = os.environ['HOME']
         uic = 'HOME="%s" %s' % (os.environ['HOME'],
                                 os.path.join(qt_root,'bin','uic'))

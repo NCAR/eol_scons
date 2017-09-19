@@ -20,6 +20,7 @@ return value from the EnableQtModules() method must be used:
     if not env.EnableQtModules(qt4Modules):
         Return()
 """
+from __future__ import print_function
 
 import re
 import os
@@ -34,6 +35,7 @@ from SCons.Script import Scanner
 import eol_scons.parseconfig as pc
 import eol_scons
 from eol_scons import Debug
+from functools import reduce
 
 _options = None
 USE_PKG_CONFIG = "Using pkg-config"
@@ -142,7 +144,7 @@ class _Automoc:
                 except:
                     errmsg = "qt4/_Automoc_ got a bad source object: "
                     errmsg += str(obj)
-                    raise SCons.Errors.StopError, errmsg                    
+                    raise SCons.Errors.StopError(errmsg)                    
 
             if not obj.has_builder():
                 # binary obj file provided
@@ -216,7 +218,7 @@ def _locateQt4Command(env, command) :
     # If env['QT4DIR'] is defined, add the associated bin directory to our
     # search path for the commands
     #
-    if (env.has_key('QT4DIR')):
+    if ('QT4DIR' in env):
         # If we're using pkg-config, assume all Qt4 binaries live in 
         # <prefix_from_pkgconfig>/bin.  This is slightly dangerous,
         # but seems to match all installation schemes I've seen so far,
@@ -247,7 +249,7 @@ def _locateQt4Command(env, command) :
         if (qt4BinDir):
             msg += " not in " + qt4BinDir + ","
         msg += " not in $PATH"
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
 
     cache.store(env, key, result)
     return result
@@ -328,12 +330,12 @@ def generate(env):
     if env.get('QT_VERSION', 4) != 4:
         msg = str("Cannot require qt4 tool after another version "
                   "(%d) already loaded." % (env.get('QT_VERSION')))
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
         
     env['QT_VERSION'] = 4
 
     # Only need to setup any particular environment once.
-    if env.has_key(myKey):
+    if myKey in env:
         return
 
     global _options
@@ -354,17 +356,17 @@ def generate(env):
     # top of the installation, it will be set to USE_PKG_CONFIG, or 
     # we will raise an exception.
     #
-    if (env.has_key('QT4DIR')):
+    if ('QT4DIR' in env):
         pass
-    elif (os.environ.has_key('QT4DIR')):
+    elif ('QT4DIR' in os.environ):
         env['QT4DIR'] = os.environ['QT4DIR']
     elif (env['PLATFORM'] == 'win32'):
-        print
-        print "For Windows, QT4DIR must be set" + \
-            " on the command line or in the environment."
-        print "E.g.:"
-        print "    scons QT4DIR='/c/QtSDK/Desktop/Qt/4.7.4/mingw'"
-        print
+        print()
+        print("For Windows, QT4DIR must be set" + \
+            " on the command line or in the environment.")
+        print("E.g.:")
+        print("    scons QT4DIR='/c/QtSDK/Desktop/Qt/4.7.4/mingw'")
+        print()
     elif checkPkgConfig(env):
         env['QT4DIR'] = USE_PKG_CONFIG
     else:
@@ -381,13 +383,13 @@ def generate(env):
     # Backwards compatibility:
     env.EnableQt4Modules = env.EnableQtModules
 
-    if not env.has_key('QT4DIR'):
+    if 'QT4DIR' not in env:
 	# Dont stop, just print a warning. Later, a user call of
 	# EnableQtModules() will return False if QT4DIR is not found.
 
         errmsg = "Qt4 not found, try setting QT4DIR."
         # raise SCons.Errors.StopError, errmsg
-	print errmsg
+	print(errmsg)
 	return
 
     # the basics
@@ -465,7 +467,7 @@ def generate(env):
 
 
 def _checkQtCore(env):
-    if env.has_key('QT4_CORE_CHECK'):
+    if 'QT4_CORE_CHECK' in env:
         return env['QT4_CORE_CHECK']
     conf = env.Clone(LIBS=[]).Configure()
     hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')
@@ -486,7 +488,7 @@ def enable_modules(self, modules, debug=False) :
 
     if sys.platform == "linux2" :
 
-	if not self.has_key('QT4DIR'):
+	if 'QT4DIR' not in self:
             return False
 
         if debug:
@@ -583,7 +585,7 @@ def enable_modules(self, modules, debug=False) :
         return True
 
     if sys.platform == "win32" :
-	if not self.has_key('QT4DIR'):
+	if 'QT4DIR' not in self:
             return False
 
         if debug : debugSuffix = 'd'

@@ -1,4 +1,7 @@
 # -*- python -*-
+
+from __future__ import print_function
+
 import os
 import SCons.Util
 
@@ -79,12 +82,12 @@ def generate(env):
   _options.Update(env)
   # env.Append(DEPLOY_SHARED_LIBS=['boost_date_time'])
   # env.Append(DEPLOY_SHARED_LIBS=['boost_serialization'])
-  if not env.has_key('BOOST_LIBRARY_SUFFIX'):
+  if 'BOOST_LIBRARY_SUFFIX' not in env:
     if env['PLATFORM'] == 'win32':
       env['BOOST_LIBRARY_SUFFIX'] = '-vc71-mt-gd-1_33_1'
     else:
       env['BOOST_LIBRARY_SUFFIX'] = ''
-  if env.has_key('BOOST_DIR'):
+  if 'BOOST_DIR' in env:
     bdir=env['BOOST_DIR']
     if bdir and bdir != "/usr" and bdir != "":
       env.Append(CPPPATH=[os.path.join(bdir,"include")])
@@ -94,7 +97,7 @@ def generate(env):
       env.AppendUnique(RPATH=[os.path.join(bdir,"lib")])
   # Override the _LIBFLAGS variable so we can append the suffix for
   # boost libraries.
-  if not env.has_key('_boost_save_libflags'):
+  if '_boost_save_libflags' not in env:
     env["_boost_save_libflags"] = env["_LIBFLAGS"]
     env['_LIBFLAGS'] = '${_boost_libflags(__env__)}'
     env['_boost_libflags'] = boost_libflags

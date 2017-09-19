@@ -1,15 +1,18 @@
-# Support for Pentek ReadyFlow.
-#
-# The ReadyFlow library is built in x86/lib or x86_64/lib,
-# using the ReadyFlow Makefile, and installed in /usr/local
-# as follows:
-#
-#  cp ReadyFlow/1.0/include/* /usr/local/include/
-#  cp ReadyFlow/1.0/x86_64/include/* /usr/local/include/
-#  cp ReadyFlow/1.0/x86_64/lib/*7142* /usr/local/lib
-#
-# A specific windriver library version must be identified
-# via the WINDRIVERVERSION variable.
+"""
+Support for Pentek ReadyFlow.
+
+The ReadyFlow library is built in x86/lib or x86_64/lib, using the
+ReadyFlow Makefile, and installed in /usr/local as follows:
+
+  cp ReadyFlow/1.0/include/* /usr/local/include/
+  cp ReadyFlow/1.0/x86_64/include/* /usr/local/include/
+  cp ReadyFlow/1.0/x86_64/lib/*7142* /usr/local/lib
+
+A specific windriver library version must be identified via the
+WINDRIVERVERSION variable.
+"""
+
+from __future__ import print_function
 
 import os
 import platform
@@ -26,7 +29,7 @@ includedir = os.path.join(installdir, 'include')
 prefix = '/usr/local/ReadyFlow'
 if not os.path.isdir(prefix):
     msg = "Unable to find ReadyFlow. Directory %s does not exist." % (prefix)
-    raise SCons.Errors.StopError, msg
+    raise SCons.Errors.StopError(msg)
     
 # define the tool
 def generate(env):
@@ -57,12 +60,12 @@ def generate(env):
     env.Append(LIBS=[p7142lib])
     
     # add the windriver library, which ReadyFlow depends upon.
-    if env.has_key('WINDRIVERVERSION'): 
+    if 'WINDRIVERVERSION' in env: 
         windriverlib = 'wdapi' + env['WINDRIVERVERSION']
     else:
         windriverlib = 'wdapi1150'
-        print 'WARNING: WINDRIVERVERSION was not specified; defaulting to version 1150.'
-        print '         WinDriver library set to', windriverlib
+        print('WARNING: WINDRIVERVERSION was not specified; defaulting to version 1150.')
+        print('         WinDriver library set to', windriverlib)
     env.AppendLibrary(windriverlib)
     
 def exists(env):

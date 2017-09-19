@@ -1,3 +1,4 @@
+from __future__ import print_function
 import SCons
 
 # As of 4/2014, this tool is deprecated; use the boost_thread tool instead.
@@ -12,7 +13,7 @@ def generate(env):
     env.Require(['boost_thread'])
     global warned
     if not warned:
-        print '\nWARNING: The boost_mutex SCons tool is deprecated; switch to boost_thread.\n'
+        print('\nWARNING: The boost_mutex SCons tool is deprecated; switch to boost_thread.\n')
         warned = True
 
 def exists(env):

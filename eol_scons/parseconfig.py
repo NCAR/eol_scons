@@ -1,6 +1,8 @@
 # -*- python -*-
 # Copyright 2007 UCAR, NCAR, All Rights Reserved
 
+from __future__ import print_function
+
 import os
 import re
 
@@ -129,9 +131,9 @@ def PassPkgConfigPath(env, psenv=None):
     if psenv is None:
         psenv = env['ENV']
     pcp = 'PKG_CONFIG_PATH'
-    if psenv.has_key(pcp):
+    if pcp in psenv:
         pass
-    elif env.has_key(pcp):
+    elif pcp in env:
         psenv[pcp] = env[pcp]
     elif os.environ.get(pcp):
         psenv[pcp] = os.environ.get(pcp)

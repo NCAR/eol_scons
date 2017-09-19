@@ -23,6 +23,7 @@ The usual usage is to insert the start and stop actions in the action list
 for a builder around any process which must connect to an X server.  The
 technique is similar that used for the postgres_testdb tool.
 """
+from __future__ import print_function
 
 import os
 import SCons

@@ -27,6 +27,7 @@ and Linux.
 ...and I suppose it's more likely to work on Windows also, if that turns
 out to be necessary also.
 """
+from __future__ import print_function
 
 import SCons
 
@@ -116,7 +117,7 @@ def _append_library(env, libname):
 
 
 def generate(env):
-    if env.has_key('save_for_static_LIBFLAGS'):
+    if 'save_for_static_LIBFLAGS' in env:
         return
     # print("Adding StaticLink to this environment.")
     env['save_for_static_LIBFLAGS'] = env['_LIBFLAGS']

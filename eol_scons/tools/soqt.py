@@ -1,4 +1,5 @@
 # -*- python -*-
+from __future__ import print_function
 import os
 import string
 from eol_scons import parseconfig
@@ -60,7 +61,7 @@ Use the first soqt-config found in this list of paths:
         print("soqt: removed %d extraneous qt4 paths from soqt-config." % removed)
         _removed_already_warned = True
 
-    if not env.has_key('SOQT_DOXDIR'):
+    if 'SOQT_DOXDIR' not in env:
         # When installed into the system as the SoQt-devel package,
         # the doxygen html has a custom path.
         if prefix == '/usr':

@@ -1,5 +1,6 @@
 # -*- python -*-
 
+from __future__ import print_function
 import os, os.path
 import string
 import SCons
@@ -37,7 +38,7 @@ def _calculate_settings(env, settings):
     # Look for LROSE under $LROSE_INSTALL_DIR, /usr/local/lrose,
     # or /opt/local/lrose
     prefix = None
-    if (os.environ.has_key('LROSE_INSTALL_DIR')):
+    if ('LROSE_INSTALL_DIR' in os.environ):
         paths = [os.environ['LROSE_INSTALL_DIR']]
     else:
         paths = []
@@ -48,9 +49,9 @@ def _calculate_settings(env, settings):
             break
     if not prefix:
         msg = "Unable to find LROSE. No directory in [%s] exists." % (', '.join(paths))
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
     else:
-        print "Using LROSE directory", prefix
+        print("Using LROSE directory", prefix)
     
     # Libs will be in <prefix>/lib
     libdir = os.path.join(prefix, 'lib')
@@ -73,7 +74,7 @@ def _calculate_settings(env, settings):
     conf = clone.Configure(custom_tests = { "CheckLROSE" : CheckLROSE })
     if not conf.CheckLROSE():
         msg = "Failed to link to LROSE. Check config.log."
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
     conf.Finish()
 
 def generate(env):

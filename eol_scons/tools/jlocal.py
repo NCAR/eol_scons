@@ -17,7 +17,7 @@ _options = None
 
 def generate(env):
     jlocal = '/opt/local'
-    if os.environ.has_key('JLOCAL'):
+    if 'JLOCAL' in os.environ:
         jlocal = os.environ['JLOCAL']
 
     global _options

@@ -16,6 +16,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+from __future__ import print_function
+
 import os,sys
 from SCons.Script import *
 import SCons.Builder
@@ -100,7 +102,7 @@ def DistTar(target, source, env):
       else:
          arcname = '%s' % item
            
-      print "Adding to TAR file: %s" % arcname
+      print("Adding to TAR file: %s" % arcname)
       tar.add(item,arcname)
 
    # all done
@@ -111,7 +113,7 @@ def DistTarSuffix(env, sources):
    """tar archive suffix generator"""
 
    env_dict = env.Dictionary()
-   if env_dict.has_key("DISTTAR_FORMAT") and env_dict["DISTTAR_FORMAT"] in ["gz", "bz2"]:
+   if "DISTTAR_FORMAT" in env_dict and env_dict["DISTTAR_FORMAT"] in ["gz", "bz2"]:
       return ".tar." + env_dict["DISTTAR_FORMAT"]
    else:
       return ".tar"

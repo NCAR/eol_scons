@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 
 gccdir = '/opt/local/m68k-wrs-vxworks'
@@ -25,5 +26,5 @@ def generate(env):
 def exists(env):
     testenv = env.Clone()
     testenv.PrependENVPath('PATH', gccdir + '/bin')
-    print 'checking for m68k-wrs-vxworks-gcc'
+    print('checking for m68k-wrs-vxworks-gcc')
     return testenv.Detect('m68k-wrs-vxworks-gcc')

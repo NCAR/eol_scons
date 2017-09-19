@@ -24,6 +24,7 @@ The qt5 tool must be included first to force all the subsequent qt modules to be
 applied as qt5 modules instead of qt4.  The biggest difference is the location
 of the header files and the library names contain libQt5<Module>.
 """
+from __future__ import print_function
 
 import re
 import os
@@ -334,7 +335,7 @@ def generate(env):
     """Add Builders and construction variables for qt5 to an Environment."""
 
     # Only need to setup any particular environment once.
-    if env.has_key(myKey):
+    if myKey in env:
         return
 
     if env.get('QT_VERSION', 5) != 5:
@@ -365,9 +366,9 @@ def generate(env):
     # top of the installation, it will be set to USE_PKG_CONFIG, or 
     # we will raise an exception.
     #
-    if (env.has_key('QT5DIR')):
+    if ('QT5DIR' in env):
         pass
-    elif (os.environ.has_key('QT5DIR')):
+    elif ('QT5DIR' in os.environ):
         env['QT5DIR'] = os.environ['QT5DIR']
     elif (env['PLATFORM'] == 'win32'):
         print("""
@@ -476,7 +477,7 @@ E.g.:
 
 
 def _checkQtCore(env):
-    if env.has_key('QT5_CORE_CHECK'):
+    if 'QT5_CORE_CHECK' in env:
         return env['QT5_CORE_CHECK']
     conf = env.Clone(LIBS=[]).Configure()
     hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')

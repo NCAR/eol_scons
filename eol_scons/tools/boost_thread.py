@@ -46,7 +46,7 @@ def generate(env):
             if (not conf.CheckLibWithHeader(test_libs, header, 'CXX', test_src)):
                 msg = "No working boost_thread library configuration found. "
                 msg += "Check config.log."
-                raise SCons.Errors.StopError, msg
+                raise SCons.Errors.StopError(msg)
             
         conf.Finish()
         

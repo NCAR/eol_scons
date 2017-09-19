@@ -2,6 +2,7 @@
 
 Customize an environment to use the GCC ARM cross-compiler tools.
 """
+from __future__ import print_function
 
 import eol_scons.utils
 

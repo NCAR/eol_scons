@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import re
 import subprocess
@@ -16,7 +17,7 @@ Mkdir = MkdirIfMissing
 
 def makedirs(dirpath):
     try:
-        print("mkdir ", dirpath)
+        print(("mkdir ", dirpath))
         os.makedirs(dirpath)
     except:
         if not os.access(dirpath, os.W_OK):
@@ -42,7 +43,7 @@ def ldd(program_node, env):
                           lddout, re.MULTILINE)
         if match:
             lib = env.File(match.group(1))
-            if not libraries.has_key(lib.name):
+            if lib.name not in libraries:
                 print("Found %s" % (str(lib)))
                 libraries[lib.name] = lib
                 libraries.update (ldd(lib, env))
@@ -107,9 +108,9 @@ class DeployWarning(SCons.Warnings.Warning):
 
 
 def generate(env):
-    if not env.has_key('DEPLOY_SHARED_LIBS'):
+    if 'DEPLOY_SHARED_LIBS' not in env:
         env['DEPLOY_SHARED_LIBS'] = []
-    if not env.has_key('DEPLOY_DIRECTORY'):
+    if 'DEPLOY_DIRECTORY' not in env:
         env['DEPLOY_DIRECTORY'] = "#deploy"
     env['BUILDERS']['DeployProgram'] = deploy_program_builder
 

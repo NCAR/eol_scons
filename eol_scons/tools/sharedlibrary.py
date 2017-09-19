@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import re
 from symlink import MakeSymLink
@@ -117,7 +118,7 @@ def SharedLibrary3Install(env,target,source,**kw):
     # add passed keywords to environment
     env = env.Clone(**kw)
 
-    if env.has_key("ARCHLIBDIR"):
+    if "ARCHLIBDIR" in env:
         targetDir = env.Dir(target + '/' + env['ARCHLIBDIR'])
     else:
         targetDir = env.Dir(target + '/lib')
@@ -271,7 +272,7 @@ def generate(env):
     library file name.
     """
 
-    if not env.has_key("SHLIBMAJORVERSION") and env.has_key("REPO_TAG"):
+    if "SHLIBMAJORVERSION" not in env and "REPO_TAG" in env:
         rev = re.match("[Vv]([0-9]+)\.([0-9]+)",env["REPO_TAG"])
         if rev:
             env["SHLIBMAJORVERSION"] = rev.group(1)
@@ -292,7 +293,7 @@ def generate(env):
             )
     env.Append(BUILDERS = {"SharedLibrary3": builder})
     env.AddMethod(SharedLibrary3Install)
-    if not env.has_key('ARCHLIBDIR'):
+    if 'ARCHLIBDIR' not in env:
         GetArchLibDir(env)
 
 

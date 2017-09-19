@@ -57,6 +57,7 @@ being applied to an environment inside or outside the nidas source tree.
 However, the same methods and variables should be provided by the tool in
 both cases, so that the same SConscript can work either way.
 """
+from __future__ import print_function
 
 import sys
 import os
@@ -81,7 +82,7 @@ _warned_paths = {}
 def _applyInsideSource(env):
     # If ARCH is present and the NIDAS library source directories are
     # present, then build up the library nodes from the built targets.
-    if not env.has_key('ARCH'):
+    if 'ARCH' not in env:
         return False
     arch = env['ARCH']  # empty string for native builds
 
@@ -92,7 +93,7 @@ def _applyInsideSource(env):
     libmap = dict(zip(libsyms, libsyms))
     libpath = []
     for k in libmap.keys():
-        if global_exports.has_key(k+arch):
+        if k+arch in global_exports:
             lib = global_exports[k+arch]
             libmap[k] = lib
             env[k] = lib
@@ -187,7 +188,7 @@ def _NidasAppFindFile(env, name):
     # Look for a program with the given name in either the build dir for
     # the active arch in the source tree, or else in the installed path.
     vdir = '#/build/build'
-    if env.has_key('ARCH') and env['ARCH'] not in ['host', 'x86', '']:
+    if 'ARCH' in env and env['ARCH'] not in ['host', 'x86', '']:
         arch = env['ARCH']  # empty string for native builds
         vdir = vdir + '_' + arch
     vdir = env.Dir(vdir)
@@ -307,7 +308,7 @@ the system pkg-config.""" % (USE_PKG_CONFIG),
         for p in paths:
             np = env.Dir("#").Dir(env.subst(p)).get_abspath()
             if not os.path.isdir(np):
-                if not _warned_paths.has_key(np):
+                if np not in _warned_paths:
                     print("NIDAS path is not a directory: " + np)
                 _warned_paths[np] = 1
             else:

@@ -8,6 +8,7 @@ Use it like this:
 
     readme = env.Markdown("README.html", "README")
 """
+from __future__ import print_function
 
 import subprocess as sp
 

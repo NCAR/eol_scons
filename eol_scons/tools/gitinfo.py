@@ -83,6 +83,7 @@ the earlier svninfo tool, since subversion versioning information is
 dependent upon the directory that svn info is applied to. The convention
 has been retained in gitinfo, as there may be a need for this later.
 """
+from __future__ import print_function
 
 import os
 import re
@@ -382,7 +383,7 @@ if __name__ == "__main__":
     gitinfo.getRepoInfo()
     gitinfo.applyToEnv(env)
     for k,v in env.iteritems():
-        print(k, v)
+        print((k, v))
     headertxt = gitinfo.generateHeader()
     print('')
     print(headertxt)

@@ -27,6 +27,7 @@ Nothing else in this module should be called from outside the package.  In
 particular, all the symbols starting with an underscore are meant to be
 private.  See the README file for the documentation for this module.
 """
+from __future__ import print_function
 
 import os
 import sys

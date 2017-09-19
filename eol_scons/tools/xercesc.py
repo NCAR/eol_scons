@@ -19,9 +19,9 @@ Requires the xerces-c27-devel package to be installed.""",
                          False))
     _options.Update(env)
     x27 = env['xercesc27']
-    if env.has_key('XERCESC_PREFIX'):
+    if 'XERCESC_PREFIX' in env:
         prefix = env.subst(env['XERCESC_PREFIX'])
-    elif env.has_key('OPT_PREFIX') and not x27:
+    elif 'OPT_PREFIX' in env and not x27:
         prefix = env.subst(env['OPT_PREFIX'])
         env['XERCESC_PREFIX'] = prefix
     env.Append(LIBS=['xerces-c'])

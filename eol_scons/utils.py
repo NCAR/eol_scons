@@ -1,6 +1,7 @@
 # -*- python -*-
 # Copyright 2007 UCAR, NCAR, All Rights Reserved
 
+from __future__ import print_function
 import os
 import re
 import subprocess
@@ -26,6 +27,7 @@ def get_cxxversion(env):
             stdout=subprocess.PIPE).stdout.readline()
         rev = re.split('\s+',revline)[2]
         return rev
-    except OSError, (errno,strerror):
-        print "Error: %s: %s" %(env['CXX'],strerror)
+    except OSError as xxx_todo_changeme:
+        (errno,strerror) = xxx_todo_changeme.args
+        print("Error: %s: %s" %(env['CXX'],strerror))
         return None

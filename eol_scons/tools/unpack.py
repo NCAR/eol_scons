@@ -1,6 +1,8 @@
-# Builders to unpack archive packages
-#
+"""
+Builders to unpack archive packages.
+"""
 
+from __future__ import print_function
 import os
 import SCons
 import string
@@ -61,9 +63,9 @@ if 0:
     env = Environment()
     generate(env)
 
-    print env.getPackageName(udunits)
-    print env.getPackageName(qwt)
-    print env.getPackageName(netcdf)
+    print(env.getPackageName(udunits))
+    print(env.getPackageName(qwt))
+    print(env.getPackageName(netcdf))
 
     env.Default(env.Unpack(target="qwt-4.2.0/INSTALL", source=qwt))
     env.Default(env.Unpack(target="udunits-1.12.4/src/INSTALL",

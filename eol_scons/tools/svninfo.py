@@ -4,6 +4,7 @@ Provide Subversion construction variables derived from 'svnversion' and
 'svn info', and provide a builder wrapper for generating a header file
 with definitions for those values.
 """
+from __future__ import print_function
 
 # This tool works by first creating a default, top-level header target
 # which contains the version settings and depends upon key svn
@@ -106,7 +107,7 @@ class SubversionInfo:
             if child.returncode != 0:
                 print("Warning: '%s' failed: %s" % (" ".join(cmd), output[1]))
                 return "Subversion error: " + output[1]
-        except OSError, e:
+        except OSError as e:
             print("Warning: '%s' failed: %s" % (" ".join(cmd), str(e)))
             return "Subversion error: " + str(e)
         return output[0]
@@ -218,7 +219,7 @@ _svninfomap = {}
 def _load_svninfo(env, workdir):
     """Run svn info and svnversion and load the info into a dictionary."""
     global _svninfomap
-    if _svninfomap.has_key(workdir):
+    if workdir in _svninfomap:
         pdebug("_load_svninfo: returning cached svninfo for %s" % (workdir))
         return _svninfomap[workdir]
     pdebug("_load_svninfo(%s): creating svninfo" % (workdir))

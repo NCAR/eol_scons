@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import sys
 import re
@@ -27,7 +28,7 @@ def GetRhDistribution():
                 dist = distmap[k]
                 break
         if not dist:
-            print "Red Hat distribution is unknown."
+            print("Red Hat distribution is unknown.")
     except IOError:
         pass
     return dist

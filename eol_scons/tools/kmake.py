@@ -69,6 +69,7 @@ TODO:
     Or we could build all the modules from one Makefile or Kbuild, but that would prevent scons from
     choosing what to build.
 """
+from __future__ import print_function
 
 import os
 import re
@@ -81,12 +82,12 @@ from subprocess import Popen,PIPE
 
 def Kmake(env,target,source):
 
-    if not env.has_key('KERNELDIR') or env['KERNELDIR'] == '':
-	    print "KERNELDIR not specified, " + target[0].abspath + " will not be built"
+    if 'KERNELDIR' not in env or env['KERNELDIR'] == '':
+	    print("KERNELDIR not specified, " + target[0].abspath + " will not be built")
             return None
 
     if not os.path.exists(env['KERNELDIR']):
-        print 'Error: KERNELDIR=' + env['KERNELDIR'] + ' not found.'
+        print('Error: KERNELDIR=' + env['KERNELDIR'] + ' not found.')
 
     # Have the shell subprocess do a cd to the source directory.
     # If scons/python does it, then the -j multithreaded option doesn't work.
@@ -128,10 +129,10 @@ def generate(env, **kw):
     #   env.Clone(tools=['kmake'],KERNELDIR='*')
     # then KERNELDIR gets reset back to '*' after this generate is called.
 
-    if kw.has_key('KERNELDIR'):
+    if 'KERNELDIR' in kw:
         env['KERNELDIR'] = kw.get('KERNELDIR')
 
-    if not env.has_key('KERNELDIR') or env['KERNELDIR'] == '*':
+    if 'KERNELDIR' not in env or env['KERNELDIR'] == '*':
         krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].rstrip("\n")
         # How to build KERNELDIR from uname:
         # EL5, i686, PAE: (merlot)
@@ -165,12 +166,12 @@ def generate(env, **kw):
 
         env.Replace(KERNELDIR = kdir)
 
-    print 'kmake: KERNELDIR=' + env['KERNELDIR']
+    print('kmake: KERNELDIR=' + env['KERNELDIR'])
 
-    if not env.has_key('KCFLAGS'):
+    if 'KCFLAGS' not in env:
         env['KCFLAGS'] = '-I' + env.Dir("#").get_abspath()
 
-    if not env.has_key('KMAKE'):
+    if 'KMAKE' not in env:
         env['KMAKE'] = 'make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS"'
 
     k = env.Builder(action=Kmake,

@@ -250,7 +250,7 @@ def _create_bundle(target, source, env):
     filepath = macosdir.get_abspath() + '/launch_app'
     launchappfile = file(filepath,"w")
     launchappfile.write(scripttext)
-    os.chmod(filepath, 0775)
+    os.chmod(filepath, 0o775)
         
 def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     """

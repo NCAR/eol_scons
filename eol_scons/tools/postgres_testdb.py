@@ -73,6 +73,7 @@ PGDATABASE, which sometimes are not determined until the SQL file gets
 loaded, are saved in a setup file so they can persist across shell
 commands.
 """
+from __future__ import print_function
 
 
 import zlib

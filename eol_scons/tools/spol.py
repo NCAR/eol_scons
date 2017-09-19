@@ -1,8 +1,9 @@
+from __future__ import print_function
 import os, os.path
 import eol_scons
 from SCons.Variables import PathVariable
 
-print "Adding SPOL_PREFIX to options."
+print("Adding SPOL_PREFIX to options.")
 eol_scons.GlobalVariables().AddVariables (
 	PathVariable('SPOL_PREFIX', 'Installation prefix for SPOL software.',
 		   '/opt/spol'))

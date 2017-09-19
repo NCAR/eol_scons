@@ -59,7 +59,7 @@ def generate(env):
         sname = k + "STR"
         # Prepend the color text to the command string variable, if
         # present.  Otherwise use the color text as is.
-        if env.has_key(k):
+        if k in env:
             env[sname] = v + "\n" + env[k]
         else:
             env[sname] = v

@@ -15,6 +15,7 @@ DOWNLOAD_DIRECTORY construction variable.  Otherwise the source is expected
 to be a full URL.
 
 """
+from __future__ import print_function
 
 import sys
 import urllib
@@ -39,8 +40,8 @@ def download_emitter (target, source, env):
         url = '$DOWNLOAD_DIRECTORY/%s' % url
     source = [URLNode(env.subst(url))]
     if env.get('eolsconsdebug'):
-        print "download_emitter returning ([%s],[%s])" % \
-              (",".join(map(str, target)),",".join(map(str, source)))
+        print("download_emitter returning ([%s],[%s])" % \
+              (",".join(map(str, target)),",".join(map(str, source))))
     return target, source
 
 
@@ -51,9 +52,9 @@ def download(target, source, env):
 
     url = str(source[0]).strip("'")
     file = target[0].get_abspath()
-    print "Downloading ", url
+    print("Downloading ", url)
     (filename, headers) = urllib.urlretrieve (url, file, download_report)
-    print "\nDownloaded ", filename
+    print("\nDownloaded ", filename)
 
 
 download_action = SCons.Action.Action(download, None)
@@ -65,7 +66,7 @@ download_builder = SCons.Builder.Builder(action = download_action,
 
 def generate(env):
     key = 'DOWNLOAD_DIRECTORY'
-    if not env.has_key(key):
+    if key not in env:
         env[key] = 'ftp://ftp.atd.ucar.edu/pub/archive/aeros/packages'
     env['BUILDERS']['Download'] = download_builder
     env.fs.URLNode = URLNode

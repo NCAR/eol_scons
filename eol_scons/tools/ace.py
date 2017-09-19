@@ -22,7 +22,7 @@ def generate(env):
   # what need only be applied once and what must be applied every time this
   # tool is Require()d by another package.  Basically that means the library
   # must always be appended; everything else happens once.
-  if not env.has_key(mykey):
+  if mykey not in env:
     ace_root = env['ACE_ROOT']
     env['ENV']['ACE_ROOT'] = ace_root
     

@@ -13,6 +13,8 @@
 # myobj.od.
 #
 
+from __future__ import print_function
+
 import os, os.path
 import string
 import SCons
@@ -54,19 +56,19 @@ def _calculate_settings(env, settings):
     # that the location gets added to the CPP paths.
     incpaths = [ os.path.join(prefix, 'include'),
                  os.path.join(prefix, 'include', 'canfestival') ]
-    print "Checking for CanFestival headers in: ", incpaths
+    print("Checking for CanFestival headers in: ", incpaths)
     header = env.FindFile("canfestival.h", incpaths)
     headerdir = None
     settings['CPPPATH'] = [ ]
     if header:
         headerdir = header.get_dir().get_abspath()
         settings['CPPPATH'] = [ headerdir ]
-    print "CanFestival headerdir is ", headerdir
+    print("CanFestival headerdir is ", headerdir)
 
     # Now try to find the libraries, using the header as a hint.
     if not headerdir or headerdir.startswith("/usr/include"):
         msg = "Could not find CanFestival CANopen API header canfestival.h. Check config.log."
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
     
     # Save the library path
     settings['LIBPATH'] = os.path.join(prefix, 'lib')
@@ -98,7 +100,7 @@ def _calculate_settings(env, settings):
     conf = clone.Configure(custom_tests = { "CheckCanFestival" : CheckCanFestival })
     if not conf.CheckCanFestival():
         msg = "Failed to link to CanFestival CANopen API. Check config.log."
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
     settings['LIBS'] = libs
     conf.Finish()
 

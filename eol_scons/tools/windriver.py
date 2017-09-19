@@ -1,11 +1,15 @@
-# Tool for the Jungo WinDriver generic driver library and headers
-#
-# If construction variable WINDRIVER_DIR is set, it is taken as the top 
-# directory of the WinDriver distribution being used. Otherwise, we look
-# for a directory matching "WinDriver*" under OPT_PREFIX.
-#
-# This tool adds header paths for the WinDriver API and adds the necessary
-# API library.
+"""
+Tool for the Jungo WinDriver generic driver library and headers
+
+If construction variable WINDRIVER_DIR is set, it is taken as the top
+directory of the WinDriver distribution being used. Otherwise, we look for
+a directory matching "WinDriver*" under OPT_PREFIX.
+
+This tool adds header paths for the WinDriver API and adds the necessary
+API library.
+"""
+
+from __future__ import print_function
 import os
 import re
 from eol_scons import parseconfig
@@ -20,7 +24,7 @@ def getBasedir(env):
     matchdir = env.get('WINDRIVER_DIR')
     if (matchdir):
         if (not os.path.exists(matchdir)):
-            print '\nERROR: No directory exists matching WINDRIVER_DIR (%s)' % matchdir
+            print('\nERROR: No directory exists matching WINDRIVER_DIR (%s)' % matchdir)
             return None
     else:
         matchdir = env.FindPackagePath(None, '$OPT_PREFIX/WinDriver*')
@@ -42,9 +46,9 @@ def generate(env):
     if (not basedir):
         # Print an error message and force printing of the help message
         # (and exit before actually building)
-        print ''
-        print 'ERROR: No WinDriver base directory found. Use --help and see OPT_PREFIX and WINDRIVER_DIR.'
-        print ''
+        print('')
+        print('ERROR: No WinDriver base directory found. Use --help and see OPT_PREFIX and WINDRIVER_DIR.')
+        print('')
         # If the user specified -h, return and let them see the help message 
         # they asked for. Otherwise exit with an error now.
         if (SCons.Script.GetOption('help')):

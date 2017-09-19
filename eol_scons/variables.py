@@ -12,6 +12,7 @@ default is the directory containing the SConstruct file.  The creation of
 the default environment is not recursive because this function is not
 called (via _update_variables) until global Variables have been added.
 """
+from __future__ import print_function
 
 import os
 import sys
@@ -54,7 +55,7 @@ def GlobalOptions(cfile=None, env=None):
     """
     # Print the stack up to the call to this function
     stack = traceback.extract_stack()
-    print >> sys.stderr, '\n'.join(traceback.format_list(stack[:-1]))
+    print('\n'.join(traceback.format_list(stack[:-1])), file=sys.stderr)
     # Raise a StopError
     errmsg = str("eol_scons.GlobalOptions() is no longer supported; "
                  "use eol_scons.GlobalVariables() instead")
@@ -90,7 +91,7 @@ class VariableCache(SCons.Variables.Variables):
             self.Add(key)
         self.Update(env)
         value = None
-        if env.has_key(key):
+        if key in env:
             value = env[key]
             env.LogDebug("returning %s cached value: %s" % (key, value))
         else:
@@ -137,9 +138,9 @@ def _update_variables(env):
     if _global_variables and _global_variables.keys():
         _global_variables.Update(env)
 
-    if env.has_key('eolsconsdebug'):
+    if 'eolsconsdebug' in env:
         eol_scons.debug.SetDebug(env['eolsconsdebug'])
-    if env.has_key('eolsconscache'):
+    if 'eolsconscache' in env:
         global _enable_cache
         _enable_cache = env['eolsconscache']
 

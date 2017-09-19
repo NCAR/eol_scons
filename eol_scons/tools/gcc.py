@@ -32,7 +32,7 @@ def Debug(env):
 
 def Warnings(env):
     env.Append(CCFLAGS=['-Wall'])
-    if env.has_key('NOUNUSED'):
+    if 'NOUNUSED' in env:
         env.Append (CCFLAGS=['-Wno-unused'])
     return env
 

@@ -6,6 +6,7 @@ depends on Qt and not the other way around, but it works.  Projects which
 need Qt5 and not Qt4 just need to require the qt5.py tool before any tools
 which depend on Qt.
 """
+from __future__ import print_function
 
 import os
 from SCons.Variables import PathVariable
@@ -189,13 +190,13 @@ def find_qwtdir(env):
     #    o installation defined via pkg-config (this is the preferred method)
     #    o lastly see if libqwt.so exists under OPT_PREFIX
     #
-    if (env.has_key('QWTDIR')):
+    if ('QWTDIR' in env):
         qwtdir = env['QWTDIR']
-    elif (os.environ.has_key('QWTDIR')):
+    elif ('QWTDIR' in os.environ):
         qwtdir = os.environ['QWTDIR']
     elif pkgConfigKnowsQwt:
         qwtdir = USE_PKG_CONFIG
-    elif (env.has_key('OPT_PREFIX')):
+    elif ('OPT_PREFIX' in env):
         libdir = find_lib_subdir(env['OPT_PREFIX'])
         if libdir and os.path.exists(os.path.join(libdir, 'libqwt.so')):
             qwtdir = env['OPT_PREFIX']
@@ -216,7 +217,7 @@ def generate(env):
     #
     # One-time stuff if this tool hasn't been loaded yet
     #
-    if (not env.has_key(myKey)):
+    if (myKey not in env):
         #
         # We should also require Qt here, but which version?
         #

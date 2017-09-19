@@ -54,7 +54,7 @@ def generate(env):
   # tool is Require()d by another package.  Basically that means the library
   # must always be appended; everything else happens once.
 
-  if not env.has_key(mykey):
+  if mykey not in env:
     env.Require(['tao', 'ace', 'doxygen'])
     
     dds_root = env['DDS_ROOT']

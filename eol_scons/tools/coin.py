@@ -33,7 +33,7 @@ for the Coin version on which Quarter depends.""",
         env.Append(LIBS=['opengl32'])
         env.Append(LIBS=['glu32'])
         env.Append(LIBS=['gdi32'])
-    if not env.has_key('COIN_DOXDIR'):
+    if 'COIN_DOXDIR' not in env:
         # When installed into the system as the Coin2-devel package,
         # the doxygen html has a custom path.
         if prefix == '/usr':

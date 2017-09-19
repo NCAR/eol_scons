@@ -2,6 +2,7 @@
 # Copyright 2007 UCAR, NCAR, All Rights Reserved
 """
 """
+from __future__ import print_function
 
 from SCons.Script import ARGUMENTS
 
@@ -11,7 +12,7 @@ def _Dump(env, key=None):
     'Dump a value of the given key or else the whole Environment.'
     if not key:
         return env.Dump()
-    if not env.has_key(key):
+    if key not in env:
         return ''
     return env.Dump(key)
 

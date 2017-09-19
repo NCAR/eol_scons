@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import SCons
 from SCons.Variables import PathVariable
@@ -7,7 +8,7 @@ mykey="HAS_PKG_TAO"
 
 def tao_idl_emitter(target, source, env):
     if len(source) == 0:
-        print 'no source file'
+        print('no source file')
         return [], []
     # print "emitting idl targets for source ", str(source[0])
     name, ext = SCons.Util.splitext(str(source[0]))
@@ -57,7 +58,7 @@ def tao_idl_generate(env):
 def generate(env):
 
     # Require ace first, so the TAO_ROOT default can depend on it.
-    if not env.has_key(mykey):
+    if mykey not in env:
         env.Require(['ace', 'doxygen'])
 
     global _options
@@ -73,7 +74,7 @@ def generate(env):
     # every time this tool is Require()d by another package.
     # Basically that means the library must always be appended;
     # everything else happens once.
-    if not env.has_key(mykey):
+    if mykey not in env:
         tao_root = env['TAO_ROOT']
         # TAO tools (like tao_idl) need TAO_ROOT set in their environment too
         env['ENV']['TAO_ROOT'] = tao_root

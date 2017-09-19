@@ -1,14 +1,15 @@
+from __future__ import print_function
 class Foo:
 	def bar (self):
-		print "Hello from original method", self
+		print("Hello from original method", self)
 instancemethod = type (Foo.bar)
 foo_obj = Foo ()
 # Implement a new method
 def my_new_method (self):
-	print "Hello from my_new_method of object", self
+	print("Hello from my_new_method of object", self)
         old_method()
 def another_method (self):
-	print "Hello from another_method of object", self
+	print("Hello from another_method of object", self)
 # Keep the old method just for fun
 old_method = foo_obj.bar
 # Define the new method bound to an object
@@ -28,12 +29,12 @@ old_foo_obj.bar ()
 
 class Env:
     def Tool(self, x, **kw):
-        print "Original Tool()"
+        print("Original Tool()")
 
 mt = type(Env.Tool)
 
 def NewTool(env, x, **kw):
-    print "NewTool()"
+    print("NewTool()")
     env.old_method(x, **kw)
 
 Env.old_method = Env.Tool

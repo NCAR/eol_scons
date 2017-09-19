@@ -1,5 +1,6 @@
 # -*- python -*-
 
+from __future__ import print_function
 import os
 import hashlib
 import string
@@ -224,7 +225,7 @@ def Doxyfile_contents (target, source, env):
     subdir = source[0].get_dir()
     docsdir = str(target[0].get_dir())
 
-    if env.has_key('DOXYFILE_IGNORES'):
+    if 'DOXYFILE_IGNORES' in env:
         ignores = env['DOXYFILE_IGNORES']
         if CheckMissingHeaders(subdir.get_path(env.Dir('#')),
                                [s.get_path(subdir) for s in source], 

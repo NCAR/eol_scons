@@ -9,7 +9,7 @@ def Debug(env):
 def Warnings(env):
     # env.Append(CCFLAGS='/Wall')
     env.Append(CCFLAGS=['/W2'])
-    if env.has_key('NOUNUSED'):
+    if 'NOUNUSED' in env:
         pass
     return env
 

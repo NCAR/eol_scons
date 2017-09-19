@@ -52,6 +52,7 @@ The ValgrindLog() builder parses the output from valgrind and fails the
 build if there are excessive errors.  It can be used separately to test a
 valgrind log file rather than through the Valgrind() method.
 """
+from __future__ import print_function
 
 import os
 import re
@@ -79,7 +80,7 @@ def findValgrind(env):
     if env.get('VALGRIND_PATH'):
         return env['VALGRIND_PATH']
     extra_paths = [ '/usr/bin' ]
-    if env.has_key('OPT_PREFIX'):
+    if 'OPT_PREFIX' in env:
         extra_paths.append("%s/bin" % env['OPT_PREFIX'])
     opts = ['el4','el3','ws3','fc4','fc3','fc2']
     extra_paths.extend([ "/net/opt_lnx/local_%s/bin" % o for o in opts])
@@ -190,7 +191,7 @@ def test_parsevalgrind():
     log = io.StringIO(_helgrind_example.decode('ascii'))
     results = _parseValgrindOutput(log)
     assert results['tool'] == 'Helgrind'
-    assert results.has_key('dlost') == False
+    assert ('dlost' in results) == False
     assert results['nerrors'] == 17
 
 
@@ -300,7 +301,7 @@ def generate(env):
     valgrind = getValgrindPath(env)
     env['ENV']['VALGRIND_PATH'] = valgrind
     env['VALGRIND_PATH'] = valgrind
-    if not env.has_key('VALGRIND_COMMAND'):
+    if 'VALGRIND_COMMAND' not in env:
         env['VALGRIND_COMMAND'] = "${VALGRIND_PATH} ${VALGRIND_OPTIONS}"
     # These need to propagate for valgrind, because it uses them to generate
     # the pipe filenames for the embedded gdb server, and they must match the
