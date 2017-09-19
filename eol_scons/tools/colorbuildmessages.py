@@ -16,7 +16,7 @@ colors['end']    = '\033[0m'
 
 #If the output is not a terminal, remove the colors
 if not sys.stdout.isatty():
-   for key, value in colors.iteritems():
+   for key, value in colors.items():
       colors[key] = ''
 
 compile_source_message = '%sCompiling %s==> %s$SOURCE%s' % \
@@ -55,7 +55,7 @@ rdict.update(
     )
 
 def generate(env):
-    for k,v in rdict.items():
+    for k,v in list(rdict.items()):
         sname = k + "STR"
         # Prepend the color text to the command string variable, if
         # present.  Otherwise use the color text as is.
