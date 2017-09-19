@@ -60,6 +60,8 @@ env = Environment(tools=['default', 'testing', 'gtest'])
 """
 from __future__ import print_function
 
+from builtins import str
+from builtins import object
 import subprocess
 import io
 import sys
@@ -88,7 +90,7 @@ _rxpatterns = [ r'^\d+ checks\.',
                 ]
 
 
-class _SpawnerLogger:
+class _SpawnerLogger(object):
 
     def __init__(self):
         self.logpath = None
