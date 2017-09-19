@@ -1,5 +1,6 @@
 from __future__ import print_function
-class Foo:
+from builtins import object
+class Foo(object):
 	def bar (self):
 		print("Hello from original method", self)
 instancemethod = type (Foo.bar)
@@ -27,7 +28,7 @@ foo_obj.bar ()
 new_foo_obj.bar ()
 old_foo_obj.bar ()
 
-class Env:
+class Env(object):
     def Tool(self, x, **kw):
         print("Original Tool()")
 
