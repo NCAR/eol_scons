@@ -3,6 +3,7 @@ Builders to unpack archive packages.
 """
 
 from __future__ import print_function
+from builtins import str
 import os
 import SCons
 import string
@@ -24,7 +25,7 @@ suffix_actions = {
     ".zip" : "unzip -q -o $SOURCE"
 }
 
-suffixes = suffix_actions.keys()
+suffixes = list(suffix_actions.keys())
 
 def getPackageName(env, filepath):
     filename = os.path.basename(filepath)
