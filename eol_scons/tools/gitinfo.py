@@ -173,7 +173,7 @@ class GitInfo:
             if child.returncode != 0:
                 print("Warning: '%s' failed: %s" % (" ".join(cmd), output[1].strip()))
                 return "Git error: " + output[1].strip()
-        except OSError, e:
+        except OSError(e):
             print("Warning: '%s' failed: %s" % (" ".join(cmd), str(e)))
             return "Git error: " + str(e)
         return output[0].lstrip().rstrip()
@@ -380,10 +380,10 @@ if __name__ == "__main__":
     gitinfo.getRepoInfo()
     gitinfo.applyToEnv(env)
     for k,v in env.iteritems():
-        print k,v
+        print(k, v)
     headertxt = gitinfo.generateHeader()
-    print ''
-    print headertxt
+    print('')
+    print(headertxt)
     
         
 else:
@@ -429,7 +429,7 @@ else:
         Cache the results in the _gitinfomap dictionary.
         """
         global _gitinfomap
-        if _gitinfomap.has_key(workdir):
+        if workdir in _gitinfomap:
             # Result already cached for this workdir
             pdebug("_load_gitinfo: returning cached gitinfo for %s" % (workdir))
             return _gitinfomap[workdir]
@@ -503,7 +503,7 @@ else:
         # Use the default location for the subversion Windows installer.
         if env['PLATFORM'] == 'win32':
             gitbin=r'c:\Tools\git\bin'
-	    env.PrependENVPath('PATH', gitbin)
+            env.PrependENVPath('PATH', gitbin)
             # env['GIT'] = os.path.join(gitbin, "git")
             # env['GITVERSION'] = os.path.join(gitbin, "gitversion")
     

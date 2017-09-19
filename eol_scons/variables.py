@@ -56,9 +56,9 @@ def GlobalOptions(cfile=None, env=None):
     stack = traceback.extract_stack()
     print >> sys.stderr, '\n'.join(traceback.format_list(stack[:-1]))
     # Raise a StopError
-    errmsg = "eol_scons.GlobalOptions() is no longer supported; " \
-             "use eol_scons.GlobalVariables() instead"
-    raise SCons.Errors.StopError, errmsg                       
+    errmsg = str("eol_scons.GlobalOptions() is no longer supported; "
+                 "use eol_scons.GlobalVariables() instead")
+    raise SCons.Errors.StopError(errmsg)
 
 class VariableCache(SCons.Variables.Variables):
     """

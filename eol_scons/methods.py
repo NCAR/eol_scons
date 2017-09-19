@@ -9,10 +9,10 @@ from SCons.Script import DefaultEnvironment
 
 from SCons.Script.SConscript import global_exports
 
-import variables as es_vars
-import tool as es_tool
-import eol_scons.debug as esd
-import chdir
+from . import variables as es_vars
+from . import debug as esd
+from . import tool as es_tool
+from . import chdir
 
 _global_targets = {}
 _tool_matches = None
@@ -221,25 +221,25 @@ def _findToolFile(env, name):
         # Get a list of all files named "tool_<tool>.py" under the
         # top directory.
         toolpattern = re.compile(r"^tool_.*\.py")
-        def addMatches(matchList, dirname, contents):
-            matchList.extend([os.path.join(dirname, file) 
-                              for file in
-                              filter(toolpattern.match, contents)])
-            if '.svn' in contents:
-                contents.remove('.svn')
-            if 'site_scons' in contents:
-                contents.remove('site_scons')
-            if 'apidocs' in contents:
-                contents.remove('apidocs')
         _tool_matches = []
-        os.path.walk(env.Dir('#').get_abspath(), addMatches, _tool_matches)
+        for dirpath, dirnames, filenames in os.walk(env.Dir('#').get_abspath(),
+                                                    followlinks=True):
+            if '.svn' in dirnames:
+                dirnames.remove('.svn')
+            if 'site_scons' in dirnames:
+                dirnames.remove('site_scons')
+            if 'apidocs' in dirnames:
+                dirnames.remove('apidocs')
+            _tool_matches.extend([os.path.join(dirpath, file)
+                                  for file in filenames if
+                                  toolpattern.match(file)])
         # Update the cache
         cache.store(env, '_tool_matches', "\n".join(_tool_matches))
         print("Found %d tool files in source tree, cached in %s" %
               (len(_tool_matches), toolcache))
 
     toolFileName = "tool_" + name + ".py"
-    return filter(lambda f: toolFileName == os.path.basename(f), _tool_matches)
+    return [f for f in _tool_matches if toolFileName == os.path.basename(f)]
 
 
 def _loadToolFile(env, name):
@@ -263,8 +263,9 @@ def _loadToolFile(env, name):
         if global_exports.has_key(name):
             tool = global_exports[name]
         else:
-            raise SCons.Errors.StopError, "Tool error: " + \
-                toolScript + " does not export symbol '" + name + "'"
+            raise SCons.Errors.StopError("Tool error: " + 
+                                         toolScript +
+                                         " does not export symbol '" + name + "'")
     return tool
 
 
@@ -289,7 +290,7 @@ def _Tool(env, tool, toolpath=None, **kw):
         tool = None
         
         # Is the tool already in our tool dictionary?
-        if tool_dict.has_key(name):
+        if name in tool_dict:
             env.LogDebug("Found tool %s already loaded" % name)
             if not kw:
                 tool = tool_dict[name]
@@ -327,8 +328,8 @@ def _Tool(env, tool, toolpath=None, **kw):
             env.LogDebug("Loading tool: %s" % name)
             if toolpath is None:
                 toolpath = env.get('toolpath', [])
-            toolpath = map(env._find_toolpath_dir, toolpath)
-            tool = apply(SCons.Tool.Tool, (name, toolpath), kw)
+            toolpath = [env._find_toolpath_dir(tool) for tool in toolpath]
+            tool = SCons.Tool.Tool(*(name, toolpath), **kw)
             env.LogDebug("Tool loaded: %s" % name)
             # If the tool is not specialized with keywords, then we can 
             # stash this particular instance and avoid reloading it.
@@ -402,7 +403,7 @@ def _AppendDoxref(env, ref):
     # directory reference by stripping the html/index.html from it.
     if type(ref) != type(""):
         ref = ref.Dir('..').name
-    if not env.has_key('DOXREF'):
+    if 'DOXREF' not in env:
         env['DOXREF'] = [ref]
     else:
         env['DOXREF'].append(ref)

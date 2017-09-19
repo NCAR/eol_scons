@@ -50,13 +50,13 @@ def bf_to_str(bf):
     in a useful way."""
     import SCons.Errors
     if bf is None: # unknown targets product None in list
-	return '(unknown tgt)'
+        return '(unknown tgt)'
     elif isinstance(bf, SCons.Errors.StopError):
-	return str(bf)
+        return str(bf)
     elif bf.node:
-	return str(bf.node) + ': ' + bf.errstr
+        return str(bf.node) + ': ' + bf.errstr
     elif bf.filename:
-	return bf.filename + ': ' + bf.errstr
+        return bf.filename + ': ' + bf.errstr
     return 'unknown failure: ' + bf.errstr
 
 
@@ -82,10 +82,10 @@ def build_status():
             print("Failed commands cached: %s" % _last_command_path)
 	# bf is normally a list of build failures; if an element is None,
 	# it's because of a target that scons doesn't know anything about.
-	status = 'failed'
+        status = 'failed'
     else:
-	# if bf is None, the build completed successfully.
-	status = 'ok'
+        # if bf is None, the build completed successfully.
+        status = 'ok'
     return (status, failures_message)
 
 
@@ -94,7 +94,7 @@ def display_build_status():
     Here you could do all kinds of complicated things."""
     status, failures_message = build_status()
     if status == 'failed':
-        print failures_message
+        print(failures_message)
     elif status == 'ok':
         # If we succeeded, and there was a last command file, then we
         # need to re-run the command without the last command file.
@@ -110,7 +110,7 @@ def display_build_status():
             print("Last failed commands succeeded.\n" +
                   "Re-running scons to complete the build...")
             os.execv(_scons_command[0], _scons_command)
-        print "Build succeeded.  No commands to rerun."
+        print("Build succeeded.  No commands to rerun.")
 
 
 def Rerun(env):

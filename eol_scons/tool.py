@@ -11,9 +11,8 @@ import SCons.Tool
 
 from eol_scons import Debug
 
-import eol_scons.methods as esm
-import eol_scons.variables as esv
 import eol_scons.library
+import eol_scons.methods
 
 _global_tools = {}
 
@@ -29,10 +28,10 @@ def _apply_global_tools(env):
     """
     gkey = env.Dir('.').get_abspath()
     env['GLOBAL_TOOLS_KEY'] = gkey
-    if not _global_tools.has_key(gkey):
+    if gkey not in _global_tools:
         _global_tools[gkey] = []
 
-    if env.has_key('GLOBAL_TOOLS'):
+    if 'GLOBAL_TOOLS' not in env:
         newtools = env['GLOBAL_TOOLS']
         env.LogDebug("Adding global tools @ %s: %s" % (gkey, str(newtools)))
         _global_tools[gkey].extend(newtools)
@@ -116,7 +115,7 @@ def export_qt_module_tool(modules):
                 m5 = "Qt5" + module[2:]
                 modules5 = [m for m in _qtmodules if m[0] == m5]
                 if not modules5:
-                    raise SCons.Errors.StopError, "no Qt5 module "+m5
+                    raise SCons.Errors.StopError("no Qt5 module " + m5)
                 deps = [m.lower() for m in modules5[0][1:]]
         env.Require(deps)
         env.EnableQtModules([module])

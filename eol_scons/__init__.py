@@ -37,11 +37,11 @@ import SCons.Defaults
 
 # For backward compatibility, import symbols into the eol_scons package
 # namespace.
-from eol_scons.debug import Debug
-from eol_scons.variables import GlobalOptions   # replaced by GlobalVariables
-from eol_scons.variables import GlobalVariables
-from eol_scons.variables import PathToAbsolute
-from eol_scons.tool import DefineQtTools
+from .debug import Debug
+from .variables import GlobalOptions   # replaced by GlobalVariables
+from .variables import GlobalVariables
+from .variables import PathToAbsolute
+from .tool import DefineQtTools
 
 # This would be needed if the eol_scons package were going to be loaded as
 # a tool by installing it under a site_tools directory somewhere.  However,
