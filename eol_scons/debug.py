@@ -3,7 +3,9 @@
 """
 """
 
-debug = None
+from SCons.Script import ARGUMENTS
+
+debug = ARGUMENTS.get('eolsconsdebug', None)
 
 def _Dump(env, key=None):
     'Dump a value of the given key or else the whole Environment.'
