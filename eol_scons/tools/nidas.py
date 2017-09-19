@@ -229,7 +229,7 @@ def generate(env):
     # It is not (yet) possible to build against NIDAS on anything
     # except Linux, so don't even give anyone the option.
     if sys.platform == 'win32' or sys.platform == 'darwin':
-    	env.EnableNIDAS = (lambda: 0)
+        env.EnableNIDAS = (lambda: 0)
         return
 
     inside = _applyInsideSource(env)

@@ -3,10 +3,13 @@
 # SConscript tool which adds a pseudo-builder to embed a text file in C++
 # code.
 
-import StringIO
 import re
 import sys
 
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
 
 def _escape(text):
     text = re.sub(r'"', r'\"', text)
@@ -19,10 +22,10 @@ def _escape(text):
 
 def text2cc(text, vname):
     "Embed plain @p text in C++ source code with variable name @p vname."
-    # intext = StringIO.StringIO(text)
+    # intext = StringIO(text)
     # lines = intext.readlines()
     # intext.close()
-    code = StringIO.StringIO()
+    code = StringIO()
     code.write("/***** DO NOT EDIT *****/\n")
     code.write("const char* %s = \n" % (vname));
     code.write(_escape(text))
@@ -39,6 +42,7 @@ def _embedded_text_emitter(target, source, env):
 
 def _embedded_text_builder(target, source, env):
     text = source[0].get_contents()
+    text = text.decode()
     with open(str(target[0]), "w") as outfile:
         outfile.write(text2cc(text, env['TEXT_DATA_VARIABLE_NAME']))
 

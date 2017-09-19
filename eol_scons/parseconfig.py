@@ -107,7 +107,8 @@ def _get_config(env, search_paths, config_script, args):
             print("calling Popen([%s])" % ",".join([config]+args))
             print("\n".join(["%s=%s" % (k,v) for k,v in psenv.items()]))
         child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv)
-        result = child.communicate()[0].strip()
+        result = child.communicate()[0]
+        result = result.decode().strip()
         cache[name] = "%s,%s" % (child.returncode, result)
         result = (child.returncode, result)
     if not result:

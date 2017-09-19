@@ -14,12 +14,13 @@ from SCons.Defaults import Copy
 from eol_scons.chdir import MkdirIfMissing
 Mkdir = MkdirIfMissing
 
-def makedirs(dir):
+def makedirs(dirpath):
     try:
-        print "mkdir ", dir
-        os.makedirs(dir)
+        print("mkdir ", dirpath)
+        os.makedirs(dirpath)
     except:
-        if not os.access(dir, os.W_OK): raise
+        if not os.access(dirpath, os.W_OK):
+            raise
 
 
 def ldd(program_node, env):

@@ -27,11 +27,12 @@ def _apply_global_tools(env):
     created.
     """
     gkey = env.Dir('.').get_abspath()
+    env.LogDebug("Entering apply_global_tools with key %s" % (gkey))
     env['GLOBAL_TOOLS_KEY'] = gkey
     if gkey not in _global_tools:
         _global_tools[gkey] = []
 
-    if 'GLOBAL_TOOLS' not in env:
+    if 'GLOBAL_TOOLS' in env:
         newtools = env['GLOBAL_TOOLS']
         env.LogDebug("Adding global tools @ %s: %s" % (gkey, str(newtools)))
         _global_tools[gkey].extend(newtools)
@@ -56,6 +57,7 @@ def generate(env, **kw):
     have already been applied, or else this is being called by the
     eol_scons hook tool default.py.
     """
+    Debug("Entering eol_scons.tool.generate()...")
     if hasattr(env, "_eol_scons_generated"):
         env.LogDebug("skipping _generate(), already applied")
         return
@@ -102,6 +104,7 @@ def export_qt_module_tool(modules):
     dependencies = [m.lower() for m in modules[1:]]
     def qtmtool(env):
         # Make sure explicit Qt5 modules apply qt5 tool.
+        env.LogDebug('in tool function for module %s' % (module))
         deps = dependencies[:]
         if module.startswith('Qt5'):
             env.Require(['qt5'])

@@ -176,7 +176,9 @@ class GitInfo:
         except OSError(e):
             print("Warning: '%s' failed: %s" % (" ".join(cmd), str(e)))
             return "Git error: " + str(e)
-        return output[0].lstrip().rstrip()
+        text = output[0]
+        text = text.decode()
+        return text.lstrip().rstrip()
 
     def _cmd_out_ok(self, cmd_out, error):
         """
@@ -306,8 +308,8 @@ class GitInfo:
         git_dict['REPO_DIRTY']        = gitdirty or 'unknown'
         
         pdebug('GitInfo._git_info git_dict:')
-        for k,v in git_dict.iteritems():
-            pdebug( '   k,v:' + ' ' + k + ' ' + v)
+        for k, v in git_dict.items():
+            pdebug('   k,v:' + ' ' + k + ' ' + v)
        
         # return the dictionary
         return git_dict
@@ -459,7 +461,9 @@ else:
     
     def gitinfo_do_update_target(target, source):
         # If a git error, don't overwrite existing file
-        return string.find(source[0].get_contents(),"Git error:") < 0 or not os.path.exists(target[0].path)
+        text = source[0].get_contents()
+        text = text.decode()
+        return text.find("Git error:") < 0 or not os.path.exists(target[0].path)
     
     def gitinfo_action_print(target, source, env):
         if gitinfo_do_update_target(target,source):
@@ -469,9 +473,11 @@ else:
     
     def gitinfo_build_value(env, target, source):
         "Build header based on contents in the source."
-        if gitinfo_do_update_target(target,source):
+        if gitinfo_do_update_target(target, source):
             out = open(target[0].path, "w")
-            out.write(source[0].get_contents())
+            text = source[0].get_contents()
+            text = text.decode()
+            out.write(text)
             out.write("\n")
             out.close()
     

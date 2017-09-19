@@ -3,7 +3,10 @@
 
 "Module for the ImageComparisonPage class."
 
-import StringIO
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
 
 class ImageComparisonPage(object):
 
@@ -126,7 +129,7 @@ ul { margin-top: 2px; margin-bottom: 2px }
             for key in ['before', 'after', 'srcbefore', 'srcafter']:
                 rimage[key] = self.resolvePath(page, image[key])
             resolved.append(rimage)
-        out = StringIO.StringIO()
+        out = StringIO()
         self.writePage(pagepath, resolved, out)
         return out.getvalue()
 

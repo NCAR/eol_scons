@@ -214,7 +214,7 @@ def ValgrindLog(target, source, env):
             break
     if not results:
         msg = "No valgrind log file found from memcheck or helgrind tool."
-        raise SCons.Errors.StopError, msg
+        raise SCons.Errors.StopError(msg)
 
     maxleaked = env.get('VALGRIND_LEAK_THRESHOLD', 0)
     maxerrors = env.get('VALGRIND_ERROR_THRESHOLD', 0)

@@ -35,8 +35,7 @@ class QwtTool:
 
     def require(self, env):
         if not self.settings:
-            import new
-            env.EnableQwt = new.instancemethod(enable_qwt, env, type(env))
+            env.AddMethod(enable_qwt, "EnableQwt")
             self.calculate_settings(env)
         self.apply_settings(env)
 
@@ -222,7 +221,7 @@ def generate(env):
         # We should also require Qt here, but which version?
         #
         #env.Require(['qt', 'doxygen'])
-	env.Require(['doxygen'])
+        env.Require(['doxygen'])
         
     qwt_tool.require(env)
     env[myKey] = True

@@ -80,7 +80,7 @@ def _calculate_settings(env, settings):
         if not conf.CheckNetCDF():
             msg = "Failed to link to netcdf both with and without"
             msg += " explicit HDF libraries.  Check config.log."
-            raise SCons.Errors.StopError, msg
+            raise SCons.Errors.StopError(msg)
     settings['LIBS'] = libs
     conf.Finish()
 

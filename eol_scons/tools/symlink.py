@@ -16,7 +16,7 @@ def MakeSymLink(target,source,env):
         # Otherwise SCons generally doesn't recognize that the target
         # doesn't match the source and won't call this builder,
         # so it doesn't even help to always delete the link here.
-        print "relinking " + target[0].path
+        print("relinking " + target[0].path)
         os.unlink(target[0].path)
         os.symlink(os.path.basename(source[0].path),target[0].path)
 

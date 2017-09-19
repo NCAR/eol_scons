@@ -3,7 +3,6 @@
 import os
 import hashlib
 import string
-import StringIO
 import SCons
 import SCons.Node
 import SCons.Util
@@ -13,6 +12,11 @@ from SCons.Node import FS
 import shutil
 import fnmatch
 from fnmatch import fnmatch
+
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
 
 _debug = False
 
@@ -46,7 +50,7 @@ def apidocssubdir(node):
         subdir = 'root'
     else:
         subdir = str(node.get_path(top))
-    subdir = string.replace(subdir, os.sep, '_')
+    subdir = subdir.replace(os.sep, '_')
     dprint("apidocssubdir(%s) ==> %s" % (node.abspath, subdir))
     return subdir
 
@@ -233,7 +237,7 @@ def Doxyfile_contents (target, source, env):
     except KeyError:
         pass
 
-    dfile = StringIO.StringIO()
+    dfile = StringIO()
     # These are defaults that any of the customization methods can
     # override.  Latex is off because it is rarely used, better to enable
     # it specifically for the projects which use it.
@@ -370,7 +374,7 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
     #
     dfile.write(env.subst(env['DOXYFILE_TEXT']))
 
-    for k, v in env['DOXYFILE_DICT'].iteritems():
+    for k, v in env['DOXYFILE_DICT'].items():
         dfile.write ("%s = \"%s\"\n" % (k, env.subst(str(v))))
 
     dprint("leaving doxyfile_contents.")
@@ -402,7 +406,8 @@ def _parse_doxyfile(dfilenode):
     dprint("parsing doxyfile...")
 
     contents = dfilenode.get_contents()
-    dfile = StringIO.StringIO(contents)
+    contents = contents.decode()
+    dfile = StringIO(contents)
     lines = dfile.readlines()
     dfile.close()
     current = ""

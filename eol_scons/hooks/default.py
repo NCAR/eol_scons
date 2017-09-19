@@ -7,6 +7,7 @@ automatically get the eol_scons extensions applied.
 import SCons.Tool
 
 import eol_scons.tool
+from eol_scons.debug import Debug
 
 _default_tool_list = None
 
@@ -47,6 +48,7 @@ def _apply_default_tool(env):
         else:
             toolnames = ['mingw']
         # Now instantiate a Tool for each of the names.
+        Debug("Applying default tools: %s" % (",".join(toolnames)))
         _default_tool_list = [ SCons.Tool.Tool(t) for t in toolnames ]
 
     # Now apply the default tools

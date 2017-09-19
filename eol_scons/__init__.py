@@ -37,11 +37,11 @@ import SCons.Defaults
 
 # For backward compatibility, import symbols into the eol_scons package
 # namespace.
-from .debug import Debug
-from .variables import GlobalOptions   # replaced by GlobalVariables
-from .variables import GlobalVariables
-from .variables import PathToAbsolute
-from .tool import DefineQtTools
+from eol_scons.debug import Debug
+from eol_scons.variables import GlobalOptions   # replaced by GlobalVariables
+from eol_scons.variables import GlobalVariables
+from eol_scons.variables import PathToAbsolute
+from eol_scons.tool import DefineQtTools
 
 # This would be needed if the eol_scons package were going to be loaded as
 # a tool by installing it under a site_tools directory somewhere.  However,
@@ -52,7 +52,7 @@ from .tool import DefineQtTools
 
 # from eol_scons.tool import generate, exists
 
-# print("__init__ __file__=%s" % __file__)
+Debug("__init__ __file__=%s" % __file__)
 
 
 def InstallToolsPath():
@@ -96,6 +96,7 @@ except NameError:
     # successive calls.  Also, create this here before the default.py hook
     # tool is added to the tool path, since that can cause infinite
     # recursion.
+    Debug("Creating DefaultEnvironment()...")
     SCons.Defaults.DefaultEnvironment()
     InstallDefaultHook()
     Debug("eol_scons.__init__ loaded: %s." % (__file__))

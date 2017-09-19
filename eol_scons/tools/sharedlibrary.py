@@ -44,12 +44,13 @@ def SharedLibrary3Emitter(target,source,env):
     try:
         # Convert '.' to '\.' for exact matching.
         versionsuffixre = re.sub(r'\.',r'\\.',
-                '.' + env['SHLIBMAJORVERSION'] + '.' + env['SHLIBMINORVERSION'] + '$')
+                                 '.' + env['SHLIBMAJORVERSION'] + '.' +
+                                 env['SHLIBMINORVERSION'] + '$')
     except KeyError:
-        print 'Cannot find SHLIBMAJORVERSION or SHLIBMINORVERSION env variables'
+        print('Cannot find SHLIBMAJORVERSION or SHLIBMINORVERSION env variables')
 
     libname = re.sub(versionsuffixre,'', fullname)
-    # print "fullname=" + fullname + ", libname=" + libname
+    # print("fullname=" + fullname + ", libname=" + libname)
 
     soname = libname + '.' + env['SHLIBMAJORVERSION']
 
@@ -130,7 +131,7 @@ def SharedLibrary3Install(env,target,source,**kw):
         try:
             soname = libname + '.' + env['SHLIBMAJORVERSION']
         except KeyError:
-            print 'Cannot find SHLIBMAJORVERSION env variable'
+            print('Cannot find SHLIBMAJORVERSION env variable')
             return None
 
     if len(source) > 2:
@@ -139,9 +140,9 @@ def SharedLibrary3Install(env,target,source,**kw):
         try:
             fullname = soname + '.' + env['SHLIBMINORVERSION']
         except KeyError:
-            print 'Cannot find SHLIBMINORVERSION env variable'
+            print('Cannot find SHLIBMINORVERSION env variable')
             return None
-        # print "SharedLibrary3Install, fullname=" + fullname
+        # print("SharedLibrary3Install, fullname=" + fullname)
 
     nodes = []
     tgt = env.Install(targetDir,fullname)

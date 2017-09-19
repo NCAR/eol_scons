@@ -129,7 +129,7 @@ class PostgresTestDB(object):
         # We want the port to depend on the current directory, so it is
         # consistent between runs without colliding with other instances
         # running from other working directories.
-        port = "5%s00000" % (abs(zlib.crc32(self.cwd)))
+        port = "5%s00000" % (abs(zlib.crc32(self.cwd.encode())))
         self.PGPORT = port[0:5]
         self.PGHOST = "/tmp"
         #
@@ -233,7 +233,7 @@ class PostgresTestDB(object):
             env = self.getEnvironment()
         try:
             return sp.Popen(cmd, shell=False, env=env, **args)
-        except Exception, ex:
+        except Exception(ex):
             print("   *** Exception: %s: %s" % (str(ex), scmd))
             raise
 
@@ -264,7 +264,7 @@ class PostgresTestDB(object):
             env = self.getEnvironment()
         if not path and db:
             path = db + ".sql"
-	cmd = ["pg_dump", "-i", "-C", "--no-owner", "-v", "--format=p"]
+        cmd = ["pg_dump", "-i", "-C", "--no-owner", "-v", "--format=p"]
         if args:
             cmd += args
         if host:
@@ -292,11 +292,11 @@ class PostgresTestDB(object):
         env['PGDATA'] = self.PGDATA
         if self.PGUSER:
             env['PGUSER'] = self.PGUSER
-        elif env.has_key('PGUSER'):
+        elif 'PGUSER' in env:
             del env['PGUSER']
         if self.PGDATABASE:
             env['PGDATABASE'] = self.PGDATABASE
-        elif env.has_key('PGDATABASE'):
+        elif 'PGDATABASE' in env:
             del env['PGDATABASE']
         return env
 

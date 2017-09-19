@@ -9,10 +9,9 @@ from SCons.Script import DefaultEnvironment
 
 from SCons.Script.SConscript import global_exports
 
-from . import variables as es_vars
-from . import debug as esd
-from . import tool as es_tool
-from . import chdir
+import eol_scons.variables as esv
+import eol_scons.debug as esd
+import eol_scons.chdir as chdir
 
 _global_targets = {}
 _tool_matches = None
@@ -89,7 +88,7 @@ def _AddGlobalTarget(env, name, target):
         node = target[0]
     except(TypeError, AttributeError):
         node = target
-    if not _global_targets.has_key(name):
+    if name not in _global_targets:
         env.LogDebug("AddGlobalTarget: " + name + "=" + node.get_abspath())
         _global_targets[name] = node
     else:
@@ -100,10 +99,10 @@ def _AddGlobalTarget(env, name, target):
     # node.  The dictionary is assigned to a construction variable.  That
     # way anything can be used as a key, while environment construction
     # keys have restrictions on what they can contain.
-    if not env.has_key("LOCAL_TARGETS"):
+    if "LOCAL_TARGETS" not in env:
         env["LOCAL_TARGETS"] = {}
     local_tgts = env["LOCAL_TARGETS"]
-    if not local_tgts.has_key(name):
+    if name not in local_tgts:
         env.LogDebug("local target: " + name + "=" + str(node))
         local_tgts[name] = node
     else:
@@ -155,7 +154,7 @@ def _AppendSharedLibrary(env, name, path=None):
 
 def _FindPackagePath(env, optvar, globspec, defaultpath=None):
     """Check for a package installation path matching globspec."""
-    options = es_vars.GlobalVariables()
+    options = esv.GlobalVariables()
     pdir = defaultpath
     try:
         pdir = os.environ[optvar]
@@ -189,16 +188,17 @@ def _LogDebug(env, msg):
     esd.Debug(msg, env)
 
 def _GlobalVariables(env, cfile=None):
-    return es_vars.GlobalVariables(cfile, env)
+    return esv.GlobalVariables(cfile, env)
 
 def _CacheVariables(env):
-    return es_vars.ToolCacheVariables(env)
+    return esv.ToolCacheVariables(env)
 
 def _GlobalTools(env):
+    from eol_scons.tool import _global_tools
     gkey = env.get('GLOBAL_TOOLS_KEY')
     gtools = None
-    if gkey and es_tool._global_tools.has_key(gkey):
-        gtools = es_tool._global_tools[gkey]
+    if gkey and gkey in _global_tools:
+        gtools = _global_tools[gkey]
     env.LogDebug("GlobalTools(%s) returns: %s" % (gkey, gtools))
     return gtools
 
@@ -206,8 +206,8 @@ def _GlobalTools(env):
 def _findToolFile(env, name):
     global _tool_matches
     # Need to know if the cache is enabled or not.
-    es_vars._update_variables(env)
-    cache = es_vars.ToolCacheVariables(env)
+    esv._update_variables(env)
+    cache = esv.ToolCacheVariables(env)
     toolcache = cache.getPath()
     if _tool_matches == None:
         cvalue = cache.lookup(env, '_tool_matches')
@@ -260,7 +260,7 @@ def _loadToolFile(env, name):
         env.SConscript(toolScript)
         # After loading the script, make sure the tool appeared 
         # in the global exports list.
-        if global_exports.has_key(name):
+        if name in global_exports:
             tool = global_exports[name]
         else:
             raise SCons.Errors.StopError("Tool error: " + 
