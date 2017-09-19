@@ -27,7 +27,7 @@ def _string_env(env):
             # because that's a pretty common list-like value to stick
             # in an environment variable:
             value = SCons.Util.flatten_sequence(value)
-            new_env[key] = os.pathsep.join(map(str, value))
+            new_env[key] = os.pathsep.join([str(path) for path in value])
         else:
             # It's either a string or something else.  If it's a string,
             # we still want to call str() because it might be a *Unicode*
@@ -229,7 +229,7 @@ def PkgConfigPrefix(env, pkg_name, default_prefix = "$OPT_PREFIX"):
     """Search for a config script and parse the output."""
     search_prefixes = ['/usr']
     search_paths = [ os.path.join(env.subst(x),"bin")
-                     for x in filter(lambda y: y, search_prefixes) ]
+                     for x in [y for y in search_prefixes if y] ]
     prefix = None
     if env['PLATFORM'] != 'win32':    
         prefix = _get_config(env, search_paths, 'pkg-config',
