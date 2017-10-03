@@ -34,7 +34,7 @@ load-plugins=
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
-disable=R0201,I0011,C0111,C0303,W1201,C1001,C0325
+disable=R0201,I0011,C0111,C0303,C0305,W1201,C1001,C0325
 
 # W0403 relative import
 # R0201 method could be a function
@@ -42,6 +42,7 @@ disable=R0201,I0011,C0111,C0303,W1201,C1001,C0325
 # [I0011] Locally disabling W0612
 # [C0111] Missing docstring
 # C0303 trailing whitespace
+# C0305 trailing-newlines
 # W1201 logging-not-lazy
 # C1001 old-style-class
 # C0325 superfluous-parens: prefer to use python3 print as a function
