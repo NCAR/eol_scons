@@ -78,16 +78,25 @@ USE_PKG_CONFIG = 'pkg-config'
 _warned_paths = {}
 
 
-def _applyInsideSource(env):
-    # If ARCH is present and the NIDAS library source directories are
-    # present, then build up the library nodes from the built targets.
+def _setInsideSource(env):
+    """
+    If ARCH is present and the NIDAS library source directories are
+    present, then this scons node is inside the NIDAS source tree.
+    """
+    inside = True
     if not env.has_key('ARCH'):
-        return False
-    arch = env['ARCH']  # empty string for native builds
-
+        inside = False
     if not os.path.exists(env.Dir('#/nidas/dynld').get_abspath()):
-        return False
+        inside = False
+    env['NIDAS_INSIDE_SOURCE'] = inside
+    return inside
 
+
+def _applyInsideSource(env):
+    """
+    Build up the library nodes from the built targets.
+    """
+    arch = env['ARCH']  # empty string for native builds
     libsyms = ['LIBNIDAS_UTIL','LIBNIDAS','LIBNIDAS_DYNLD']
     libmap = dict(zip(libsyms, libsyms))
     libpath = []
@@ -225,6 +234,30 @@ def _resolve_libpaths(env, paths):
     return libpaths
 
 
+def _addOptions(env, inside=False):
+    global _options
+    if not _options:
+        default_nidas_path = env.get('NIDAS_PATH', USE_PKG_CONFIG)
+        if inside:
+            default_nidas_path = ''
+        _options = env.GlobalVariables()
+        _options.Add('NIDAS_PATH',
+"""Set the NIDAS prefix paths to build against, and enable builds of
+components which use NIDAS. Setting this to empty outside the NIDAS source
+tree disables components which need NIDAS.  Within the NIDAS source tree, this
+variable is empty by default, which builds against the libraries and
+header files built within the source tree.
+
+This setting can be a comma-separated list of paths, for example to build
+against a NIDAS installation whose other dependencies are installed under
+another prefix.  Relative paths will be converted to absolute paths
+relative to the top directory.  Set NIDAS_PATH to '%s' to use
+the settings from the system pkg-config.""" % (USE_PKG_CONFIG),
+                     default_nidas_path)
+    _options.Update(env)
+
+
+
 def generate(env):
     # It is not (yet) possible to build against NIDAS on anything
     # except Linux, so don't even give anyone the option.
@@ -232,11 +265,6 @@ def generate(env):
     	env.EnableNIDAS = (lambda: 0)
         return
 
-    inside = _applyInsideSource(env)
-    env['NIDAS_INSIDE_SOURCE'] = inside
-    eol_scons.Debug("applying nidas tool to %s, PREFIX=%s, %s source tree" %
-                    (env.Dir('.').abspath, env.get('PREFIX'),
-                     ['outside','inside'][int(inside)]))
     env.EnableNIDAS = (lambda: 0)
     env.AddMethod(_NidasLibs, "NidasLibs")
     env.AddMethod(_NidasUtilLibs, "NidasUtilLibs")
@@ -247,29 +275,34 @@ def generate(env):
     env.AddMethod(_NidasUtilProgram, "NidasUtilProgram")
     env.AddMethod(_NidasPlainProgram, "NidasPlainProgram")
 
-    if inside:
+    inside = _setInsideSource(env)
+
+    # For now, do not add the NIDAS_PATH option when building inside the
+    # nidas source tree, since that does not work with the existing nidas
+    # SConscript files, but including the option in the help info could
+    # cause confusion.
+    if not inside:
+        _addOptions(env)
+    if env.GetOption('help'):
+        return
+
+    eol_scons.Debug("applying nidas tool to %s, PREFIX=%s, "
+                    "%s source tree, NIDAS_PATH=%s" %
+                    (env.Dir('.').abspath, env.get('PREFIX'),
+                     ['outside','inside'][int(inside)],
+                     env['NIDAS_PATH']))
+
+    # First check if inside the tree and nidas prefix not overridden.
+    if inside and not env.get('NIDAS_PATH'):
+        _applyInsideSource(env)
         env.EnableNIDAS = (lambda: 1)
         return
 
-    # Default ARCH to native when outside the source tree.
+    # Default ARCH to native when outside the source tree, and make sure
+    # NIDAS_INSIDE_SOURCE is overridden if actually building against an
+    # installed nidas.
     env['ARCH'] = ''
-
-    global _options
-    if not _options:
-        default_nidas_path = env.get('NIDAS_PATH', USE_PKG_CONFIG)
-        _options = env.GlobalVariables()
-        _options.Add('NIDAS_PATH',
-"""Set the NIDAS prefix paths, and enable builds of components which use
-NIDAS. Setting it to empty disables NIDAS components.  This can be a
-comma-separated list of paths, for example to build against a NIDAS
-installation whose other dependencies are installed under another prefix.
-Relative paths will be converted to absolute paths relative to the top
-directory.  Set NIDAS_PATH to '%s', the default, to use the settings from
-the system pkg-config.""" % (USE_PKG_CONFIG),
-                     default_nidas_path)
-    _options.Update(env)
-    if env.GetOption('help'):
-        return
+    env['NIDAS_INSIDE_SOURCE'] = False
 
     nidas_paths = []
     nidas_libs = ['nidas','nidas_dynld','nidas_util']
