@@ -160,8 +160,8 @@ class _Automoc(object):
                       str(cpp), env)
                 # c or fortran source
                 continue
-            #cpp_contents = comment.sub('', cpp.get_contents())
-            cpp_contents = cpp.get_contents()
+            #cpp_contents = comment.sub('', cpp.get_text_contents())
+            cpp_contents = cpp.get_text_contents()
             h=None
             for h_ext in header_extensions:
                 # try to find the header file in the corresponding source
@@ -173,8 +173,8 @@ class _Automoc(object):
                 if h:
                     Debug("scons: qt4: Scanning '%s' (header of '%s')" % 
                           (str(h), str(cpp)), env)
-                    #h_contents = comment.sub('', h.get_contents())
-                    h_contents = h.get_contents()
+                    #h_contents = comment.sub('', h.get_text_contents())
+                    h_contents = h.get_text_contents()
                     break
             if not h:
                 Debug("scons: qt4: no header for '%s'." % (str(cpp)), env)
@@ -265,7 +265,7 @@ uic4builder = None
 mocBld = None
 
 def _scanResources(node, env, path, arg):
-    contents = node.get_contents()
+    contents = node.get_text_contents()
     includes = qrcinclude_re.findall(contents)
     return includes
 
@@ -380,19 +380,18 @@ def generate(env):
         elif os.path.exists('/usr/lib/qt4'):
             env['QT4DIR'] = '/usr/lib/qt4';
 
-    import new
-    env.EnableQtModules = new.instancemethod(enable_modules, env, type(env))
+    env.AddMethod(enable_modules, "EnableQtModules")
     # Backwards compatibility:
-    env.EnableQt4Modules = env.EnableQtModules
+    env.AddMethod(enable_modules, "EnableQt4Modules")
 
     if 'QT4DIR' not in env:
-	# Dont stop, just print a warning. Later, a user call of
-	# EnableQtModules() will return False if QT4DIR is not found.
+        # Dont stop, just print a warning. Later, a user call of
+        # EnableQtModules() will return False if QT4DIR is not found.
 
         errmsg = "Qt4 not found, try setting QT4DIR."
         # raise SCons.Errors.StopError, errmsg
-	print(errmsg)
-	return
+        print(errmsg)
+        return
 
     # the basics
     env['QT4_MOC'] = _locateQt4Command(env, 'moc')
@@ -488,9 +487,11 @@ def enable_modules(self, modules, debug=False) :
     # Return False if a module cannot be enabled, otherwise True
     import sys
 
-    if sys.platform == "linux2" :
+    self.LogDebug("Entering qt4 enable_modules(%s) with sys.platform=%s..." %
+                  (",".join(modules), sys.platform))
+    if sys.platform.startswith("linux"):
 
-	if 'QT4DIR' not in self:
+        if 'QT4DIR' not in self:
             return False
 
         if debug:
@@ -587,7 +588,7 @@ def enable_modules(self, modules, debug=False) :
         return True
 
     if sys.platform == "win32" :
-	if 'QT4DIR' not in self:
+        if 'QT4DIR' not in self:
             return False
 
         if debug : debugSuffix = 'd'
