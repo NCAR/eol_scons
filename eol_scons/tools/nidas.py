@@ -290,7 +290,7 @@ def generate(env):
                     "%s source tree, NIDAS_PATH=%s" %
                     (env.Dir('.').abspath, env.get('PREFIX'),
                      ['outside','inside'][int(inside)],
-                     env['NIDAS_PATH']))
+                     env.get('NIDAS_PATH', '<na>')))
 
     # First check if inside the tree and nidas prefix not overridden.
     if inside and not env.get('NIDAS_PATH'):
