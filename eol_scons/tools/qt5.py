@@ -497,8 +497,8 @@ def enable_modules(env, modules, debug=False) :
     # Return False if a module cannot be enabled, otherwise True
     import sys
 
-    env.LogDebug("Entering enable_modules() with sys.platform=%s..." %
-                 (sys.platform))
+    env.LogDebug("Entering qt5 enable_modules(%s) with sys.platform=%s..." %
+                 (",".join(modules), sys.platform))
     if sys.platform.startswith("linux"):
 
         if 'QT5DIR' not in env:
