@@ -153,7 +153,7 @@ def Doxyfile_Builder (target, source, env):
         dprint("saved original Doxyfile as %s" % (doxyfilebak))
     dprint("writing doxyfile: %s" % (doxyfile))
     dfile = file(doxyfile, "w")
-    dfile.write(source[-1].get_contents())
+    dfile.write(source[-1].get_text_contents())
     dfile.close()
 
 
@@ -406,8 +406,7 @@ def _parse_doxyfile(dfilenode):
     parms = {}
     dprint("parsing doxyfile...")
 
-    contents = dfilenode.get_contents()
-    contents = contents.decode()
+    contents = dfilenode.get_text_contents()
     dfile = StringIO(contents)
     lines = dfile.readlines()
     dfile.close()

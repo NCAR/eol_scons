@@ -245,7 +245,9 @@ def svninfo_emitter_value(target, source, env):
 
 def svninfo_do_update_target(target, source):
     # If a subversion error, don't overwrite existing file
-    return string.find(source[0].get_contents(),"Subversion error:") < 0 or not os.path.exists(target[0].path)
+    update = string.find(source[0].get_text_contents(), "Subversion error:") < 0
+    update = update or not os.path.exists(target[0].path)
+    return update
 
 def svninfo_action_print(target, source, env):
     if svninfo_do_update_target(target,source):
@@ -257,7 +259,7 @@ def svninfo_build_value(env, target, source):
     "Build header based on contents in the source."
     if svninfo_do_update_target(target,source):
         out = open(target[0].path, "w")
-        out.write(source[0].get_contents())
+        out.write(source[0].get_text_contents())
         out.write("\n")
         out.close()
 

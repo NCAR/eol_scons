@@ -200,7 +200,7 @@ def ddsTypeScanner(fileName, env):
 # second slice of the tuple.
     dcps_re = re.compile(r'#pragma\s+DCPS_DATA_TYPE\s+"(\S+)::(\S+)*"', re.M)
     node = env.FindFile(fileName, '.')
-    contents = node.get_contents()
+    contents = node.get_text_contents()
     dcps_types = dcps_re.findall(contents)
     retVal = []
     for x in dcps_types:

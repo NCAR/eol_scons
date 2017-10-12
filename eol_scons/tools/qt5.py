@@ -163,8 +163,8 @@ class _Automoc(object):
                       str(cpp), env)
                 # c or fortran source
                 continue
-            #cpp_contents = comment.sub('', cpp.get_contents())
-            cpp_contents = cpp.get_contents().decode()
+            #cpp_contents = comment.sub('', cpp.get_text_contents())
+            cpp_contents = cpp.get_text_contents()
             h=None
             for h_ext in header_extensions:
                 # try to find the header file in the corresponding source
@@ -176,8 +176,8 @@ class _Automoc(object):
                 if h:
                     Debug("scons: qt5: Scanning '%s' (header of '%s')" % 
                           (str(h), str(cpp)), env)
-                    #h_contents = comment.sub('', h.get_contents())
-                    h_contents = h.get_contents().decode()
+                    #h_contents = comment.sub('', h.get_text_contents())
+                    h_contents = h.get_text_contents()
                     break
             if not h:
                 Debug("scons: qt5: no header for '%s'." % (str(cpp)), env)
@@ -271,8 +271,7 @@ uic5builder = None
 mocBld = None
 
 def _scanResources(node, env, path, arg):
-    contents = node.get_contents()
-    contents = contents.decode()
+    contents = node.get_text_contents()
     includes = qrcinclude_re.findall(contents)
     return includes
 

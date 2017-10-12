@@ -41,7 +41,7 @@ def MarkdownMessage(target, source, env):
 
 def MarkdownBuilder(target, source, env):
     # Do simple python string replacement on the contents.
-    content = source[0].get_contents() % env.get('MARKDOWN_DICT', {})
+    content = source[0].get_text_contents() % env.get('MARKDOWN_DICT', {})
     cmd = env.subst("${MARKDOWN_COMMAND} > ${TARGET}", target=target)
     mdp = sp.Popen(cmd, stdin=sp.PIPE, shell=True)
     mdp.stdin.write(content)

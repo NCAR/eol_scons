@@ -43,8 +43,7 @@ def _embedded_text_emitter(target, source, env):
     return target, source
 
 def _embedded_text_builder(target, source, env):
-    text = source[0].get_contents()
-    text = text.decode()
+    text = source[0].get_text_contents()
     with open(str(target[0]), "w") as outfile:
         outfile.write(text2cc(text, env['TEXT_DATA_VARIABLE_NAME']))
 

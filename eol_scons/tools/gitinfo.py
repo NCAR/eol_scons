@@ -462,8 +462,7 @@ else:
     
     def gitinfo_do_update_target(target, source):
         # If a git error, don't overwrite existing file
-        text = source[0].get_contents()
-        text = text.decode()
+        text = source[0].get_text_contents()
         return text.find("Git error:") < 0 or not os.path.exists(target[0].path)
     
     def gitinfo_action_print(target, source, env):
@@ -476,8 +475,7 @@ else:
         "Build header based on contents in the source."
         if gitinfo_do_update_target(target, source):
             out = open(target[0].path, "w")
-            text = source[0].get_contents()
-            text = text.decode()
+            text = source[0].get_text_contents()
             out.write(text)
             out.write("\n")
             out.close()

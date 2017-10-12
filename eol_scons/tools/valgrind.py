@@ -204,7 +204,7 @@ def ValgrindLog_emit(target, source, env):
 
 
 def ValgrindLog(target, source, env):
-    # Perhaps Node.get_contents() could be used here, but valgrind logs
+    # Perhaps Node.get_text_contents() could be used here, but valgrind logs
     # can be very very large, so stick with the file stream.
     results = None
     for s in source:
