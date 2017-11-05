@@ -176,7 +176,8 @@ def _NidasApp(env, name):
         env.PrependENVPath('PATH', path)
         eol_scons.Debug("NidasApp(%s) resolved to %s, prepend %s to PATH, %s" %
                         (name, str(app), path,
-                         "LD_LIBRARY_PATH=%s" % (env['ENV']['LD_LIBRARY_PATH'])))
+                         "LD_LIBRARY_PATH=%s" %
+                         (env['ENV'].get('LD_LIBRARY_PATH'))))
     else:
         _NidasRuntimeENV(env)
         app = env.File('${NIDAS_PREFIX}/bin/'+name)
