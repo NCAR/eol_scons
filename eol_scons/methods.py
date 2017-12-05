@@ -226,8 +226,9 @@ def _findToolFile(env, name):
         _tool_matches = []
         for dirpath, dirnames, filenames in os.walk(env.Dir('#').get_abspath(),
                                                     followlinks=True):
-            if '.svn' in dirnames:
-                dirnames.remove('.svn')
+            hidden = [d for d in dirnames if d.startswith('.')]
+            for d in hidden:
+                dirnames.remove(d)
             if 'site_scons' in dirnames:
                 dirnames.remove('site_scons')
             if 'apidocs' in dirnames:
