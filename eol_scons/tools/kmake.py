@@ -83,8 +83,8 @@ from subprocess import Popen,PIPE
 def Kmake(env,target,source):
 
     if 'KERNELDIR' not in env or env['KERNELDIR'] == '':
-	    print("KERNELDIR not specified, " + target[0].abspath + " will not be built")
-            return None
+        print("KERNELDIR not specified, " + target[0].abspath + " will not be built")
+        return None
 
     if not os.path.exists(env['KERNELDIR']):
         print('Error: KERNELDIR=' + env['KERNELDIR'] + ' not found.')
@@ -104,7 +104,7 @@ def Kmake(env,target,source):
 
     symopt = ''
     if len(symvers) > 0:
-        symopt = ' KBUILD_EXTRA_SYMBOLS="' + string.join(symvers, ' ') + '"'
+        symopt = ' KBUILD_EXTRA_SYMBOLS="' + ' '.join(symvers) + '"'
 
     return env.Execute('cd ' + srcdir + '; ' + env['KMAKE'] + symopt)
 
@@ -133,7 +133,7 @@ def generate(env, **kw):
         env['KERNELDIR'] = kw.get('KERNELDIR')
 
     if 'KERNELDIR' not in env or env['KERNELDIR'] == '*':
-        krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].rstrip("\n")
+        krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].decode().rstrip("\n")
         # How to build KERNELDIR from uname:
         # EL5, i686, PAE: (merlot)
         #   uname -r: 2.6.18-164.9.1.el5PAE
@@ -154,9 +154,9 @@ def generate(env, **kw):
         kdir = '/usr/src/kernels/' + krel
 	# Debian
         if not os.path.exists(kdir):
-		kdir = '/usr/src/linux-headers-' + krel
+            kdir = '/usr/src/linux-headers-' + krel
         if not os.path.exists(kdir):
-            kmach = Popen(['uname','-m'],stdout=PIPE).communicate()[0].rstrip("\n")
+            kmach = Popen(['uname','-m'],stdout=PIPE).communicate()[0].decode().rstrip("\n")
             kdir = '/usr/src/kernels/' + krel + '-' + kmach
             if not os.path.exists(kdir):
                 # Remove PAE or xen from uname -r output
