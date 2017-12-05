@@ -55,7 +55,7 @@ rdict.update(
     )
 
 def generate(env):
-    for k,v in list(rdict.items()):
+    for k,v in rdict.items():
         sname = k + "STR"
         # Prepend the color text to the command string variable, if
         # present.  Otherwise use the color text as is.
