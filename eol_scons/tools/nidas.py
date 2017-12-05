@@ -109,7 +109,7 @@ def _applyInsideSource(env):
     # Set LD_LIBRARY_PATH to the locally built libraries, for builders like
     # tests which want to run the nidas apps.  Also include nc_server_rpc,
     # in case it is not on the system path but NIDAS was built against it.
-    ldlibdirs = [ l.Dir('').abspath for l in env.File(libmap.values()) ]
+    ldlibdirs = [ env.File(l).Dir('').abspath for l in libmap.values() ]
     env['ENV']['LD_LIBRARY_PATH'] = ":".join(ldlibdirs + ['/opt/nc_server/lib'])
     return True
 
