@@ -72,7 +72,6 @@ def SharedLibrary3Action(target,source,env):
 
     soname = os.path.basename(target[1].path)
 
-    env = env.Clone()
     env.Append(SHLINKFLAGS=['-Wl,-soname=' + soname])
 
     # Execute the shared library action to build the full library
