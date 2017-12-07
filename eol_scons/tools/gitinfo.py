@@ -168,18 +168,18 @@ class GitInfo:
             pdebug("gitinfo: running '%s'" % (" ".join(cmd)))
             child = Popen(cmd, stdout=PIPE,stderr=PIPE)
             output = child.communicate()
-            pdebug("gitinfo output: %s" % (output[0]))
-            pdebug("gitinfo error: %s" % (output[1].strip()))
+            sout = output[0].decode().strip()
+            eout = output[1].decode().strip()
+            pdebug("gitinfo output: %s" % (sout))
+            pdebug("gitinfo error: %s" % (eout))
             pdebug("gitinfo returncode:" + str(child.returncode))
             if child.returncode != 0:
-                print("Warning: '%s' failed: %s" % (" ".join(cmd), output[1].strip()))
-                return "Git error: " + output[1].strip()
-        except OSError(e):
+                print("Warning: '%s' failed: %s" % (" ".join(cmd), eout))
+                return "Git error: " + eout
+        except OSError as e:
             print("Warning: '%s' failed: %s" % (" ".join(cmd), str(e)))
             return "Git error: " + str(e)
-        text = output[0]
-        text = text.decode()
-        return text.lstrip().rstrip()
+        return sout
 
     def _cmd_out_ok(self, cmd_out, error):
         """
