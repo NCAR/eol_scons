@@ -137,7 +137,7 @@ class _SpawnerLogger(object):
                                 stderr=subprocess.STDOUT,
                                 bufsize=1, close_fds=True, shell=False)
         pipe.stdin.close()
-        output = pipe.stdout.readline()
+        output = pipe.stdout.readline().decode()
         flines = 0
         while output:
             if self.logfile:
@@ -151,7 +151,7 @@ class _SpawnerLogger(object):
                 flines = flines + 1
                 if flines % 50 == 0:
                     sys.stdout.write('.')
-            output = pipe.stdout.readline()
+            output = pipe.stdout.readline().decode()
         pipe.wait()
         if flines >= 50:
             sys.stdout.write("\n")
@@ -273,12 +273,13 @@ def diff_files(target, source, env):
     diffs = None
     p1 = source[0].get_abspath()
     p2 = source[1].get_abspath()
-    f1 = open(p1, "rb")
-    f2 = open(p2, "rb")
+    # don't open in binary mode. unified_diff expects strings, not bytes
+    f1 = open(p1, "r")
+    f2 = open(p2, "r")
     diff = difflib.unified_diff(f1.readlines(), f2.readlines())
     f1.close()
     f2.close()
-    diffs = [line for line in diff]
+    diffs = [line.decode() for line in diff]
     if diffs:
         print("".join(diffs))
         return str("Differences found between " + 
