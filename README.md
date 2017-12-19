@@ -1,8 +1,14 @@
 # eol_scons
 
+## Updates
+
+eol_scons has been ported to SCons 3.0 and Python 3, but it should remain
+compatible with Python 2.7 and SCons 2, whatever versions are available on
+CentOS as of 7.4.
+
 ## Installing eol_scons
 
-By default, SCons version 2.3 searches in the following locations for python packages, where ./site_scons is in the same directory as the SConstruct file (see the documentation for the SCons --site-dir command line option):
+By default, SCons searches in the following locations for python packages, where ./site_scons is in the same directory as the SConstruct file (see the documentation for the SCons --site-dir command line option):
 * Windows
    * %ALLUSERSPROFILE/Application Data/scons/site_scons
    * %USERPROFILE%/Local Settings/Application Data/scons/site_scons
@@ -30,8 +36,6 @@ By default, SCons version 2.3 searches in the following locations for python pac
    * ./site_scons
 
 Therefore one needs to install eol_scons in one of the above places, or use the --site-dir command line option.
-
-SCons prior to version 2.3 only searches ./site_scons by default.
 
 Another option is to create an eol_scons Python package and install it in the usual locations. Support for this should be provided soon. Note that SCons ignores the PYTHONPATH environment variable.
 
