@@ -279,7 +279,7 @@ def diff_files(target, source, env):
     diff = difflib.unified_diff(f1.readlines(), f2.readlines())
     f1.close()
     f2.close()
-    diffs = [line.decode() for line in diff]
+    diffs = list(diff)
     if diffs:
         print("".join(diffs))
         return str("Differences found between " + 
