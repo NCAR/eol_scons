@@ -152,7 +152,7 @@ def Doxyfile_Builder (target, source, env):
         shutil.move(doxyfile, doxyfilebak)
         dprint("saved original Doxyfile as %s" % (doxyfilebak))
     dprint("writing doxyfile: %s" % (doxyfile))
-    dfile = file(doxyfile, "w")
+    dfile = open(doxyfile, "w")
     dfile.write(source[-1].get_text_contents())
     dfile.close()
 
