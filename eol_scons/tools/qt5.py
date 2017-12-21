@@ -24,10 +24,7 @@ The qt5 tool must be included first to force all the subsequent qt modules to be
 applied as qt5 modules instead of qt4.  The biggest difference is the location
 of the header files and the library names contain libQt5<Module>.
 """
-from __future__ import print_function
 
-from builtins import str
-from builtins import object
 import re
 import os
 

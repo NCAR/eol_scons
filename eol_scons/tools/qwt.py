@@ -6,10 +6,7 @@ depends on Qt and not the other way around, but it works.  Projects which
 need Qt5 and not Qt4 just need to require the qt5.py tool before any tools
 which depend on Qt.
 """
-from __future__ import print_function
 
-from builtins import str
-from builtins import object
 import os
 from SCons.Variables import PathVariable
 import platform

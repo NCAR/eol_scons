@@ -15,16 +15,17 @@ DOWNLOAD_DIRECTORY construction variable.  Otherwise the source is expected
 to be a full URL.
 
 """
-from __future__ import print_function
 
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
 import sys
-import urllib.request, urllib.parse, urllib.error
 import SCons
 import os
 
+try:
+    # Python 3 form
+    from urllib.request import urlretrieve
+except ImportError:
+    # Python 2
+    from urllib import urlretrieve
 
 class URLNode(SCons.Node.Python.Value):
 
@@ -57,7 +58,7 @@ def download(target, source, env):
     url = str(source[0]).strip("'")
     file = target[0].get_abspath()
     print("Downloading ", url)
-    (filename, headers) = urllib.request.urlretrieve (url, file, download_report)
+    (filename, headers) = urlretrieve(url, file, download_report)
     print("\nDownloaded ", filename)
 
 

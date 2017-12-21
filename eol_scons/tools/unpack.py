@@ -2,8 +2,6 @@
 Builders to unpack archive packages.
 """
 
-from __future__ import print_function
-from builtins import str
 import os
 import SCons
 import string

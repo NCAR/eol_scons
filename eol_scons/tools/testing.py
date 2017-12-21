@@ -58,10 +58,7 @@ so the testing tool must always be required first:
 
 env = Environment(tools=['default', 'testing', 'gtest'])
 """
-from __future__ import print_function
 
-from builtins import str
-from builtins import object
 import subprocess
 import io
 import sys

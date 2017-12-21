@@ -20,10 +20,7 @@ return value from the EnableQtModules() method must be used:
     if not env.EnableQtModules(qt4Modules):
         Return()
 """
-from __future__ import print_function
 
-from builtins import str
-from builtins import object
 import re
 import os
 

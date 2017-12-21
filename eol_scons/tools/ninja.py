@@ -111,10 +111,7 @@ scons provides.  It is perhaps similar to running scons with the options
 acceptable, then ninja is still faster than running scons with those
 options.
 """
-from __future__ import print_function
 
-from builtins import str
-from builtins import object
 import os
 import SCons
 from SCons.Variables import BoolVariable
