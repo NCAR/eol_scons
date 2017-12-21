@@ -248,7 +248,7 @@ def _locateQt4Command(env, command) :
         if (qt4BinDir):
             msg += " not in " + qt4BinDir + ","
         msg += " not in $PATH"
-        raise SCons.Errors.StopError(msg)
+        SCons.Warnings.warn(Qt4ModuleIssue, "%s" % msg)
 
     cache.store(env, key, result)
     return result
