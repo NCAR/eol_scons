@@ -28,5 +28,5 @@ def generate(env):
         SCons.Node.Python.Value.changed_since_last_build = (lambda x, y, z: True)
 
 def exists(env):
-    return true
+    return True
 

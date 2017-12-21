@@ -32,9 +32,9 @@ def generate(env):
     env.AppendUnique(LIBPATH = [libpath])
     env.AppendUnique(RPATH = [libpath])
     
-    env.AppendUnique(CPPDEFINES = string.split("""POSIX_THREADS 
-        POSIX_THREAD_SAFE_FUNCTIONS REENTRANT AC ACE_HAS_AIO_CALLS 
-        ACE_HAS_EXCEPTIONS ACE_HAS_QT ACE_LACKS_PRAGMA_ONCE"""))
+    env.AppendUnique(CPPDEFINES = """POSIX_THREADS 
+    POSIX_THREAD_SAFE_FUNCTIONS REENTRANT AC ACE_HAS_AIO_CALLS 
+    ACE_HAS_EXCEPTIONS ACE_HAS_QT ACE_LACKS_PRAGMA_ONCE""".split())
     
     if (env['ACE_NTRACE']):
         env.Append(CPPDEFINES = ['ACE_NTRACE=1'])

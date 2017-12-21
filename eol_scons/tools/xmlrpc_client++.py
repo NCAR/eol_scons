@@ -2,8 +2,7 @@
 Tool for xmlrpc-c client with C++ interface.  Docs for the API are
 available at http://xmlrpc-c.sourceforge.net/.
 """
-from __future__ import print_function
-import os
+import sys
 import SCons.Errors
 import eol_scons.parseconfig as pc
 

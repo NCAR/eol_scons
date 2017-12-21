@@ -13,19 +13,21 @@ ln -s ../../../tools/eol_scons_tool.py test_site_scons/site_tools
 
 sitedir=test_site_scons
 
-test_sconstruct() # sfile
+test_sconstruct() # sfile options
 {
     sfile="$1"
-    echo "=== Testing $sfile: scons --site-dir=$sitedir -f $sfile"
-    if scons --site-dir=$sitedir -f $sfile ; then
+    shift
+    echo "=== Testing $sfile: scons -f $sfile $@"
+    if scons -f $sfile "$@" ; then
 	echo PASSED.
     else
 	echo '*** FAILED ***'
+	exit 1
     fi
 }
 
-test_sconstruct SConstruct
-test_sconstruct SConsNoDefault
-test_sconstruct SConsToolOnly
-test_sconstruct SConsSiteTool
+test_sconstruct SConstruct --site-dir=test_site_scons
+test_sconstruct SConsNoDefault --site-dir=test_site_scons
+test_sconstruct SConsToolOnly --site-dir=test_site_scons
+test_sconstruct SConsSiteTool --site-dir=test_site_scons
 

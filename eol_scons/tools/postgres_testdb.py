@@ -234,7 +234,7 @@ class PostgresTestDB(object):
             env = self.getEnvironment()
         try:
             return sp.Popen(cmd, shell=False, env=env, **args)
-        except Exception(ex):
+        except Exception as ex:
             print("   *** Exception: %s: %s" % (str(ex), scmd))
             raise
 

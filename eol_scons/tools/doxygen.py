@@ -144,7 +144,8 @@ def Doxyfile_Builder (target, source, env):
     try:
         os.makedirs(docsdir)
     except:
-        if not os.access(docsdir, os.W_OK): throw
+        if not os.access(docsdir, os.W_OK):
+            raise
     dprint(docsdir + " exists")
     doxyfile = target[0].get_abspath()
     if ddebug() and os.path.exists(doxyfile):
@@ -298,8 +299,8 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
 
     # Further customizations which can override the settings above.
     if doxyfile:
-        ifile = file(doxyfile.path)
-        dfile.write (ifile.read())
+        ifile = open(doxyfile.path)
+        dfile.write(ifile.read())
         ifile.close()
 
     # The rest are not defaults.  They are required for things to be put

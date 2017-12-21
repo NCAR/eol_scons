@@ -108,11 +108,16 @@ def _get_config(env, search_paths, config_script, args):
         if _debug:
             print("calling Popen([%s])" % ",".join([config]+args))
             print("\n".join(["%s=%s" % (k,v) for k,v in psenv.items()]))
-        child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv)
-        result = child.communicate()[0]
-        result = result.decode().strip()
-        cache[name] = "%s,%s" % (child.returncode, result)
-        result = (child.returncode, result)
+        try:
+            child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv)
+            result = child.communicate()[0]
+            result = result.decode().strip()
+            cache[name] = "%s,%s" % (child.returncode, result)
+            result = (child.returncode, result)
+        except FileNotFoundError:
+            # If the config script cannot be found, then the package must
+            # not exist either.
+            result = (1, None)
     if not result:
         result = (-1, "")
     if _debug: print("   command: %s" % (str(result)))

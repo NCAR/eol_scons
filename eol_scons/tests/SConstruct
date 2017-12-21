@@ -7,6 +7,7 @@ import os
 import sys
 
 import eol_scons
+import SCons
 
 # I don't know what this was supposed to test, but it now interferes
 # with the rest of the tests because loading the eol_scons tool explicitly
@@ -32,6 +33,7 @@ ignore_tools = [ 'gcc', 'msvc',
                  'armbecross',
                  'windriver',
                  'vxworks',
+                 'eol_scons_tool'
                  ]
 for it in ignore_tools:
     toolnames.remove(it)
@@ -57,9 +59,6 @@ for k, v in eol_scons.tool._global_tools.items():
 
 def allsettings(env):
     pass
-
-# Load an environment with every known tool and see if works
-# all = Environment(tools = ['default'] + [allsettings] + toolnames)
 
 import unittest
 
@@ -141,6 +140,35 @@ class TestEOLScons(unittest.TestCase):
                  ('-L/usr/lib64-extra', '-L/usr/lib64-extra')]
         for p in pairs:
             self.assertEqual(_filter_ldflags(p[0]), p[1])
+
+    def test_7_load_all_tools(self):
+        # Test each tool individually, so we can catch SCons.Errors.StopError
+        # from the tools which abort if their component is not found.
+        tut = dict([(name, None) for name in toolnames])
+        tut['readyflow'] = SCons.Errors.StopError
+        tut['cppunit'] = SCons.Errors.StopError
+        tut['lrose'] = SCons.Errors.StopError
+        tut['canfestival'] = SCons.Errors.StopError
+        tut['osxqtapp'] = SCons.Errors.StopError
+        tut['xmlrpc_server_abyss++'] = SCons.Errors.StopError
+        for toolname, error in tut.items():
+            result = None
+            try:
+                print("Loading tool %s..." % (toolname))
+                x = Environment(tools = ['default'] + [toolname])
+            except Exception as ex:
+                result = ex
+                # If no error expected but got one, raise it again to get a
+                # stack trace for finding syntax errors.
+                if error is None:
+                    raise ex
+            if result is None:
+                self.assert_(error is None)
+            else:
+                print(" got result type %s and expected %s" %
+                      (type(result), error))
+                self.assert_(type(result) == error)
+
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)
 

@@ -19,7 +19,7 @@ def generate(env):
         env.Append (LIBS = ['boost_unit_test_framework'])
 
 def exists(env):
-    return true
+    return True
 
 
 

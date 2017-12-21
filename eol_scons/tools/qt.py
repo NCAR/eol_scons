@@ -34,9 +34,8 @@ def qt(env, minversion=None, maxversion=None):
     minmajor = parseMajorVersion(minversion)
     maxmajor = parseMajorVersion(maxversion)
     if maxmajor < minmajor:
-      msg = "maximum version (%d) < minimum version (%d)" % (maxmajor,
-                                                             minmajor)
-      raise "Version error", msg
+      msg = "maximum version (%d) < minimum version (%d)" % (maxmajor, minmajor)
+      raise RuntimeError("Version error: %s" % (msg))
 
     if minmajor >= 4:
       #

@@ -114,8 +114,8 @@ options.
 
 import os
 import SCons
-from SCons.Variables import BoolVariable
-import eol_scons.scons_to_ninja as sn
+# from SCons.Variables import BoolVariable
+# import eol_scons.scons_to_ninja as sn
 
 variables = None
 
@@ -374,5 +374,5 @@ def NinjaCheck(env):
   
 
 def exists(env):
-    return true
+    return True
 

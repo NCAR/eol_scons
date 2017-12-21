@@ -31,7 +31,7 @@ def generate(env):
      for p in pylist:
         env.AddPostAction(os.path.join(libDir, p), compilePython)
 
-  opt= env['OPT_PREFIX']
+  opt= env.get('OPT_PREFIX', '$DEFAULT_OPT_PREFIX')
   PYTHON_SITE_DIR=os.path.join(opt, 'lib', python,'site-packages')
   env["PYTHON_SITE_DIR"] = PYTHON_SITE_DIR
   #env.Append(CPPPATH=[sysconfig.get_python_inc(), ])

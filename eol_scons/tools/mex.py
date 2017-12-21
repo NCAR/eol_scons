@@ -59,7 +59,7 @@ def generate(env):
 
 def exists(env):
     if not findMex(env):
-	SCons.Warnings.warn(ValgrindWarning, "Could not find mex program.")
+        SCons.Warnings.warn(ValgrindWarning, "Could not find mex program.")
         return False
     return True
 

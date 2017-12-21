@@ -41,6 +41,8 @@ Use the first soqt-config found in this list of paths:
         return -1
 
     def remove_path(paths, p):
+        if not paths:
+            return 0
         n = 0
         i = find_path(paths, p)
         while i >= 0:
@@ -51,11 +53,11 @@ Use the first soqt-config found in this list of paths:
 
     removed = 0
     if env.get('QT4DIR') != "/usr/lib64/qt4":
-        removed += remove_path(env['CPPPATH'], "/usr/lib64/qt4")
-        removed += remove_path(env['LIBPATH'], "/usr/lib64/qt4")
+        removed += remove_path(env.get('CPPPATH'), "/usr/lib64/qt4")
+        removed += remove_path(env.get('LIBPATH'), "/usr/lib64/qt4")
     if env.get('QT4DIR') != "/usr/lib/qt4":
-        removed += remove_path(env['CPPPATH'], "/usr/lib/qt4")
-        removed += remove_path(env['LIBPATH'], "/usr/lib/qt4")
+        removed += remove_path(env.get('CPPPATH'), "/usr/lib/qt4")
+        removed += remove_path(env.get('LIBPATH'), "/usr/lib/qt4")
     global _removed_already_warned
     if removed > 0 and not _removed_already_warned:
         print("soqt: removed %d extraneous qt4 paths from soqt-config." % removed)

@@ -121,4 +121,4 @@ def generate(env):
     env.AddMethod(BitRock, "BitRock")
 
 def exists(env):
-    return true
+    return True

@@ -141,7 +141,7 @@ class _Automoc(object):
             if (not isinstance(obj, SCons.Node.FS.Entry)):
                 try:
                     if (len(obj) != 1):
-                        raise Error
+                        raise SCons.Errors.StopError("expected one source")
                     obj = obj[0]
                 except:
                     errmsg = "qt5/_Automoc_ got a bad source object: "
@@ -637,6 +637,6 @@ def enable_modules(env, modules, debug=False) :
 
 
 def exists(env):
-    return _detect(env)
+    return True
 
 

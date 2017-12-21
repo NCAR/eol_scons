@@ -1,6 +1,8 @@
 # $Id$
 #
-import os,os.path
+import os, os.path
+
+from SCons.Script import Builder
 
 # support for Python QT - generate python files from designer .ui files
 
@@ -18,7 +20,8 @@ def generate(env):
         pyuic = os.path.join(env['OPT_PREFIX'], 'bin', 'pyuic')
     PYUIC="LD_LIBRARY_PATH=%s %s" % (qt_lib, pyuic)
     # defining this  builder doesn't  put it into the environment?!
-    bld = Builder(action='%s -o  $TARGET $SOURCE' % PYUIC, src_suffix='.ui', suffix='.py')
+    bld = Builder(action='%s -o  $TARGET $SOURCE' % PYUIC, src_suffix='.ui',
+                  suffix='.py')
     env['BUILDERS']['PYUIC']= bld
 
     # we need to propage HOME, to make pyuic stop complaining

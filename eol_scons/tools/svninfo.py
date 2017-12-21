@@ -101,16 +101,18 @@ class SubversionInfo:
             pdebug("svninfo: running '%s'" % (" ".join(cmd)))
             child = Popen(cmd, stdout=PIPE,stderr=PIPE)
             output = child.communicate()
-            pdebug("svninfo output: %s" % (output[0]))
-            pdebug("svninfo error: %s" % (output[1]))
+            sout = output[0].decode().strip()
+            eout = output[1].decode().strip()
+            pdebug("svninfo output: %s" % (sout))
+            pdebug("svninfo error: %s" % (eout))
             pdebug("svninfo returncode:" + str(child.returncode))
             if child.returncode != 0:
-                print("Warning: '%s' failed: %s" % (" ".join(cmd), output[1]))
-                return "Subversion error: " + output[1]
+                print("Warning: '%s' failed: %s" % (" ".join(cmd), eout))
+                return "Subversion error: " + eout
         except OSError as e:
             print("Warning: '%s' failed: %s" % (" ".join(cmd), str(e)))
             return "Subversion error: " + str(e)
-        return output[0]
+        return sout
 
     def getExternals(self):
         """
@@ -245,7 +247,7 @@ def svninfo_emitter_value(target, source, env):
 
 def svninfo_do_update_target(target, source):
     # If a subversion error, don't overwrite existing file
-    update = string.find(source[0].get_text_contents(), "Subversion error:") < 0
+    update = bool("Subversion error:" in source[0].get_text_contents())
     update = update or not os.path.exists(target[0].path)
     return update
 

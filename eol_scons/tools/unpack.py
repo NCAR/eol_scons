@@ -4,8 +4,6 @@ Builders to unpack archive packages.
 
 import os
 import SCons
-import string
-import new
 
 unpack_variables=[]
 
@@ -29,7 +27,7 @@ def getPackageName(env, filepath):
     filename = os.path.basename(filepath)
     for k in suffixes:
         if filename.endswith(k):
-            return filename[0:string.rfind(filename,k)]
+            return filename[0:-len(k)]
     return filename
 
 def unpack_generator(target, source, env, for_signature):
@@ -50,8 +48,7 @@ unpack_builder = SCons.Builder.Builder( generator = unpack_generator,
 def generate(env):
     """Add builders and construction variables for unpacking tools."""
     env['BUILDERS']['Unpack'] = unpack_builder
-    env.getPackageName = new.instancemethod(getPackageName,env,env.__class__)
-
+    env.AddMethod(getPackageName, "getPackageName")
 
 if 0:
 

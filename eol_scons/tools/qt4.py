@@ -138,12 +138,12 @@ class _Automoc(object):
             if (not isinstance(obj, SCons.Node.FS.Entry)):
                 try:
                     if (len(obj) != 1):
-                        raise Error
+                        raise SCons.Errors.StopError("expecting one source")
                     obj = obj[0]
                 except:
                     errmsg = "qt4/_Automoc_ got a bad source object: "
                     errmsg += str(obj)
-                    raise SCons.Errors.StopError(errmsg)                    
+                    raise SCons.Errors.StopError(errmsg)
 
             if not obj.has_builder():
                 # binary obj file provided
@@ -612,6 +612,6 @@ def enable_modules(self, modules, debug=False) :
 
 
 def exists(env):
-    return _detect(env)
+    return True
 
 
