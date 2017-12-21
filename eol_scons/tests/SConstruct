@@ -147,6 +147,8 @@ class TestEOLScons(unittest.TestCase):
         tut = dict([(name, None) for name in toolnames])
         tut['readyflow'] = SCons.Errors.StopError
         tut['cppunit'] = SCons.Errors.StopError
+        if env.Detect('cppunit-config'):
+            tut['cppunit'] = None
         tut['lrose'] = SCons.Errors.StopError
         tut['canfestival'] = SCons.Errors.StopError
         tut['osxqtapp'] = SCons.Errors.StopError
