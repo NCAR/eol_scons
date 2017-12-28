@@ -31,7 +31,7 @@ def ldd(program_node, env):
     lddcmd = ["ldd", program_node.get_abspath()]
     print(lddcmd)
     lddprocess = subprocess.Popen(lddcmd, stdout=subprocess.PIPE)
-    lddout = lddprocess.communicate()[0]
+    lddout = lddprocess.communicate()[0].decode()
     print(lddout)
     # Get the list of library keys to include
     libkeys = env['DEPLOY_SHARED_LIBS']
