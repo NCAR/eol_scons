@@ -28,7 +28,7 @@ def generate(env,**kw):
     pkgpath = os.path.join("/usr","lib",prefix,"pkgconfig")
     if os.path.isdir(pkgpath):
         env.PrependENVPath("PKG_CONFIG_PATH",pkgpath)
-        print("PKG_CONFIG_PATH=%s" % (env['ENV']['PKG_CONFIG_PATH']))
+        print("armhfcross: PKG_CONFIG_PATH=%s" % (env['ENV']['PKG_CONFIG_PATH']))
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if arm-linux-gcc is
