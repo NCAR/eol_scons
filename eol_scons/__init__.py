@@ -58,7 +58,7 @@ Debug("__init__ __file__=%s" % __file__)
 
 def InstallToolsPath():
     "Add the eol_scons/tools dir to the tool path."
-    print("Using site_tools: %s" % (tools_dir))
+    Debug("Using site_tools: %s" % (tools_dir))
     SCons.Tool.DefaultToolpath.insert(0, tools_dir)
      
 def InstallDefaultHook():
