@@ -347,10 +347,16 @@ def generate(env):
     if not _options:
         _options = env.GlobalVariables()
         _options.AddVariables(PathVariable('QT5DIR',
-            'Parent directory of qt5 bin, include and lib sub-directories. '
-            'The default location is determined from the path to qt5 tools '
-            'and from pkg-config, so QT5DIR typically does not need to be '
+            'Parent directory of qt5 bin, include and lib sub-directories.\n'
+            'The default location is determined from the path to qt5 tools\n'
+            'and from pkg-config, so QT5DIR typically does not need to be\n'
             'specified.', None, PathVariable.PathAccept))
+        _options.AddVariables(PathVariable('QT5INCDIR',
+            'Override the qt5 include directory when QT5DIR is set to a path.\n'
+            'The default location is QT5DIR/include, but sometimes the system\n'
+            'uses a path like /usr/include/qt5, so this allows\n'
+            'setting QT5DIR=/usr but QT5INCDIR=/usr/include/qt5.',
+            None, PathVariable.PathAccept))
     _options.Update(env)
 
     # 
@@ -569,7 +575,14 @@ def enable_modules(env, modules, debug=False) :
                 if not libpath.startswith('/usr/lib'):
                     env.AppendUnique(RPATH = [libpath])
 
-                hdir = os.path.join(env['QT5DIR'], 'include')
+                # It is possible to override the Qt5 include path with the
+                # QT5INCDIR variable.  This is necessary when specifically
+                # choosing the Qt5 system install by setting QT5DIR, but
+                # the headers are in a subdirectory like /usr/include/qt5,
+                # as is the case on Fedora.
+                hdir = env.get('QT5INCDIR')
+                if not hdir:
+                    hdir = os.path.join(env['QT5DIR'], 'include')
                 env.AppendUnique(CPPPATH = [hdir])
                 # I tried taking out the module-specific header directory
                 # from the include path here, to enforce the use of
