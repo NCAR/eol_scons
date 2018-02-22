@@ -342,6 +342,12 @@ def generate(env):
         _options = env.GlobalVariables()
         _options.AddVariables(PathVariable('QT4DIR',
        'Parent directory of qt4 bin, include and lib sub-directories. The default location is determined from the path to qt4 tools and from pkg-config, so QT4DIR typically does not need to be specified.', None, PathVariable.PathAccept))
+        _options.AddVariables(PathVariable('QT4INCDIR',
+            'Override the qt4 include directory when QT4DIR is set to a path.\n'
+            'The default location is QT4DIR/include, but sometimes the system\n'
+            'uses a path like /usr/include/qt4, so this allows\n'
+            'setting QT4DIR=/usr but QT4INCDIR=/usr/include/qt4.',
+            None, PathVariable.PathAccept))
     _options.Update(env)
 
     # 
@@ -559,8 +565,16 @@ def enable_modules(self, modules, debug=False) :
                 if not libpath.startswith('/usr/lib'):
                     self.AppendUnique(RPATH = [libpath])
 
-                hdir = os.path.join(self['QT4DIR'], 'include')
+                # It is possible to override the Qt4 include path with the
+                # QT4INCDIR variable.  This is necessary when specifically
+                # choosing the Qt4 system install by setting QT4DIR, but
+                # the headers are in a subdirectory like /usr/include/qt4,
+                # as is the case on Fedora.
+                hdir = self.get('QT4INCDIR')
+                if not hdir:
+                    hdir = os.path.join(env['QT4DIR'], 'include')
                 self.AppendUnique(CPPPATH = [hdir])
+
                 self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
                 self.Append(LIBS = [module])
 
