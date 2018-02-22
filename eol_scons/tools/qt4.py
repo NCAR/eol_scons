@@ -572,7 +572,7 @@ def enable_modules(self, modules, debug=False) :
                 # as is the case on Fedora.
                 hdir = self.get('QT4INCDIR')
                 if not hdir:
-                    hdir = os.path.join(env['QT4DIR'], 'include')
+                    hdir = os.path.join(self.get('QT4DIR'), 'include')
                 self.AppendUnique(CPPPATH = [hdir])
 
                 self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
