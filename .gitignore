@@ -1,6 +1,9 @@
-*.pyc
+TAGS
 README.html
-
+*.pyc
+*~
+.scon*
+eol_scons/tests/test_site_scons
 # Eclipse-generated files
 .project
 .pydevproject
