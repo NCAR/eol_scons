@@ -29,10 +29,10 @@ def ldd(program_node, env):
     libraries = {}
     # Run ldd on the program
     lddcmd = ["ldd", program_node.get_abspath()]
-    print(lddcmd)
+    env.LogDebug(lddcmd)
     lddprocess = subprocess.Popen(lddcmd, stdout=subprocess.PIPE)
     lddout = lddprocess.communicate()[0].decode()
-    print(lddout)
+    env.LogDebug(lddout)
     # Get the list of library keys to include
     libkeys = env['DEPLOY_SHARED_LIBS']
     # print("Looking for these libraries:\n"+ "\n".join(libkeys))
@@ -44,7 +44,7 @@ def ldd(program_node, env):
         if match:
             lib = env.File(match.group(1))
             if lib.name not in libraries:
-                print("Found %s" % (str(lib)))
+                env.LogDebug("Found %s" % (str(lib)))
                 libraries[lib.name] = lib
                 libraries.update (ldd(lib, env))
     return libraries
