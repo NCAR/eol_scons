@@ -19,9 +19,9 @@ POSTGRES_DIR/include.  Otherwise the default is to use the system location.
     if os.path.isdir("/usr/include/postgresql"):
         env.AppendUnique(CPPPATH = "/usr/include/postgresql")
     env.Append(LIBS=['pq',])
-    if sys.platform != 'win32':
-        env.Append(LIBS=['ssl',])
-        env.Append(LIBS=['crypto',])
+    # if sys.platform != 'win32':
+    #     env.Append(LIBS=['ssl',])
+    #     env.Append(LIBS=['crypto',])
 
 def exists(env):
     return True
