@@ -230,6 +230,9 @@ class NinjaNode(object):
         """
         node = self.node
         depnodes = node.all_children()
+        if node in depnodes:
+            print("suppressing cyclic dependent: %s" % (str(node)))
+            depnodes = [n for n in depnodes if n != node]
         if self.isAlias():
             deps = [str(dep) for dep in depnodes]
             return _ninja_alias % (node.name, ' '.join(deps))
