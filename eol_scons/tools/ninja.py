@@ -329,6 +329,14 @@ def NinjaCheck(env):
     if not ninjapath:
         return
 
+    # Add the ninja build file as a clean target, so that 'scons -c
+    # ninja=build.ninja .' does something reasonable.
+    env.Clean(ninjapath, ninjapath)
+
+    # Unless actually building, we're done here.
+    if env.GetOption('clean') or env.GetOption('help'):
+        return
+
     print("Generating ninja file (%s) instead of running commands..." %
           (ninjapath))
 
