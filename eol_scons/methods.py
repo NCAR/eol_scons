@@ -9,14 +9,10 @@ import SCons.Util
 from SCons.Util import NodeList
 from SCons.Script import DefaultEnvironment
 
-from SCons.Script.SConscript import global_exports
-
-import eol_scons.variables as esv
 import eol_scons.debug as esd
 import eol_scons.chdir as chdir
 
 _global_targets = {}
-_tool_matches = None
 
 """ Custom methods for the SCons Environment class.
 
@@ -36,18 +32,6 @@ def _PassEnv(env, regexp):
     for ek in os.environ.keys():
         if re.match(regexp, ek):
             env['ENV'][ek] = os.environ[ek]
-
-def _Require(env, tools):
-    applied = []
-    if not isinstance(tools, type([])):
-        tools = [tools]
-    env.LogDebug("eol_scons.Require[%s]" % ",".join([str(x) for x in tools]))
-    for t in tools:
-        tool = env.Tool(t)
-        if tool:
-            applied.append(tool)
-    return applied
-
 
 def _Test(self, sources, actions):
     """Create a test target and aliases for the given actions with
@@ -156,7 +140,7 @@ def _AppendSharedLibrary(env, name, path=None):
 
 def _FindPackagePath(env, optvar, globspec, defaultpath=None):
     """Check for a package installation path matching globspec."""
-    options = esv.GlobalVariables()
+    options = env.GlobalVariables()
     pdir = defaultpath
     try:
         pdir = os.environ[optvar]
@@ -188,203 +172,6 @@ def _Create(env,
 
 def _LogDebug(env, msg):
     esd.Debug(msg, env)
-
-def _GlobalVariables(env, cfile=None):
-    return esv.GlobalVariables(cfile, env)
-
-def _CacheVariables(env):
-    return esv.ToolCacheVariables(env)
-
-def _GlobalTools(env):
-    from eol_scons.tool import _global_tools
-    gkey = env.get('GLOBAL_TOOLS_KEY')
-    gtools = None
-    if gkey and gkey in _global_tools:
-        gtools = _global_tools[gkey]
-    env.LogDebug("GlobalTools(%s) returns: %s" % (gkey, gtools))
-    return gtools
-
-
-def _findToolFile(env, name):
-    global _tool_matches
-    # Need to know if the cache is enabled or not.
-    esv._update_variables(env)
-    cache = esv.ToolCacheVariables(env)
-    toolcache = cache.getPath()
-    if _tool_matches == None:
-        cvalue = cache.lookup(env, '_tool_matches')
-        if cvalue:
-            _tool_matches = cvalue.split("\n")
-            print("Using %d cached tool filenames from %s" % 
-                  (len(_tool_matches), toolcache))
-
-    if _tool_matches == None:
-        print("Searching for tool_*.py files...")
-        # Get a list of all files named "tool_<tool>.py" under the
-        # top directory.
-        toolpattern = re.compile(r"^tool_.*\.py")
-        _tool_matches = []
-        for dirpath, dirnames, filenames in os.walk(env.Dir('#').get_abspath(),
-                                                    followlinks=True):
-            hidden = [d for d in dirnames if d.startswith('.')]
-            for d in hidden:
-                dirnames.remove(d)
-            if 'site_scons' in dirnames:
-                dirnames.remove('site_scons')
-            if 'apidocs' in dirnames:
-                dirnames.remove('apidocs')
-            _tool_matches.extend([os.path.join(dirpath, file)
-                                  for file in filenames if
-                                  toolpattern.match(file)])
-        # Update the cache
-        cache.store(env, '_tool_matches', "\n".join(_tool_matches))
-        print("Found %d tool files in source tree, cached in %s" %
-              (len(_tool_matches), toolcache))
-
-    toolFileName = "tool_" + name + ".py"
-    return [f for f in _tool_matches if toolFileName == os.path.basename(f)]
-
-
-def _loadToolFile(env, name):
-    # See if there's a file named "tool_<tool>.py" somewhere under the
-    # top directory.  If we find one, load it as a SConscript which 
-    # should define and export the tool.
-    tool = None
-    matchList = _findToolFile(env, name)
-    # If we got a match, load it
-    if (len(matchList) > 0):
-        # If we got more than one match, complain...
-        if (len(matchList) > 1):
-            print("Warning: multiple tool files for " + name + ": " + 
-                  str(matchList) + ", using the first one")
-        # Load the first match
-        toolScript = matchList[0]
-        env.LogDebug("Loading %s to get tool %s..." % (toolScript, name))
-        env.SConscript(toolScript)
-        # After loading the script, make sure the tool appeared 
-        # in the global exports list.
-        if name in global_exports:
-            tool = global_exports[name]
-        else:
-            raise SCons.Errors.StopError("Tool error: " + 
-                                         toolScript +
-                                         " does not export symbol '" + name + "'")
-    return tool
-
-
-# This serves as a cache for certain kinds of tools which only need to be
-# loaded and instantiated once.  The name is mapped to the resolved python
-# function.  For example, tool_<name>.py files only need to be loaded once
-# to define the tool function, likewise for other exported tool functions.
-# However, tool.py modules with keyword parameters need to be instantiated
-# every time, since the instances may be specialized by different keyword
-# dictionaries.  Most of the tools in eol_scons site_tools expect to be
-# loaded only once, and since those tools are not loaded with keywords,
-# they are still cached in the tool dictionary as before.
-tool_dict = {}
-
-def _Tool(env, tool, toolpath=None, **kw):
-    env.LogDebug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)))
-    name = str(tool)
-    env.LogDebug("...before applying tool %s: %s" % (name, esd.Watches(env)))
-
-    if SCons.Util.is_String(tool):
-        name = env.subst(tool)
-        tool = None
-        
-        # Is the tool already in our tool dictionary?
-        if name in tool_dict:
-            env.LogDebug("Found tool %s already loaded" % name)
-            if not kw:
-                tool = tool_dict[name]
-            else:
-                env.LogDebug("Existing tool not used because "
-                             "keywords were given.")
-
-        # Check if this tool is actually an exported tool function.
-        if not tool:
-            tool = global_exports.get(name)
-            if tool:
-                env.LogDebug("Found tool %s in global_exports" % (name))
-
-        # Try to find and load a tool file named "tool_<tool>.py".
-        if not tool:
-            tool = _loadToolFile(env, name)
-
-        # All tool functions found above can be stashed safely in the tool
-        # dictionary for future reference.  That's true even if keyword
-        # parameters were passed, because these tools are python functions
-        # and the keywords will not be used anywhere.
-        if tool:
-            tool_dict[name] = tool
-
-        # Still nothing?  Resort to the usual SCons tool behavior.  This
-        # section tries to duplicate the functionality in
-        # SCons.Environment.Environment.Tool(), except we don't want to
-        # actually apply the tool yet and we want to be able to return the
-        # tool, neither of which we can do by calling the default Tool()
-        # method.  If this last resort fails, then there should be an
-        # exception which will propagate up from here.  This tool instance
-        # is *not* stashed in the local tool dictionary if there are
-        # keyword parameters.
-        if not tool:
-            env.LogDebug("Loading tool: %s" % name)
-            if toolpath is None:
-                toolpath = env.get('toolpath', [])
-            toolpath = [env._find_toolpath_dir(tool) for tool in toolpath]
-            tool = SCons.Tool.Tool(*(name, toolpath), **kw)
-            env.LogDebug("Tool loaded: %s" % name)
-            # If the tool is not specialized with keywords, then we can 
-            # stash this particular instance and avoid reloading it.
-            if tool and not kw:
-                tool_dict[name] = tool
-            elif kw:
-                env.LogDebug("Tool %s not cached because it has "
-                             "keyword parameters." % (name))
-
-    env.LogDebug("Applying tool %s" % name)
-    tool(env)
-    env.LogDebug("...after applying tool %s: %s" % (name, esd.Watches(env)))
-    # We could regenerate the help text after each tool is loaded,
-    # presuming that only tools add variables, but that would not catch
-    # variables which are added after the last tool is loaded, as well as
-    # being a lot of extra calls.  So this works to a point, and it would
-    # still allow the help text to be customized at the end of the
-    # SConstruct file.  However, it is left unused in favor of adding a
-    # simple SetHelp() call at the end of SConstruct.
-    #
-    # env.SetHelp()
-    #
-    return tool
-
-def _SetHelp(env, text=None):
-    """
-    Override the SConsEnvironment Help method to first erase any previous
-    help text.  This can help if multiple SConstruct files in a project
-    each try to generate the help text all at once.  If @p text is None,
-    then generate the help text from the global variables.  To clear the
-    help text to an empty string, pass "" in @p text.
-    """
-    import SCons.Script
-    SCons.Script.help_text = None
-    if text is None:
-        variables = env.GlobalVariables()
-        variables.Update(env)
-        text = variables.GenerateHelpText(env)
-
-    # It doesn't work to call the real Help() function because it performs
-    # a substitution on the text.  There is already lots of variable help
-    # text written using $VARIABLE which is not supposed to be substituted.
-    # Further, some of the $VARIABLE references do not parse because they
-    # are followed by a period. (eg, soqt.py and coin.py) So instead call
-    # the HelpFunction() directly.  If that ever breaks and we need to
-    # resort to calling the standard Help() method, then it may help to fix
-    # the variable references in the help text first, like so:
-    #
-    # text = re.sub(r'\$', '$$', text)
-    # env.Help(text)
-    #
-    SCons.Script.HelpFunction(text)
 
 
 # Include this as a standard part of Environment, so that other tools can
@@ -421,7 +208,6 @@ def _addMethods(env):
     env.AddMethod(_LogDebug, "LogDebug")
     env.LogDebug("add methods to environment %s, Install=%s, new _Install=%s" % 
                  (env, env.Install, _Install))
-    env.AddMethod(_Require, "Require")
     env.AddMethod(_AddLibraryTarget, "AddLibraryTarget")
     env.AddMethod(_AddGlobalTarget, "AddGlobalTarget")
     env.AddMethod(_GetGlobalTarget, "GetGlobalTarget")
@@ -433,17 +219,7 @@ def _addMethods(env):
     env.AddMethod(_ChdirActions, "ChdirActions")
     env.AddMethod(_Test, "Test")
     env.AddMethod(_FindPackagePath, "FindPackagePath")
-    env.AddMethod(_GlobalVariables, "GlobalVariables")
-    env.AddMethod(_CacheVariables, "CacheVariables")
-    # Alias for temporary backwards compatibility
-    env.AddMethod(_GlobalVariables, "GlobalOptions")
-    env.AddMethod(_GlobalTools, "GlobalTools")
-    env.AddMethod(_Tool, "Tool")
     env.AddMethod(_AppendDoxref, "AppendDoxref")
-
-    # So that only the last Help text setting takes effect, rather than
-    # duplicating info when SConstruct files are loaded from sub-projects.
-    env.AddMethod(_SetHelp, "SetHelp")
 
     # For backwards compatibility:
     env.AddMethod(_Create, "Create")

@@ -132,7 +132,81 @@ def PathToAbsolute(path, env):
     # print("Converting PREFIX=%s to %s" % (path, apath))
     return apath
 
+
+def _GlobalVariables(env, cfile=None):
+    return GlobalVariables(cfile, env)
+
+
+def _CacheVariables(env):
+    return ToolCacheVariables(env)
+
+
+def _AliasHelpText():
+    """
+    Generate help text for all the aliases by tapping into the default
+    AliasNameSpace, and listing their dependency nodes.
+    """
+    aliases = SCons.Node.Alias.default_ans
+    names = aliases.keys()
+    names.sort()
+    text = "Aliases:\n"
+    width = max([len(n) for n in [""] + names])
+    for name in names:
+        node = aliases[name]
+        row = " "*(1 + width-len(name))
+        row += "%s: %s" % (name, ", ".join([str(n) for n in
+                                            node.all_children()]))
+        if len(row) > 75:
+            row = row[:75] + '...'
+        text += row
+        text += "\n"
+    return text
+
+
+def _SetHelp(env, text=None):
+    """
+    Override the SConsEnvironment Help method to first erase any previous
+    help text.  This can help if multiple SConstruct files in a project
+    each try to generate the help text all at once.  If @p text is None,
+    then generate the help text from the global variables.  To clear the
+    help text to an empty string, pass "" in @p text.
+    """
+    import SCons.Script
+    SCons.Script.help_text = None
+    if text is None:
+        variables = env.GlobalVariables()
+        variables.Update(env)
+        text = variables.GenerateHelpText(env)
+
+    text += "\n" + _AliasHelpText()
+
+    # It doesn't work to call the real Help() function because it performs
+    # a substitution on the text.  There is already lots of variable help
+    # text written using $VARIABLE which is not supposed to be substituted.
+    # Further, some of the $VARIABLE references do not parse because they
+    # are followed by a period. (eg, soqt.py and coin.py) So instead call
+    # the HelpFunction() directly.  If that ever breaks and we need to
+    # resort to calling the standard Help() method, then it may help to fix
+    # the variable references in the help text first, like so:
+    #
+    # text = re.sub(r'\$', '$$', text)
+    # env.Help(text)
+    #
+    SCons.Script.HelpFunction(text)
+
+
 def _update_variables(env):
+
+    # Add our variables methods to this Environment.
+    env.AddMethod(_GlobalVariables, "GlobalVariables")
+    env.AddMethod(_CacheVariables, "CacheVariables")
+    # Alias for temporary backwards compatibility
+    env.AddMethod(_GlobalVariables, "GlobalOptions")
+
+    # So that only the last Help text setting takes effect, rather than
+    # duplicating info when SConstruct files are loaded from sub-projects.
+    env.AddMethod(_SetHelp, "SetHelp")
+
     # Do not update the environment with global variables unless some
     # global variables have been created.
     if _global_variables and _global_variables.keys():
