@@ -141,7 +141,7 @@ def _CacheVariables(env):
     return ToolCacheVariables(env)
 
 
-def _AliasHelpText():
+def _AliasHelpText(env_):
     """
     Generate help text for all the aliases by tapping into the default
     AliasNameSpace, and listing their dependency nodes.
@@ -178,7 +178,7 @@ def _SetHelp(env, text=None):
         variables.Update(env)
         text = variables.GenerateHelpText(env)
 
-    text += "\n" + _AliasHelpText()
+    text += "\n" + _AliasHelpText(env)
 
     # It doesn't work to call the real Help() function because it performs
     # a substitution on the text.  There is already lots of variable help
@@ -206,6 +206,7 @@ def _update_variables(env):
     # So that only the last Help text setting takes effect, rather than
     # duplicating info when SConstruct files are loaded from sub-projects.
     env.AddMethod(_SetHelp, "SetHelp")
+    env.AddMethod(_AliasHelpText, "AliasHelpText")
 
     # Do not update the environment with global variables unless some
     # global variables have been created.
