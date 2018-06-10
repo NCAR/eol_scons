@@ -180,6 +180,17 @@ def _SetHelp(env, text=None):
 
     text += "\n" + _AliasHelpText(env)
 
+    SCons.Script.AddOption("--list-defaults", dest="listdefaults",
+                           action="store_true")
+    if env.GetOption("listdefaults"):
+        dtargets = list(set([str(n) for n in SCons.Script.DEFAULT_TARGETS]))
+        dtargets.sort()
+        text += "\nDefault targets:\n"
+        for target in dtargets:
+            text += "  %s\n" % (str(target))
+    else:
+        text += "\nDefault targets can be included with '-h --list-defaults'.\n"
+
     # It doesn't work to call the real Help() function because it performs
     # a substitution on the text.  There is already lots of variable help
     # text written using $VARIABLE which is not supposed to be substituted.
