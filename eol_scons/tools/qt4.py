@@ -91,17 +91,8 @@ class _Automoc(object):
         Smart autoscan function. Gets the list of objects for the Program
         or Lib. Adds objects and builders for the special qt4 files.
         """
-        try:
-            if int(env.subst('$QT_AUTOSCAN')) == 0:
-                return target, source
-        except ValueError:
-            pass
-        try:
-            debug = int(env.subst('$QT_DEBUG'))
-        except ValueError:
-            debug = 0
-        if debug and not eol_scons.debug:
-            eol_scons.SetDebug(True)
+        if int(env.subst('$QT_AUTOSCAN')) == 0:
+            return target, source
 
         # some shortcuts used in the scanner
         FS = SCons.Node.FS.default_fs
@@ -404,7 +395,7 @@ def generate(env):
     env['QT4_LRELEASE'] = _locateQt4Command(env, 'lrelease')
 
     # Should the qt4 tool try to figure out which sources are to be moc'ed ?
-    env['QT4_AUTOSCAN'] = 1
+    env['QT_AUTOSCAN'] = 1
 
     # Some QT specific flags. I don't expect someone wants to
     # manipulate those ...
