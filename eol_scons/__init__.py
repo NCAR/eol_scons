@@ -23,6 +23,9 @@ SetDebug(enable): set the global debugging flag to 'enable'.
 
 Debug(msg): Print a debug message if the global debugging flag is true.
 
+LookupDebug(tool): Some tools use this to see if their tool name appears in
+the debug key list, meaning the tool should print extra debugging messages.
+
 Nothing else in this module should be called from outside the package.  In
 particular, all the symbols starting with an underscore are meant to be
 private.  See the README file for the documentation for this module.
@@ -39,6 +42,7 @@ import SCons.Defaults
 # For backward compatibility, import symbols into the eol_scons package
 # namespace.
 from eol_scons.debug import Debug
+from eol_scons.debug import LookupDebug
 from eol_scons.variables import GlobalOptions   # replaced by GlobalVariables
 from eol_scons.variables import GlobalVariables
 from eol_scons.variables import PathToAbsolute

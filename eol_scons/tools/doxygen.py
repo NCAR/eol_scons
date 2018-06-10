@@ -19,7 +19,10 @@ try:
 except:
     from io import StringIO
 
-_debug = False
+import eol_scons
+_debug = eol_scons.LookupDebug('doxygen')
+if _debug:
+    print("doxygen debug enabled.")
 
 def ddebug():
     return _debug
@@ -561,16 +564,22 @@ def _projectAddApidocs(env, source, **kw):
     global _project
     _project.update(kw)
     sources = _project.get("SOURCE", [])
-    sources.extend([env.File(s) for s in source])
+    # We can't assume every source is a file, in case someone wants to pass
+    # a directory as a source.
+    sources.extend([env.Entry(s) for s in source])
     _project["SOURCE"] = sources
+    dprint("project apidocs extended to %d sources." % (len(sources)))
     return _project
 
 
 def Apidocs(env, source, **kw):
     "Pseudo-builder to generate documentation under apidocs directory."
+    dprint("Apidocs(source=%s)" % (",".join([str(s) for s in source])))
     _projectAddApidocs(env, source, **kw)
     if _disable_subprojects:
-        return env.Dir('#/apidocs')
+        # This should be an array of nodes, same as returned by an actual
+        # builder.
+        return [env.Dir('#/apidocs')]
     target = os.path.join(apidocsdir(env), 'Doxyfile')
     doxyfile = env.Doxyfile(target=target, source=source, **kw)
     # This just keeps scons from removing the target before the builder
