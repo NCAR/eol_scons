@@ -83,17 +83,36 @@ from subprocess import Popen,PIPE
 def Kmake(env,target,source):
 
     if 'KERNELDIR' not in env or env['KERNELDIR'] == '':
-        print("KERNELDIR not specified, " + target[0].abspath + " will not be built")
+        print("KERNELDIR not specified, %s will not be built" %
+              (target[0].abspath))
         return None
 
-    if not os.path.exists(env['KERNELDIR']):
-        print('Error: KERNELDIR=' + env['KERNELDIR'] + ' not found.')
+    # KERNELDIR is an overloaded scons variable.  It is a user-specified
+    # configuration variable, but then it is replaced if it has the special
+    # value '*'.  Because variables can be updated anywhere, there is
+    # nothing to ensure that the variable is not reset to the default or to
+    # whatever the config file specifies, which means the generated default
+    # kernel dir can be reset at any time back to '*'.  So catch this
+    # situation and apply the default here.  The other way to handle this
+    # is to change the default value for the KERNELDIR variable to
+    # $KERNELDIRDEFAULT, now that the generate() function of this tool sets
+    # KERNELDIRDEFAULT appropriately, and then KERNELDIR will be rendered
+    # correctly on the command line.  For now, this should allow all the
+    # existing uses of KERNELDIR to keep working as before.
+
+    if env['KERNELDIR'] == '*':
+        env['KERNELDIR'] = '$KERNELDIRDEFAULT'
+        print("replaced KERNELDIR=* with KERNELDIR=%s" % (env['KERNELDIR']))
+
+    if not os.path.exists(env.subst(env['KERNELDIR'])):
+        print('Error: KERNELDIR=' + env.subst(env['KERNELDIR']) + ' not found.')
 
     # Have the shell subprocess do a cd to the source directory.
     # If scons/python does it, then the -j multithreaded option doesn't work.
     srcdir = os.path.dirname(source[0].abspath)
 
-    # Grab the Module.symvers sources, put them in a KBUILD_EXTRA_SYMBOLS make option
+    # Grab the Module.symvers sources, put them in a KBUILD_EXTRA_SYMBOLS
+    # make option
     symvers = []
     for s in source:
         spath = os.path.basename(s.path) 
@@ -110,6 +129,55 @@ def Kmake(env,target,source):
 
 def kemitter(target, source, env):
     return ([target, 'Module.symvers'], source)
+
+_default_kerneldir = None
+
+def kerneldir_default():
+    """
+    Return the default kernel directory on this system.
+    """
+    # The default kernel directory should always be the same, so no need to
+    # generate it more than once.
+    global _default_kerneldir
+    if _default_kerneldir:
+        return _default_kerneldir
+
+    krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].decode().rstrip("\n")
+    # How to build KERNELDIR from uname:
+    # EL5, i686, PAE: (merlot)
+    #   uname -r: 2.6.18-164.9.1.el5PAE
+    #   uname -m: i686
+    #   kernel-devel path: /usr/src/kernels/2.6.18-164.9.1.el5-i686
+    #   For KERNELDIR, must remove "PAE" from `uname -r`, append '-' + `uname -m`
+    # EL5, x86_64: (shiraz)
+    #   uname -r: 2.6.18-164.6.1.el5
+    #   uname -m: x86_64
+    #   kernel-devel path: /usr/src/kernels/2.6.18-64.el5-x86_64
+    #   KERNELDIR is /usr/src/kernels/`uname -r` + '-' + `uname -m`
+    # Fedora 11, i686, PAE (need package: kernel-PAE-devel)
+    #   uname -r: 2.6.30.10-105.fc11.i686.PAE
+    #   uname -m: i686
+    #   kernel-PAE-devel path: /usr/src/kernels/2.6.30.10-105.fc11.i686.PAE
+    #   KERNELDIR is /usr/src/kernels/`uname -r`
+    #
+    kdir = '/usr/src/kernels/' + krel
+    # Debian
+    if not os.path.exists(kdir):
+        kdir = '/usr/src/linux-headers-' + krel
+    if not os.path.exists(kdir):
+        kmach = Popen(['uname','-m'],stdout=PIPE).communicate()[0]
+        kmach = kmach.decode().rstrip("\n")
+        kdir = '/usr/src/kernels/' + krel + '-' + kmach
+        if not os.path.exists(kdir):
+            # Remove PAE or xen from uname -r output
+            krel = krel.replace("xen","")
+            krel = krel.replace("PAE","")
+            kdir = '/usr/src/kernels/' + krel + '-' + kmach
+
+    _default_kerneldir = kdir
+    print("KERNELDIRDEFAULT=%s" % (kdir))
+    return kdir
+
 
 def generate(env, **kw):
 
@@ -132,38 +200,9 @@ def generate(env, **kw):
     if 'KERNELDIR' in kw:
         env['KERNELDIR'] = kw.get('KERNELDIR')
 
+    kdir = kerneldir_default()
+    env.Replace(KERNELDIRDEFAULT = kdir)
     if 'KERNELDIR' not in env or env['KERNELDIR'] == '*':
-        krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].decode().rstrip("\n")
-        # How to build KERNELDIR from uname:
-        # EL5, i686, PAE: (merlot)
-        #   uname -r: 2.6.18-164.9.1.el5PAE
-        #   uname -m: i686
-        #   kernel-devel path: /usr/src/kernels/2.6.18-164.9.1.el5-i686
-        #   For KERNELDIR, must remove "PAE" from `uname -r`, append '-' + `uname -m`
-        # EL5, x86_64: (shiraz)
-        #   uname -r: 2.6.18-164.6.1.el5
-        #   uname -m: x86_64
-        #   kernel-devel path: /usr/src/kernels/2.6.18-64.el5-x86_64
-        #   KERNELDIR is /usr/src/kernels/`uname -r` + '-' + `uname -m`
-        # Fedora 11, i686, PAE (need package: kernel-PAE-devel)
-        #   uname -r: 2.6.30.10-105.fc11.i686.PAE
-        #   uname -m: i686
-        #   kernel-PAE-devel path: /usr/src/kernels/2.6.30.10-105.fc11.i686.PAE
-        #   KERNELDIR is /usr/src/kernels/`uname -r`
-        #
-        kdir = '/usr/src/kernels/' + krel
-	# Debian
-        if not os.path.exists(kdir):
-            kdir = '/usr/src/linux-headers-' + krel
-        if not os.path.exists(kdir):
-            kmach = Popen(['uname','-m'],stdout=PIPE).communicate()[0].decode().rstrip("\n")
-            kdir = '/usr/src/kernels/' + krel + '-' + kmach
-            if not os.path.exists(kdir):
-                # Remove PAE or xen from uname -r output
-                krel = krel.replace("xen","")
-                krel = krel.replace("PAE","")
-                kdir = '/usr/src/kernels/' + krel + '-' + kmach
-
         env.Replace(KERNELDIR = kdir)
 
     print('kmake: KERNELDIR=' + env['KERNELDIR'])
