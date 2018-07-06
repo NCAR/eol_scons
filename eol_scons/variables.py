@@ -163,22 +163,23 @@ def _AliasHelpText(env_):
     return text
 
 
-def _SetHelp(env, text=None):
+def _GenerateHelpText(env):
     """
-    Override the SConsEnvironment Help method to first erase any previous
-    help text.  This can help if multiple SConstruct files in a project
-    each try to generate the help text all at once.  If @p text is None,
-    then generate the help text from the global variables.  To clear the
-    help text to an empty string, pass "" in @p text.
+    Generate the eol_scons default help text, which includes the help text
+    from all the global variables, a list of aliases, and also a list of
+    the default targets if the --list-defaults option is set.
     """
-    import SCons.Script
-    SCons.Script.help_text = None
-    if text is None:
-        variables = env.GlobalVariables()
-        variables.Update(env)
-        text = variables.GenerateHelpText(env)
+    variables = env.GlobalVariables()
+    variables.Update(env)
+    text = variables.GenerateHelpText(env)
 
-    text += "\n" + _AliasHelpText(env)
+    SCons.Script.AddOption("--list-aliases", dest="listaliases",
+                           action="store_true")
+    text += "\n"
+    if env.GetOption("listaliases"):
+        text += _AliasHelpText(env)
+    else:
+        text += "Aliases can be listed with '-h --list-aliases'.\n"
 
     SCons.Script.AddOption("--list-defaults", dest="listdefaults",
                            action="store_true")
@@ -190,6 +191,40 @@ def _SetHelp(env, text=None):
             text += "  %s\n" % (str(target))
     else:
         text += "\nDefault targets can be included with '-h --list-defaults'.\n"
+    return text
+
+
+def _SetHelp(env, text=None):
+    """
+    Override the SConsEnvironment Help method to first erase any previous
+    help text.  This can help if multiple SConstruct files in a project
+    each try to generate the help text all at once.  If @p text is None,
+    then generate the help text from the global variables.  To clear the
+    help text to an empty string, pass "" in @p text.
+
+    Note that scons help is somewhat convoluted.  Before v3, HelpFunction()
+    always appended to the current help text.  Since v3, it resets the help
+    text by default, unless the append keyword is True, but the append
+    keyword does not exist before v3.  So to try to be consistent, this
+    method always resets the help text first.  The AddHelp() method is
+    provided to explicitly append to the help text.
+
+    Therefore, to generate and install all the default help text, and then
+    append any custom text, use this code:
+
+        env.SetHelp()
+        env.AddHelp("See here for custom help.")
+
+    To set the custom help first, then append the generated help text, use
+    this:
+
+        env.SetHelp("See here for custom help.")
+        env.AddHelp()
+    """
+    import SCons.Script
+    SCons.Script.help_text = None
+    if text is None:
+        text = _GenerateHelpText(env)
 
     # It doesn't work to call the real Help() function because it performs
     # a substitution on the text.  There is already lots of variable help
@@ -206,6 +241,21 @@ def _SetHelp(env, text=None):
     SCons.Script.HelpFunction(text)
 
 
+def _AddHelp(env, text=None):
+    """
+    Append help text to the current help text.  If text is None, generate
+    the default text and append it.  See SetHelp().
+    """
+    if text is None:
+        text = _GenerateHelpText(env)
+
+    # Because of the change in how HelpFunction() works between v2.3 and
+    # v3.0, the only way to be sure we always append to the current
+    # help_text is to manipulate help_text directly.
+    import SCons.Script
+    SCons.Script.help_text = SCons.Script.help_text + text
+
+
 def _update_variables(env):
 
     # Add our variables methods to this Environment.
@@ -217,7 +267,9 @@ def _update_variables(env):
     # So that only the last Help text setting takes effect, rather than
     # duplicating info when SConstruct files are loaded from sub-projects.
     env.AddMethod(_SetHelp, "SetHelp")
+    env.AddMethod(_AddHelp, "AddHelp")
     env.AddMethod(_AliasHelpText, "AliasHelpText")
+    env.AddMethod(_GenerateHelpText, "GenerateHelpText")
 
     # Do not update the environment with global variables unless some
     # global variables have been created.
