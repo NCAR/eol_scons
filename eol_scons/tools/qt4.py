@@ -483,7 +483,7 @@ def enable_modules(self, modules, debug=False) :
 
     self.LogDebug("Entering qt4 enable_modules(%s) with sys.platform=%s..." %
                   (",".join(modules), sys.platform))
-    if sys.platform.startswith("linux"):
+    if sys.platform.startswith("linux") or sys.platform == "msys":
 
         if 'QT4DIR' not in self:
             return False
@@ -530,6 +530,13 @@ def enable_modules(self, modules, debug=False) :
                     self.AppendUnique(CPPPATH = [os.path.join(hdir, module)])
                     Debug("qt4.enable_modules appended %s to CPPPATH" %
                           os.path.join(hdir, module), self)
+                    # On MSYS2 pkg-config is returning C: in the path, which
+                    # scons then adds a prefix (e.g. "plotlib/" in aeros).
+                    # Replace C: with /c
+                    pathlist = self['CPPPATH']
+                    for i, s in enumerate(pathlist):
+                        pathlist[i] = str(s).replace('C:', '/c')
+                    self['CPPPATH'] = pathlist
             else:
                 Debug("enabling module %s with QT4DIR=%s" %
                       (module, self['QT4DIR']), self)
