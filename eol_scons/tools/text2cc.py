@@ -15,7 +15,7 @@ except:
 
 def _escape(text):
     text = re.sub(r'"', r'\"', text)
-    if (sys.platform == "win32" or sys.platform == "msys"):
+    if (sys.platform == "win32"):
     	text = re.sub(r'\r\n', r'\\n"\n"', text)
     else:
     	text = re.sub(r'\n', r'\\n"\n"', text)
