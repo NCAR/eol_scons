@@ -14,11 +14,23 @@ except:
     from io import StringIO
 
 def _escape(text):
+    """
+    Escape double quotes and newlines, preserving whatever line endings are
+    in the text file for the source code.  This function is
+    platform-agnostic.  If the code needs certain line endings in the text,
+    then the revision control system should make sure the text file gets
+    those line endings.  This function always generates newline line
+    endings for the source code, ie, between the line strings, since
+    compilers don't care about whitespace.
+    """
+    # First, escape all double quotes.
     text = re.sub(r'"', r'\"', text)
-    if (sys.platform == "win32"):
-    	text = re.sub(r'\r\n', r'\\n"\n"', text)
-    else:
-    	text = re.sub(r'\n', r'\\n"\n"', text)
+    # Then, escape all carriage returns and newlines.
+    text = re.sub(r'\r', r'\\r', text)
+    text = re.sub(r'\n', r'\\n', text)
+    # Finally, everywhere there's a newline, insert a line break with
+    # quotes to end the previous line and begin the next line.
+    text = re.sub(r'\\n', r'\\n"\n"', text)
     return '"' + text + '"'
 
 
@@ -93,7 +105,14 @@ _code += '"first \\"line\\"\\n"\n"second \\"line\\"\\n"\n"";\n'
 def test_text2cc():
     assert(_escape('hello world') == '"hello world"')
     assert(_escape('hello world\n') == '"hello world\\n"\n""')
+    assert(_escape('hello world\r\n') == '"hello world\\r\\n"\n""')
+    assert(_escape('hello\r\nworld\r\n') == '"hello\\r\\n"\n"world\\r\\n"\n""')
 
     code = text2cc(_example, "EXAMPLE")
     print(code)
     assert(code == _code)
+
+
+if __name__ == "__main__":
+    with open(sys.argv[1]) as tf:
+        print(text2cc(tf.read(), "TEXT2CC"))
