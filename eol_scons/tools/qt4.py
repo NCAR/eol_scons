@@ -538,6 +538,10 @@ def enable_modules(self, modules, debug=False) :
                 for i, s in enumerate(pathlist):
                     pathlist[i] = str(s).replace('C:', '/c')
                 self['CPPPATH'] = pathlist
+                pathlist = self['LIBPATH']
+                for i, s in enumerate(pathlist):
+                    pathlist[i] = str(s).replace('C:', '/c')
+                self['LIBPATH'] = pathlist
             else:
                 Debug("enabling module %s with QT4DIR=%s" %
                       (module, self['QT4DIR']), self)
