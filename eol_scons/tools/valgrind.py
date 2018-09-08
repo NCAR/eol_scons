@@ -100,6 +100,7 @@ def _parseValgrindOutput(log):
               'dlost' : re.compile(r"definitely lost: *([\d,]+) bytes"),
               'plost' : re.compile(r"possibly lost: *([\d,]+) bytes"),
               'ilost' : re.compile(r"indirectly lost: *([\d,]+) bytes") }
+    rxnoleaks = re.compile(r"no leaks are possible")
     results = {}
     # Look for the tool in the first 10 lines of the file.  Limit the line
     # lengths in case this is a binary file with no newlines.  If the
@@ -120,10 +121,15 @@ def _parseValgrindOutput(log):
     results['tool'] = match.group(1)
     while line:
         l = line.strip()
+        if rxnoleaks.search(line):
+            results['dlost'] = 0
+            results['plost'] = 0
+            results['ilost'] = 0
+            print("valgrind: %s" % line)
         for vname, rx in rxmap.items():
             match = rx.search(line)
             if match:
-                print("found %s in %s" % (vname, line))
+                print("valgrind: %s in %s" % (vname, line))
                 results[vname] = int(match.group(1).replace(',',''))
         line = log.readline()
 
