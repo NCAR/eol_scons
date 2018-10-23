@@ -36,7 +36,7 @@ pylintrc = os.path.join(os.path.dirname(__file__), "pylintrc")
 def generate(env):
     env.AddMethod(find_python_files, "FindPythonFiles")
     env.AddMethod(PythonLint, "PythonLint")
-    env.SetDefault(PYLINT='pylint')
+    env.SetDefault(PYLINT='pylint-2')
     env.SetDefault(PYLINTRC=pylintrc)
     env.SetDefault(PYLINTARGS='')
     env.SetDefault(PYLINTPYTHONPATH=env.Dir('.').path)
@@ -51,6 +51,8 @@ if __name__ == "__main__":
     # on them with the same options as would be used as part of a SCons
     # build.
     import sys
-    pylint = ["pylint", "--rcfile="+pylintrc]
+    import os
+    pylint = os.environ.get('PYLINT', 'pylint-2')
+    pylint = [pylint, "--rcfile="+pylintrc]
     print(" ".join(pylint))
     os.execvp(pylint[0], pylint+sys.argv[1:])
