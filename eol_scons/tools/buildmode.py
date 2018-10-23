@@ -27,7 +27,7 @@ def generate(env):
     env.SetDefault(BUILDMODE_DEFAULT='debug,warnings,optimize')
     options = env.GlobalVariables()
     if 'buildmode' not in options.keys():
-        modes = ['debug', 'warnings', 'optimize', 'profile']
+        modes = ['debug', 'warnings', 'optimize', 'profile', 'cppcheck']
         options.AddVariables(
             ListVariable('buildmode', """\
 Select basic building modes such as debugging and optimization.
