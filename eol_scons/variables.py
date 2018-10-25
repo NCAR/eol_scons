@@ -120,9 +120,8 @@ def ToolCacheVariables(env):
             print("Tool settings cache: %s" % (_cache_variables.getPath()))
         else:
             _cache_variables = VariableCache(None)
-            print("Tool cache will not be used. "
-                  "(It is now disabled by default.) "
-                  "It can be enabled by setting eolsconscache=1")
+            env.LogDebug("Tool cache is disabled by default. "
+                         "Enable it by setting eolsconscache=1.")
     return _cache_variables
 
 

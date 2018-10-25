@@ -132,8 +132,12 @@ def _findToolFile(env, name):
                                   toolpattern.match(file)])
         # Update the cache
         cache.store(env, '_tool_matches', "\n".join(_tool_matches))
-        print("Found %d tool files in source tree, cached in %s" %
-              (len(_tool_matches), toolcache))
+        if toolcache:
+            cachemsg = "cached in %s." % (toolcache)
+        else:
+            cachemsg = "caching is disabled."
+        print("Found %d tool files, %s" %
+              (len(_tool_matches), cachemsg))
 
     toolFileName = "tool_" + name + ".py"
     return [f for f in _tool_matches if toolFileName == os.path.basename(f)]

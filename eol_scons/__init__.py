@@ -59,6 +59,8 @@ from eol_scons.tool import DefineQtTools
 
 Debug("__init__ __file__=%s" % __file__)
 
+print("Loading eol_scons from %s..." %
+      (os.path.abspath(os.path.dirname(__file__))))
 
 def InstallToolsPath():
     "Add the eol_scons/tools dir to the tool path."
