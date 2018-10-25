@@ -61,30 +61,30 @@ sudo yum install eol_scons
 ```shell
 mkdir $HOME/.scons
 cd $HOME/.scons
-git clone http://github.com/ncareol/eol_scons site_scons
+git clone http://github.com/ncar/eol_scons site_scons
 ```
 
 Or if you have setup an ssh key on github, and will want to push back your changes to github:
 ```shell
-git clone git@github.com:ncareol/eol_scons.git site_scons
+git clone git@github.com:ncar/eol_scons.git site_scons
 ```
 
 ### Install eol_scons to ./site_scons
 In the directory containing SConstruct:
 ```shell
-git clone http://github.com/ncareol/eol_scons site_scons
+git clone http://github.com/ncar/eol_scons site_scons
 ```
 or
 ```shell
-git clone git@github.com:ncareol/eol_scons.git site_scons
+git clone git@github.com:ncar/eol_scons.git site_scons
 ```
 
 ### Access eol_scons as a git submodule
 In a git repository, in the same directory as your SConstruct, where vX.Y is the tagged branch of eol_scons you want to use, or leave off the '-b vX.Y' if you want the latest:
 ```shell
-git submodule -add -b vX.Y https://github.com/ncareol/eol_scons site_scons
+git submodule -add -b vX.Y https://github.com/ncar/eol_scons site_scons
 ```
-If your code repository is also on https://github.com/ncareol, you can use a relative URL:
+If your code repository is also on https://github.com/ncar, you can use a relative URL:
 ```shell
 git submodule -add -b vX.Y ../eol_scons site_scons
 ```
