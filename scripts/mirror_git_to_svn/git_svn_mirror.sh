@@ -11,7 +11,7 @@ if ! [ $JENKINS_HOME ]; then
     [ -d $JENKINS_HOME ] || mkdir $JENKINS_HOME
     cd $JENKINS_HOME
 
-    giturl=https://github.com/ncareol/${repo}.git
+    giturl=https://github.com/ncar/${repo}.git
 
     # emulate how jenkins sets up the working tree
     # jenkins works in a "detached head" state, with no current

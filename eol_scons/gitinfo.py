@@ -21,7 +21,7 @@ env['REPO_REVISION']  V3.2-26
 env['REPO_DATE']      Wed Dec 3 13:45:13 2014 -0700
 env['REPO_BRANCH']    develop
 env['REPO_WORKDIR']   /Users/martinc/git/aspen
-env['REPO_URL']       https://github.com/ncareol/aspen.git
+env['REPO_URL']       https://github.com/ncar/aspen.git
 env['REPO_EXTERNALS'] unknown
 env['REPO_HASH']      6badaf8a78527b248adcda4a88c0579dcb90198a
 
@@ -34,7 +34,7 @@ Example generated header file text:
 #define REPO_EXTERNALS "unknown"
 #define REPO_DATE      "Wed Dec 3 13:45:13 2014 -0700"
 #define REPO_WORKDIR   "/Users/martinc/git/aspen"
-#define REPO_URL       "https://github.com/ncareol/aspen.git"
+#define REPO_URL       "https://github.com/ncar/aspen.git"
 #define REPO_HASH      "6badaf8a78527b248adcda4a88c0579dcb90198a"
 #define REPO_COMMITS   "26"
 #define REPO_TAG       "V3.2"

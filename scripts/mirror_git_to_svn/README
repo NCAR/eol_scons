@@ -7,10 +7,10 @@ still work.
 
 The subversion repository http://svn/svn/eol/common/trunk/site_scons
 was cloned to become the public git repository at github:
-http://github.com/ncareol/eol_scons, using the clone_svn_to_git.sh
+http://github.com/ncar/eol_scons, using the clone_svn_to_git.sh
 script, listed below.
 
-The git master branch on http://github.com/ncareol/eol_scons is then
+The git master branch on http://github.com/ncar/eol_scons is then
 mirrored to http://svn/svn/eol/common/trunk/site_scons by the jenkins server
 at EOL. The eol_scons jenkins project polls github for changes, and then
 runs the mirror_git_to_svn.sh script listed below.
@@ -31,7 +31,7 @@ Scripts:
 
     push_github.sh
         Next, a public eol_scons repository was created at github using an
-        ncareol account, and this script was used to push the bare eol_scons
+        ncar account, and this script was used to push the bare eol_scons
         repository to github.
 
     mirror_git_to_svn.sh

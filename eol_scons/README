@@ -115,7 +115,7 @@ and testing changes.
 @code
 mkdir -p $HOME/git
 cd $HOME/git
-git clone http://github.com/ncareol/eol_scons
+git clone http://github.com/ncar/eol_scons
 mkdir -p $HOME/.scons/site_scons
 cd $HOME/.scons/site_scons
 ln -s $HOME/git/eol_scons/eol_scons .
@@ -127,7 +127,7 @@ under the directory containing SConstruct:
 @code
 mkdir site_scons
 cd site_scons
-git clone http://github.com/ncareol/eol_scons
+git clone http://github.com/ncar/eol_scons
 @endcode
 
 Finally, eol_scons can be installed on the standard python search path.
