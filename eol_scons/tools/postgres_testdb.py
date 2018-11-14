@@ -484,7 +484,7 @@ def dumpdb(target, source, env):
     if platform:
         db = db + "-" + platform
     pg = env.PostgresTestDB()
-    pg.dump("eol-rt-data.fl-ext.ucar.edu", "ads", db, target[0].get_abspath(),
+    pg.dump("eol-rt-data.eol.ucar.edu", "ads", db, target[0].get_abspath(),
             env=os.environ)
 
 
