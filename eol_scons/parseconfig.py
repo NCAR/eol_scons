@@ -114,7 +114,7 @@ def _get_config(env, search_paths, config_script, args):
             result = result.decode().strip()
             cache[name] = "%s,%s" % (child.returncode, result)
             result = (child.returncode, result)
-        except FileNotFoundError:
+        except OSError:
             # If the config script cannot be found, then the package must
             # not exist either.
             result = (1, None)
