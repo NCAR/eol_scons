@@ -353,8 +353,8 @@ def main():
     gitinfo.applyToEnv(env)
     for k, v in env.items():
         print("%s=%s" % (k, v))
-    headertxt = gitinfo.generateHeader()
-    print("\n%s" % (headertxt))
+    #headertxt = gitinfo.generateHeader()
+    #print("\n%s" % (headertxt))
     
 
 
