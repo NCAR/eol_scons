@@ -16,17 +16,18 @@ Usage in a SConstruct most commonly looks something like:
     if (GetOption("clean")):
         env.Default(foo)
 
-and a build will look something like:
+and a common build will then look something like:
 
     $ scons             # builds the normal pieces of the project
-    $ sudo scons foo    # builds only the setuid 'foo' program as root
+    $ sudo scons foo    # builds only the setuid root 'foo' program
 
 Note that the example SConstruct does *not* add the setuid 'foo' target to the
 default build, since that target can only be built by root. It does, however,
-remove the target by default when cleaning.
+add a default to remove the target when cleaning.
 
-The build is done in two steps, with the default build performed by a non-root
-user, and the setuid program built by root as an explicit target.
+The common build is done in two steps, with the default normal build performed
+by a non-root user, and the setuid program built separately as an explicit
+target by root.
 """
 
 import SCons
@@ -56,7 +57,7 @@ def SetuidProgram(env, target, source, **kw):
     p = env.Program(target, source, **kw)
     env.AddPreAction(p, Action(_setuidFailIfNotRoot))
     env.AddPostAction(p, Action([ "chown root:root $TARGET",
-                                  "chmod u+s $TARGET" ]))
+                                  "chmod 4755 $TARGET" ]))
     return p
 
 def generate(env):
