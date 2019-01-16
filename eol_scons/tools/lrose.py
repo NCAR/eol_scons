@@ -6,7 +6,7 @@ import string
 import SCons
 
 # LROSE requires these tools which are not provided in the LROSE distribution
-dep_tools=['z', 'fftw', 'bz2']
+dep_tools=['z', 'fftw', 'bz2', 'boost_thread']
 
 _lrose_source_file = """
 #include <toolsa/udatetime.h>
