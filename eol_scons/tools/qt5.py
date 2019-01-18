@@ -501,12 +501,15 @@ def enable_modules(env, modules, debug=False) :
         if debug:
             modules = [module + "_debug" for module in modules]
         for module in modules:
-            # Qt5 modules have Qt5 as the prefix, so enforce that here.
-            if not module.startswith('Qt5') and module.startswith('Qt'):
-                module = "Qt5" + module[2:]
-
             if (env['QT5DIR'] == USE_PKG_CONFIG):
                 Debug("enabling module %s through pkg-config" % (module), env)
+                # pkg-config *package* names for Qt5 modules use Qt5 as the
+                # prefix, e.g. Qt5 module 'QtCore' maps to pkg-config
+                # package name 'Qt5Core'
+                modPackage = module
+                if modPackage.startswith('Qt'):
+                    modPackage = "Qt5" + modPackage[2:]
+
                 # Starting directory for headers.  First try 
                 # 'pkg-config --variable=headerdir Qt'. If that's empty 
                 # (this happens on CentOS 5 systems...), try 
@@ -521,25 +524,27 @@ def enable_modules(env, modules, debug=False) :
                         return False
                     hdir = os.path.join(prefix, 'include')
 
-                if pc.CheckConfig(env, 'pkg-config --exists ' + module):
+                if pc.CheckConfig(env, 'pkg-config --exists ' + modPackage):
                     # Retrieve LIBS and CFLAGS separately, so CFLAGS can be
                     # added just once (unique=1).  Otherwise projects like
                     # ASPEN which require qt modules many times over end up
                     # with dozens of superfluous CPP includes and defines.
                     cflags = pc.RunConfig(env,
-                                          'pkg-config --cflags ' + module)
+                                          'pkg-config --cflags ' + modPackage)
                     env.MergeFlags(cflags, unique=1)
                     libflags = pc.RunConfig(env,
-                                            'pkg-config --libs ' + module)
+                                            'pkg-config --libs ' + modPackage)
                     env.MergeFlags(libflags, unique=0)
                 else:
                     # warn if we haven't already
                     if not (module in no_pkgconfig_warned):
-                        print("Warning: No pkgconfig for Qt5/" + module + 
-                              ", doing what I can...")
+                        print("Warning: No pkgconfig package " + modPackage +
+                              " for Qt5/" + module + ", doing what I can...")
                         no_pkgconfig_warned.append(module)
-                    # Add -l<module>
-                    env.Append(LIBS = [module])
+                    # By default, the libraries are named with prefix Qt5
+                    # rather than Qt, just like the module package name we
+                    # built above.
+                    env.Append(LIBS = [modPackage])
             else:
                 Debug("enabling module %s with QT5DIR=%s" %
                       (module, env['QT5DIR']), env)
@@ -558,11 +563,12 @@ def enable_modules(env, modules, debug=False) :
                 if os.path.isdir(longpath):
                     libpath = longpath
                 env.AppendUnique(LIBPATH = [libpath])
-		# if this does not look like a system path, add it to
-		# RPATH.  This is helpful when different components have
-		# been built against differents versions of Qt, but the one
-		# specified by this tool is the one that should take
-		# precedence.
+
+                # If this does not look like a system path, add it to
+                # RPATH.  This is helpful when different components have
+                # been built against different versions of Qt, but the one
+                # specified by this tool is the one that should take
+                # precedence.
                 if not libpath.startswith('/usr/lib'):
                     env.AppendUnique(RPATH = [libpath])
 
@@ -583,13 +589,16 @@ def enable_modules(env, modules, debug=False) :
                 env.AppendUnique(CPPPATH = [os.path.join(hdir, hcomp)])
                 env.Append(LIBS = [module])
 
-            # Kluge(?) so that moc can find the QtDesigner headers, necessary
-            # at least for Fedora 6 and 7 (and CentOS 5)
-            if module == "QtDesigner":
+                if module == "QtGui":
+                    env.AppendUnique(CPPDEFINES = ["QT_GUI_LIB"])
+
+            # Kluge(?) so that moc can find the QtDesigner/QtUiPlugin headers
+            #
+            # This seems to be related to issues with moc-qt5 and headers
+            # installed under /usr/include/qt5 rather than /usr/include.
+            if module == "QtDesigner" or module == "QtUiPlugin":
                 env.AppendUnique(QT5_MOCFROMHFLAGS =
-                                  ['-I', os.path.join(hdir, module)])
-            if module == "QtGui":
-                env.AppendUnique(CPPDEFINES = ["QT_GUI_LIB"])
+                                  ['-I' + os.path.join(hdir, module)])
 
             # For QtCore at least, check that compiler can find the
             # library.  Do not propagate any current LIBS, since the
@@ -598,9 +607,14 @@ def enable_modules(env, modules, debug=False) :
             # the library targets as part of the configure check, and that
             # causes all kinds of unexpected build behavior...
             skipconfig = env.GetOption('help') or env.GetOption('clean')
-            if module == "QtCore" and not skipconfig:
+            if module == "Qt5Core" and not skipconfig:
                 if not _checkQtCore(env):
                     return False
+
+        # Explicitly add the default top of the header tree to the end of
+        # moc's search path. This supports correct loading of qualified header
+        # names.
+        env.AppendUnique(QT5_MOCFROMHFLAGS = ['-I' + hdir])
         return True
 
     if sys.platform == "win32" :
