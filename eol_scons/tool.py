@@ -324,37 +324,42 @@ def generate(env, **kw):
 
 def export_qt_module_tool(modules):
     """
-    The qt4 or qt5 tool must have been required first to specify the 
-    Qt version for which this module should be added.  If not already
-    specified, then qt4 is assumed.
+    Create a tool function to enable a Qt module.  The first module in the
+    list is the tool to be created, and the rest are any Qt modules on
+    which the first module depends.  The module and it's dependencies will
+    all be enabled by the tool function.  The tool function does not check
+    which Qt version is active, that will be handled in the
+    EnableQtModules() method.
+
+    There was an idea at one point to allow tool names to be qualified with
+    the version, so the module tool could explicitly identify the Qt
+    version to be activated.  However, that is the wrong approach, since
+    that ties the build configuration to a particular Qt version and
+    spreads the version choice throughout the build system.  Most Qt module
+    names exist in multiple Qt versions and are not meant to be
+    version-specific.  If a Qt module does not exist in the active Qt
+    version, then the tool will fail accordingly.
     """
-    kw = {}
     module = modules[0]
-    dependencies = [m.lower() for m in modules[1:]]
     def qtmtool(env):
-        # Make sure explicit Qt5 modules apply qt5 tool.
         env.LogDebug('in tool function for module %s' % (module))
-        deps = dependencies[:]
-        if module.startswith('Qt5'):
-            env.Require(['qt5'])
-        qtversion = env.get('QT_VERSION')
-        if qtversion is None:
-            env.Require(['qt4'])
-        if qtversion == 5:
-            # Qt5 modules have Qt5 as the prefix, so enforce that here.
-            # Then look up dependencies again.
-            if not module.startswith('Qt5') and module.startswith('Qt'):
-                m5 = "Qt5" + module[2:]
-                modules5 = [m for m in _qtmodules if m[0] == m5]
-                if not modules5:
-                    raise SCons.Errors.StopError("no Qt5 module " + m5)
-                deps = [m.lower() for m in modules5[0][1:]]
-        env.Require(deps)
-        env.EnableQtModules([module])
+        env.EnableQtModules(modules)
+    kw = {}
     kw[module.lower()] = qtmtool
     SCons.Script.Export(**kw)
 
+# This list of course is not all of the Qt modules, only the ones that
+# typically have been used so far.  Add others as needed.  If a module is
+# not here, it can always be enabled by name by calling EnableQtModules()
+# directly.
+
 _qtmodules = [
+    # Qt4 only modules (I think)
+    ('QtWebKit',),
+    ('QtScriptTools', 'QtScript'),
+    ('QtUiTools', 'QtGui'),
+
+    # Qt4 and Qt5 modules
     ('QtCore',),
     ('QtSvg', 'QtCore'),
     ('QtGui', 'QtCore'),
@@ -367,41 +372,17 @@ _qtmodules = [
     ('QtDesigner',),
     ('QtHelp',),
     ('QtTest',),
-    ('QtWebKit',),
     ('QtDBus',),
     ('QtMultimedia',),
     ('QtScript',),
-    ('QtScriptTools', 'QtScript'),
-    ('QtUiTools', 'QtGui'),
 
-    ('Qt5Core',),
-    ('Qt5Gui', 'Qt5Core'),
-    ('Qt5Svg', 'Qt5Core'),
-    ('Qt5Widgets', 'Qt5Core'),
-    ('QtWidgets', 'Qt5Core'),
-    ('Qt5Network', 'Qt5Core'),
-    ('Qt5Xml', 'Qt5Core'),
-    ('Qt5PrintSupport', 'Qt5Core'),
-    ('QtPrintSupport', 'Qt5Core'),
-    ('Qt5XmlPatterns', 'Qt5Xml'),
-    ('Qt5Sql',),
-    ('Qt5OpenGL',),
-    ('Qt5Xml',),
-    ('Qt5Designer',),
-    ('Qt5Help',),
-    ('Qt5Test',),
-    ('Qt5WebKitWidgets',),
+    # Qt5 modules
+    ('QtWidgets', 'QtCore'),
+    ('QtPrintSupport', 'QtCore'),
     ('QtWebKitWidgets',),
-    ('Qt5WebEngine',),
     ('QtWebEngine',),
-    ('Qt5WebView', 'Qt5WebEngineWidgets'),
-    ('QtWebView', 'Qt5WebEngineWidgets'),
-    ('Qt5WebEngineWidgets',),
+    ('QtWebView', 'QtWebEngineWidgets'),
     ('QtWebEngineWidgets',),
-    ('Qt5DBus',),
-    ('Qt5Multimedia',),
-    ('Qt5Script',),
-    
 ]
 
 
