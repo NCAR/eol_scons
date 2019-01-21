@@ -10,11 +10,9 @@ functionality which applies the eol_scons extensions as if it were a tool.
 import os
 import re
 import SCons.Tool
-
-from eol_scons import Debug
-
 from SCons.Script.SConscript import global_exports
 
+from eol_scons import Debug
 import eol_scons.library
 import eol_scons.methods
 import eol_scons.variables as esv
@@ -57,7 +55,7 @@ def _apply_global_tools(env):
         _global_tools[gkey].extend(newtools)
     # Now find every global tool list for parents of this directory.  Sort
     # them so that parent directories will appear before subdirectories.
-    dirs = [k for k in _global_tools.keys() if gkey.startswith(k)]
+    dirs = [k for k in _global_tools if gkey.startswith(k)]
     dirs.sort()
     gtools = []
     for k in dirs:
@@ -105,14 +103,14 @@ def _findToolFile(env, name):
     esv._update_variables(env)
     cache = esv.ToolCacheVariables(env)
     toolcache = cache.getPath()
-    if _tool_matches == None:
+    if _tool_matches is None:
         cvalue = cache.lookup(env, '_tool_matches')
         if cvalue:
             _tool_matches = cvalue.split("\n")
             print("Using %d cached tool filenames from %s" % 
                   (len(_tool_matches), toolcache))
 
-    if _tool_matches == None:
+    if _tool_matches is None:
         print("Searching for tool_*.py files...")
         # Get a list of all files named "tool_<tool>.py" under the
         # top directory.
@@ -127,9 +125,9 @@ def _findToolFile(env, name):
                 dirnames.remove('site_scons')
             if 'apidocs' in dirnames:
                 dirnames.remove('apidocs')
-            _tool_matches.extend([os.path.join(dirpath, file)
-                                  for file in filenames if
-                                  toolpattern.match(file)])
+            _tool_matches.extend([os.path.join(dirpath, fname)
+                                  for fname in filenames if
+                                  toolpattern.match(fname)])
         # Update the cache
         cache.store(env, '_tool_matches', "\n".join(_tool_matches))
         if toolcache:
@@ -139,8 +137,8 @@ def _findToolFile(env, name):
         print("Found %d tool files, %s" %
               (len(_tool_matches), cachemsg))
 
-    toolFileName = "tool_" + name + ".py"
-    return [f for f in _tool_matches if toolFileName == os.path.basename(f)]
+    toolfilename = "tool_" + name + ".py"
+    return [f for f in _tool_matches if toolfilename == os.path.basename(f)]
 
 
 def _loadToolFile(env, name):
@@ -148,25 +146,25 @@ def _loadToolFile(env, name):
     # top directory.  If we find one, load it as a SConscript which 
     # should define and export the tool.
     tool = None
-    matchList = _findToolFile(env, name)
+    matchlist = _findToolFile(env, name)
     # If we got a match, load it
-    if (len(matchList) > 0):
+    if matchlist:
         # If we got more than one match, complain...
-        if (len(matchList) > 1):
+        if len(matchlist) > 1:
             print("Warning: multiple tool files for " + name + ": " + 
-                  str(matchList) + ", using the first one")
+                  str(matchlist) + ", using the first one")
         # Load the first match
-        toolScript = matchList[0]
-        env.LogDebug("Loading %s to get tool %s..." % (toolScript, name))
-        env.SConscript(toolScript)
+        toolscript = matchlist[0]
+        env.LogDebug("Loading %s to get tool %s..." % (toolscript, name))
+        env.SConscript(toolscript)
         # After loading the script, make sure the tool appeared 
         # in the global exports list.
         if name in global_exports:
             tool = global_exports[name]
         else:
-            raise SCons.Errors.StopError("Tool error: " + 
-                                         toolScript +
-                                         " does not export symbol '" + name + "'")
+            raise SCons.Errors.StopError("Tool error: %s "
+                                         "does not export symbol '%s'" %
+                                         (toolscript, name))
     return tool
 
 
@@ -272,7 +270,7 @@ def _Require(env, tools):
     return applied
 
 
-def generate(env, **kw):
+def generate(env, **_kw):
     """
     Generate the basic eol_scons customizations for the given environment,
     including applying any eol_scons global tools.  Any default tool should
@@ -319,7 +317,7 @@ def generate(env, **kw):
     env.PassEnv(r'CVS.*|SSH_.*|GIT_.*')
 
     _apply_global_tools(env)
-    return env
+    return
 
 
 def export_qt_module_tool(modules):
