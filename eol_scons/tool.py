@@ -339,10 +339,33 @@ def export_qt_module_tool(modules):
     names exist in multiple Qt versions and are not meant to be
     version-specific.  If a Qt module does not exist in the active Qt
     version, then the tool will fail accordingly.
+
+    This now also has a hook for loading the right Qt tool as specified by
+    QT_VERSION.  If a project sets QT_VERSION in an Environment, and then
+    requires a qt module tool, the module tool will load the corresponding
+    qt tool, qt4 or qt5.  If QT_VERSION is not set, then that's an error,
+    because it means no qt version tool has been loaded yet and so the
+    EnableQtModules() method will not even exist yet.  The idea is that the
+    SCons files in a source directory can just specify what Qt modules are
+    needed, independent of the Qt version, while a global tool can set
+    QT_VERSION everywhere.  It is better to set QT_VERSION than load the
+    actual tool everywhere, since not all source directories need Qt.
     """
     module = modules[0]
     def qtmtool(env):
         env.LogDebug('in tool function for module %s' % (module))
+        # If QT_VERSION has been specifically requested, then make sure the
+        # corresponding tool has been loaded before calling
+        # EnableQtModules().
+        qtversion = env.get('QT_VERSION')
+        if qtversion is None:
+            raise SCons.Errors.StopError(
+                "Cannot load tool for Qt module %s without first setting "
+                "QT_VERSION or requiring the qt4 or qt5 tool." % modules[0])
+        elif qtversion == 4:
+            env.Require('qt4')
+        elif qtversion == 5:
+            env.Require('qt5')
         env.EnableQtModules(modules)
     kw = {}
     kw[module.lower()] = qtmtool
