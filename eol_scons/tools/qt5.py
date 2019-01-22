@@ -551,6 +551,21 @@ def qualify_module_name(module):
     return module
 
 
+def replace_drive_specs(pathlist):
+    """
+    Modify the given list in place.  For each node in pathlist, if the node
+    path starts with a drive specifier like C:, replace it with a string
+    path with the drive specifier replaced with an absolute path like /c.
+    This preserves any list elements as nodes if their path does not need
+    to be fixed.  Returns None.
+    """
+    for i, node in enumerate(pathlist):
+        path = str(node)
+        if path.startswith("C:"):
+            pathlist[i] = path.replace('C:', '/c')
+    return None
+
+
 def enable_module_linux(env, module, debug=False):
     """
     On Linux, a Qt5 module is enabled either with the settings from
@@ -605,17 +620,12 @@ def enable_module_linux(env, module, debug=False):
             # built above.
             env.Append(LIBS=[modpackage])
 
-        # On MSYS2 pkg-config is returning C: in the path, which
-        # scons then adds a prefix (e.g. "plotlib/" in aeros).
-        # Replace C: with /c
-        pathlist = env['CPPPATH']
-        for i, s in enumerate(pathlist):
-            pathlist[i] = str(s).replace('C:', '/c')
-        env['CPPPATH'] = pathlist
-        pathlist = env['LIBPATH']
-        for i, s in enumerate(pathlist):
-            pathlist[i] = str(s).replace('C:', '/c')
-        env['LIBPATH'] = pathlist
+        # On MSYS2 pkg-config is returning C: in the path, which scons then
+        # adds a prefix (e.g. "plotlib/" in aeros).  Replace C: with /c,
+        # but only on msys.
+        if sys.platform == "msys":
+            replace_drive_specs(env['CPPPATH'])
+            replace_drive_specs(env['LIBPATH'])
 
     else:
         Debug("enabling module %s with QT5DIR=%s" %
