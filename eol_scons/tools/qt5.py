@@ -742,3 +742,15 @@ def exists(_env):
     return True
 
 
+def test_replace_drive():
+    from SCons.Environment import Environment
+    env = Environment(tools=['default'])
+    b = env.File("C:/b")
+    c = env.File("/c/etc")
+    u = env.Dir("/tmp")
+    l = ["C:/a", b, c, u, "C:"]
+    l2 = l
+    replace_drive_specs(l)
+    assert(l == ["/c/a", "/c/b", c, u, "/c"])
+    assert(l2 == l)
+
