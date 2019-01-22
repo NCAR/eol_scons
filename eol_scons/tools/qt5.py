@@ -532,7 +532,7 @@ def enable_modules(env, modules, debug=False):
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
         ok = False
-        if sys.platform.startswith("linux"):
+        if sys.platform.startswith("linux") or sys.platform == "msys":
             ok = enable_module_linux(env, module, debug)
         if sys.platform == "win32":
             ok = enable_module_win(env, module, debug)
@@ -604,6 +604,19 @@ def enable_module_linux(env, module, debug=False):
             # rather than Qt, just like the module package name we
             # built above.
             env.Append(LIBS=[modpackage])
+
+        # On MSYS2 pkg-config is returning C: in the path, which
+        # scons then adds a prefix (e.g. "plotlib/" in aeros).
+        # Replace C: with /c
+        pathlist = env['CPPPATH']
+        for i, s in enumerate(pathlist):
+            pathlist[i] = str(s).replace('C:', '/c')
+        env['CPPPATH'] = pathlist
+        pathlist = env['LIBPATH']
+        for i, s in enumerate(pathlist):
+            pathlist[i] = str(s).replace('C:', '/c')
+        env['LIBPATH'] = pathlist
+
     else:
         Debug("enabling module %s with QT5DIR=%s" %
               (module, env['QT5DIR']), env)
