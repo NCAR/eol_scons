@@ -38,6 +38,7 @@ location of the header files and the version-qualified library names like
 libQt5<Module>.
 """
 
+import sys
 import re
 import os
 import textwrap
@@ -516,8 +517,6 @@ def enable_modules(env, modules, debug=False):
     generate() above did not succeed, and therefore no Qt5 modules can be
     enabled.
     """
-    import sys
-
     env.LogDebug("Entering qt5 enable_modules(%s) with sys.platform=%s..." %
                  (",".join(modules), sys.platform))
 
