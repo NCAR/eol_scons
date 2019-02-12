@@ -56,7 +56,7 @@ def deploy_program_emitter(target, source, env):
     # thus we can't use an emitter to calculate the targets that will
     # be copied into the deploy directory.  So the only target we can
     # generate now is the copy of the program itself.
-    bindir = os.path.join(env['DEPLOY_DIRECTORY'], "bin")
+    bindir = os.path.join(env['DEPLOY_DIRECTORY'], env['DEPLOY_BINDIR'])
     dest = os.path.join(bindir, source[0].name)
     return [dest], source
 
@@ -69,7 +69,7 @@ def deploy_program(target, source, env):
     # it.  The str() is in case the setting is a scons node and not a
     # string.
     dpath = env.Dir(str(env['DEPLOY_DIRECTORY'])).get_path()
-    bindir = os.path.join(dpath, "bin")
+    bindir = os.path.join(dpath, env['DEPLOY_BINDIR'])
     libdir = os.path.join(dpath, "lib")
     actions = [ Mkdir(bindir), Mkdir(libdir) ]
     progdest = target[0]
@@ -112,6 +112,8 @@ def generate(env):
         env['DEPLOY_SHARED_LIBS'] = []
     if 'DEPLOY_DIRECTORY' not in env:
         env['DEPLOY_DIRECTORY'] = "#deploy"
+    if 'DEPLOY_BINDIR' not in env:
+        env['DEPLOY_BINDIR'] = "bin"
     env['BUILDERS']['DeployProgram'] = deploy_program_builder
 
 
