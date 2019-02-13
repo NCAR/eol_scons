@@ -748,7 +748,13 @@ def deploy_linux(env, deploy_directory):
     shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm', 'xcb-render-util']
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
     env['DEPLOY_BINDIR']="bin/platforms"
-    xcbnode = env.File("/usr/lib64/qt5/plugins/platforms/libqxcb.so") #de-hardcode this
+    xcbpath = ""
+    if env['QT5DIR'] == USE_PKG_CONFIG:
+        pdir = pc.RunConfig(env, 'pkg-config --variable=plugindir Qt5')
+        xcbpath = os.path.join(pdir, "platforms/libqxcb.so")
+    else:
+        xcbpath = os.path.join(env['QT5DIR'], "plugins/platforms/libqxcb.so")
+    xcbnode = env.File(xcbpath)
     xcb = env.DeployProgram(xcbnode)
     env.Default(xcb)
 
