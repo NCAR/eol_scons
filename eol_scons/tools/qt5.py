@@ -737,7 +737,7 @@ def enable_module_osx(env, module, debug=False):
     env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers',])
     return True
 
-def deploy_linux(env, deploy_directory):
+def deploy_linux(env):
     """
     Linux distributions need to include the  xcb platform file and its dependencies,
     which don't get added when the deploy tool is used on the application because 
@@ -747,7 +747,6 @@ def deploy_linux(env, deploy_directory):
     """
     shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm', 'xcb-render-util']
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
-    env['DEPLOY_BINDIR']="bin/platforms"
     xcbpath = ""
     if env['QT5DIR'] == USE_PKG_CONFIG:
         pdir = pc.RunConfig(env, 'pkg-config --variable=plugindir Qt5')
@@ -755,7 +754,7 @@ def deploy_linux(env, deploy_directory):
     else:
         xcbpath = os.path.join(env['QT5DIR'], "plugins/platforms/libqxcb.so")
     xcbnode = env.File(xcbpath)
-    xcb = env.DeployProgram(xcbnode)
+    xcb = env.DeployProgram(xcbnode, DEPLOY_BINDIR="bin/platforms")
     env.Default(xcb)
 
 
