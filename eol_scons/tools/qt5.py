@@ -392,6 +392,7 @@ E.g.:
             env['QT5DIR'] = '/usr/lib/qt5'
 
     env.AddMethod(enable_modules, "EnableQtModules")
+    env.AddMethod(deploy_linux, "DeployQtLinux")
 
     if 'QT5DIR' not in env:
 	# Dont stop, just print a warning. Later, a user call of
@@ -735,6 +736,21 @@ def enable_module_osx(env, module, debug=False):
     # frameworks would do this, but apparently not.
     env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers',])
     return True
+
+def deploy_linux(env, deploy_directory):
+    """
+    Linux distributions need to include the  xcb platform file and its dependencies,
+    which don't get added when the deploy tool is used on the application because 
+    they don't show up as dependencies in ldd.
+    - copy libqxcb into (application)/bin/platforms
+    - copy Qt5DBus, Qt5XcbQpa, xcb-icccm, and xcb-render-util to (application)/lib
+    """
+    shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm', 'xcb-render-util']
+    env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
+    env['DEPLOY_BINDIR']="bin/platforms"
+    xcbnode = env.File("/usr/lib64/qt5/plugins/platforms/libqxcb.so") #de-hardcode this
+    xcb = env.DeployProgram(xcbnode)
+    env.Default(xcb)
 
 
 def exists(_env):
