@@ -208,6 +208,7 @@ class GitInfo:
         gitcommits      = None
         githash         = None
         gitbranch       = None
+        gitdirty        = None
         
         # Run git describe, and extract the tag, number of commits, and
         # object name.  Extract the hyphenated fields from right to left,
@@ -334,6 +335,7 @@ class GitInfo:
 #define REPO_COMMITS   \"%(REPO_COMMITS)s\"
 #define REPO_TAG       \"%(REPO_TAG)s\"
 #define REPO_BRANCH    \"%(REPO_BRANCH)s\"
+#define REPO_DIRTY     \"%(REPO_DIRTY)s\"
 
 #endif
 """
