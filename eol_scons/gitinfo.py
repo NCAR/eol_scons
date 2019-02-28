@@ -163,8 +163,6 @@ class GitInfo:
         
         pdebug('cmd_out: ' + cmd_out)
         if 'Git error:' in cmd_out:
-            if len(error) > 0:
-                error.append('; ')
             # append the cmd error message
             error.append(cmd_out)
             return False
@@ -276,7 +274,7 @@ class GitInfo:
         git_dict['REPO_COMMITS']      = gitcommits or 'unknown'
         git_dict['REPO_HASH']         = githash or 'unknown'
         git_dict['REPO_BRANCH']       = gitbranch or 'unknown'
-        git_dict['REPO_DIRTY']        = gitdirty or 'unknown'
+        git_dict['REPO_DIRTY'] = [gitdirty, 'unknown'][bool(gitdirty is None)]
         
         pdebug('GitInfo._git_info git_dict:')
         for k, v in git_dict.items():
@@ -294,12 +292,12 @@ class GitInfo:
         """
         
         # Fill in the key variables from the git info dictionary, but only
-        # if there is a value there.
+        # if there is a value there that is not None.
         gitdict = self._git_info()
         
         pdebug('GitInfo.getRepoInfo self.values:')
         for k in self._variable_map.keys():
-            if gitdict[k]:
+            if gitdict[k] is not None:
                 self.values[k] = gitdict[k]
                 pdebug('   k,v: ' + k + ' ' + self.values[k])
 
