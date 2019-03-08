@@ -7,3 +7,4 @@ eol_scons/tests/test_site_scons
 # Eclipse-generated files
 .project
 .pydevproject
+.pytest_cache
