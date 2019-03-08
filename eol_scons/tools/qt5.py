@@ -350,13 +350,15 @@ def generate(env):
         The default location is determined from the path to qt5 tools
         and from pkg-config, so QT5DIR typically does not need to be
         specified."""),
-                                           None, PathVariable.PathAccept))
+                                           env.get('QT5DIR', None),
+                                           PathVariable.PathAccept))
         _options.AddVariables(PathVariable('QT5INCDIR', textwrap.dedent("""\
         Override the qt5 include directory when QT5DIR is set to a path.
         The default location is QT5DIR/include, but sometimes the system
         uses a path like /usr/include/qt5, so this allows
         setting QT5DIR=/usr but QT5INCDIR=/usr/include/qt5."""),
-                                           None, PathVariable.PathAccept))
+                                           env.get('QT5INCDIR', None),
+                                           PathVariable.PathAccept))
     _options.Update(env)
 
     # 
