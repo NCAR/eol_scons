@@ -1,7 +1,9 @@
+import sys
 
 def generate(env):
     env.Tool('boost')
-    env.AppendBoostLibrary('boost_date_time')
+    if sys.platform != 'msys':
+        env.AppendBoostLibrary('boost_date_time')
 
 def exists(env):
     return True
