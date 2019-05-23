@@ -29,7 +29,7 @@ def boost_libflags(env):
 
 
 def _append_boost_library(env, libname):
-  if env['PLATFORM'] != 'darwin':
+  if env['PLATFORM'] != 'darwin' and env['PLATFORM'] != 'msys':
     env.Append (LIBS = [libname])
   else:
     env.Append (LIBS = [libname + "-mt"])
