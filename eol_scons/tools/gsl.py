@@ -3,7 +3,9 @@
 import os, os.path
 
 def generate(env):
-  env.Append(LIBS=['gsl','gslcblas','m'])
+  env.Append(LIBS=['gsl','gslcblas'])
+  if env['PLATFORM'] != 'msys':
+    env.Append(LIBS=['m'])
 
 
 def exists(env):
