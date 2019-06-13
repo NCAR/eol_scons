@@ -102,7 +102,7 @@ def _load_gitinfo(env, workdir):
 
     # Create a new GitInfo instance, for this workdir
     pdebug("_load_gitinfo(%s): creating gitinfo" % (workdir))
-    ginfo = GitInfo(env)
+    ginfo = GitInfo(env, workdir)
     _gitinfomap[workdir] = ginfo.getRepoInfo()
 
     return ginfo
