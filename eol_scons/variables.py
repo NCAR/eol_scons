@@ -172,16 +172,25 @@ def _GenerateHelpText(env):
     variables.Update(env)
     text = variables.GenerateHelpText(env)
 
-    SCons.Script.AddOption("--list-aliases", dest="listaliases",
-                           action="store_true")
+    try:
+        # In case this has been done before, ignore any exceptions.
+        SCons.Script.AddOption("--list-aliases", dest="listaliases",
+                               action="store_true")
+    except Exception as ex:
+        env.LogDebug(str(ex))
+
     text += "\n"
     if env.GetOption("listaliases"):
         text += _AliasHelpText(env)
     else:
         text += "Aliases can be listed with '-h --list-aliases'.\n"
 
-    SCons.Script.AddOption("--list-defaults", dest="listdefaults",
-                           action="store_true")
+    try:
+        SCons.Script.AddOption("--list-defaults", dest="listdefaults",
+                               action="store_true")
+    except Exception as ex:
+        env.LogDebug(str(ex))
+
     if env.GetOption("listdefaults"):
         dtargets = list(set([str(n) for n in SCons.Script.DEFAULT_TARGETS]))
         dtargets.sort()
