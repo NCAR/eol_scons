@@ -747,7 +747,7 @@ def deploy_linux(env):
     - copy libqxcb into (application)/bin/platforms
     - copy Qt5DBus, Qt5XcbQpa, xcb-icccm, and xcb-render-util to (application)/lib
     """
-    shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm', 'xcb-render-util']
+    shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm', 'xcb-render-util', 'xcb-image']
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
     xcbpath = ""
     if env['QT5DIR'] == USE_PKG_CONFIG:
