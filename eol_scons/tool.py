@@ -264,7 +264,7 @@ def _Require(env, tools):
             tool = env.Tool(t)
             if tool:
                 applied.append(tool)
-        except SCons.Errors.EnvironmentError as ex:
+        except SCons.Errors.SConsEnvironmentError as ex:
             print("Error loading tool %s: %s" % (str(t), str(ex)))
             raise
     return applied
