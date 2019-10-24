@@ -271,7 +271,7 @@ svninfobuilder = Builder(
     emitter = svninfo_emitter_value)
 
 
-class SvnInfoWarning(SCons.Warnings.Warning):
+class SvnInfoWarning(SCons.Warnings.WarningOnByDefault):
     pass
 
 
