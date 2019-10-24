@@ -3,6 +3,8 @@ from __future__ import print_function
 import os
 import re
 
+_options = None
+
 pylint = "${PYLINTPYTHONPATH and 'env PYTHONPATH='+PYLINTPYTHONPATH or ''} "
 pylint += "${PYLINT} ${PYLINTARGS} "
 pylint += "${PYLINTRC and '--rcfile='+str(PYLINTRC) or ''} ${SOURCES} 2>&1"
@@ -34,9 +36,14 @@ def PythonLint(env, name, sources, **kw):
 pylintrc = os.path.join(os.path.dirname(__file__), "pylintrc")
 
 def generate(env):
+    global _options
+    if not _options:
+        _options = env.GlobalVariables()
+        _options.Add('PYLINT', "Path to pylint program.", "pylint")
+    _options.Update(env)
     env.AddMethod(find_python_files, "FindPythonFiles")
     env.AddMethod(PythonLint, "PythonLint")
-    env.SetDefault(PYLINT='pylint-2')
+    env.SetDefault(PYLINT='pylint')
     env.SetDefault(PYLINTRC=pylintrc)
     env.SetDefault(PYLINTARGS='')
     env.SetDefault(PYLINTPYTHONPATH=env.Dir('.').path)
@@ -52,7 +59,7 @@ if __name__ == "__main__":
     # build.
     import sys
     import os
-    pylint = os.environ.get('PYLINT', 'pylint-2')
+    pylint = os.environ.get('PYLINT', 'pylint')
     pylint = [pylint, "--rcfile="+pylintrc]
     print(" ".join(pylint))
     os.execvp(pylint[0], pylint+sys.argv[1:])
