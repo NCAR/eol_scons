@@ -10,8 +10,15 @@ Url: http://www.eol.ucar.edu/
 Packager: Gordon Maclean <maclean@ucar.edu>
 Vendor: UCAR
 BuildArch: noarch
+
+%if 0%{?rhel} <= 7
 Requires: scons
 BuildRequires: python-devel
+%else
+Requires: python3-scons
+BuildRequires: python36-devel
+%endif
+
 Source: %{name}-%{version}.tar.gz
 
 %description
