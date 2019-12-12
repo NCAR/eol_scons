@@ -11,7 +11,7 @@ Packager: Gordon Maclean <maclean@ucar.edu>
 Vendor: UCAR
 BuildArch: noarch
 
-%if 0%{?rhel} <= 7
+%if 0%{?rhel} < 8
 Requires: scons
 BuildRequires: python-devel
 %else
