@@ -66,7 +66,21 @@ class QwtTool(object):
             if qwt_dir != "/usr":
                 self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
             else:
-                self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
+                print('Qwt Qt version ' + env.get('QT_VERSION'))
+                if env.get('QT_VERSION') != 5:
+                    self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
+                else:
+                    # EOL's qwt-qt5-devel RPM installs Qwt headers under
+                    # /usr/include/qt5/qwt. Use that if it exists, otherwise
+                    # fall back to /usr/include/qwt
+                    print('Qwt using Qt5')
+                    eol_qwt_cpppath = '/usr/include/qt5/qwt'
+                    if os.path.exists(eol_qwt_cpppath):
+                        self.settings['CPPPATH'] = eol_qwt_cpppath
+                        print('Qwt using CPPPATH ' + eol_qwt_cpppath)
+                    else:
+                        self.settings['CPPPATH'] = '/usr/include/qwt'
+
         if env['PLATFORM'] == 'win32':
             # On Windows, the qwt top will be
             # C:/Tools/MinGW/msys/1.0/local/qwt/
