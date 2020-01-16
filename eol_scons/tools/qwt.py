@@ -66,7 +66,7 @@ class QwtTool(object):
             if qwt_dir != "/usr":
                 self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
             else:
-                print('Qwt Qt version ' + env.get('QT_VERSION'))
+                print('Qwt Qt version ' + str(env.get('QT_VERSION')))
                 if env.get('QT_VERSION') != 5:
                     self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
                 else:
