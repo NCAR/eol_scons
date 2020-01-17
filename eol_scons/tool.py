@@ -17,8 +17,7 @@ from SCons.Script.SConscript import global_exports
 # Add a definition if SConsEnvironmentError isn't there...
 #
 # This problem goes away with version 3.1.0
-import inspect
-if (not 'SConsEnvironmentError' in inspect.getmembers(SCons.Errors)):
+if (not hasattr(SCons.Errors, 'SConsEnvironmentError')):
     SCons.Errors.SConsEnvironmentError = SCons.Errors.EnvironmentError
 
 from eol_scons import Debug
