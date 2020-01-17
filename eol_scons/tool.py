@@ -12,6 +12,15 @@ import re
 import SCons.Tool
 from SCons.Script.SConscript import global_exports
 
+# At least SCons 3.0.1 (CentOS 8 python3-scons-3.0.1-8) has
+# SCons.Errors.EnvironmentError instead of SCons.Errors.SConsEnvironmentError.
+# Add a definition if SConsEnvironmentError isn't there...
+#
+# This problem goes away with version 3.1.0
+import inspect
+if (not 'SConsEnvironmentError' in inspect.getmembers(SCons.Errors)):
+    SCons.Errors.SConsEnvironmentError = SCons.Errors.EnvironmentError
+
 from eol_scons import Debug
 import eol_scons.library
 import eol_scons.methods
