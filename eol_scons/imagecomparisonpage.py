@@ -135,7 +135,7 @@ ul { margin-top: 2px; margin-bottom: 2px }
 
     def builder(self, target, source, env):
         page = target[0]
-        with open(page.get_path(), 'wb') as out:
+        with open(page.get_path(), 'w') as out:
             out.write(self.contents(env, page))
         return None
 
