@@ -9,6 +9,8 @@ import shutil
 
 from SCons.Defaults import Copy
 
+from eol_scons.ldd import ldd
+
 # As of scons 1.2 the Mkdir action works even if the directory exists.
 # Until everyone is using that, we need to use our own action.
 # from SCons.Defaults import Mkdir
@@ -22,32 +24,6 @@ def makedirs(dirpath):
     except:
         if not os.access(dirpath, os.W_OK):
             raise
-
-
-def ldd(program_node, env):
-    "Return a map with each dependent library name and its location."
-    libraries = {}
-    # Run ldd on the program
-    lddcmd = ["ldd", program_node.get_abspath()]
-    env.LogDebug(lddcmd)
-    lddprocess = subprocess.Popen(lddcmd, stdout=subprocess.PIPE)
-    lddout = lddprocess.communicate()[0].decode()
-    env.LogDebug(lddout)
-    # Get the list of library keys to include
-    libkeys = env['DEPLOY_SHARED_LIBS']
-    # print("Looking for these libraries:\n"+ "\n".join(libkeys))
-    for k in libkeys:
-        # If the library is in the dependencies, then the file will
-        # be copied into the deploy lib directory
-        match = re.search(r"lib%s\..*=> (.+) \(" % re.escape(env.subst(k)),
-                          lddout, re.MULTILINE)
-        if match:
-            lib = env.File(match.group(1))
-            if lib.name not in libraries:
-                env.LogDebug("Found %s" % (str(lib)))
-                libraries[lib.name] = lib
-                libraries.update (ldd(lib, env))
-    return libraries
 
 
 def deploy_program_emitter(target, source, env):
@@ -73,14 +49,15 @@ def deploy_program(target, source, env):
     libdir = os.path.join(dpath, "lib")
     actions = [ Mkdir(bindir), Mkdir(libdir) ]
     progdest = target[0]
-    libraries = ldd(source[0], env)
+    libraries = ldd(source[0], env, env['DEPLOY_SHARED_LIBS'])
     actions.append (Copy(progdest, source[0]))
     for k in libraries:
         libfile = libraries[k]
         libdest = os.path.join(libdir, libfile.name)
-        # Use an explicit cp command rather than Copy. Both the Copy() API and default 
-        # behavior regarding deep/shallow copies changed in scons v2.3.5. This created
-        # a problem when copying symlinked objects such as system dynamic libraries.
+        # Use an explicit cp command rather than Copy. Both the Copy() API
+        # and default behavior regarding deep/shallow copies changed in
+        # scons v2.3.5. This created a problem when copying symlinked
+        # objects such as system dynamic libraries.
         actions.append (Action('cp ' + libfile.get_abspath() + ' ' + libdest))
     return env.Execute(actions)
 
