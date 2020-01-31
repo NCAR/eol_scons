@@ -51,7 +51,7 @@ def generate(env):
     env.MergeFlags('!%s --includes' % (pconfig))
 
     plibs = RunConfig(env, pconfig + ' --libs')
-    rx = re.search(r"-l(python[^ ]*) ", plibs)
+    rx = re.search(r"-l(python\S*)", plibs)
     if not rx:
         msg = ("boost_python: could not parse python library name from "
                "%s output: %s" % (pconfig + ' --libs', plibs))
