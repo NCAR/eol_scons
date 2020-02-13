@@ -112,6 +112,9 @@ def _get_config(env, search_paths, config_script, args):
             child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv)
             result = child.communicate()[0]
             result = result.decode().strip()
+            # Ubuntu 16.04 on Vortex had a mal configured cpp_common.pc libs entry.
+            # e.g. -l:/usr/lib/libcpp_common.so - clean it up here.
+            result = result.replace('-l:/','/')
             cache[name] = "%s,%s" % (child.returncode, result)
             result = (child.returncode, result)
         except OSError:
