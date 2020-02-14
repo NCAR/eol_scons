@@ -34,13 +34,18 @@ def deploy_program_emitter(target, source, env):
     # generate now is the copy of the program itself.
     bindir = os.path.join(env['DEPLOY_DIRECTORY'], env['DEPLOY_BINDIR'])
     dest = os.path.join(bindir, source[0].name)
-    return [dest], source
+    # The target depends on the setting of DEPLOY_SHARED_LIBS, even though
+    # that variable is not referenced anywhere scons can detect it.  So add
+    # it as an explicit dependency node.
+    libslist = env.Value(",".join(env['DEPLOY_SHARED_LIBS']))
+    return [dest], source+[libslist]
 
 
 def deploy_program(target, source, env):
-
-    """Copy a program target into a deploy tree along with all of its
-    dynamic dependencies."""
+    """
+    Copy a program target into a deploy tree along with all of its dynamic
+    dependencies.
+    """
     # Resolve any # notation in the deploy directory setting before using
     # it.  The str() is in case the setting is a scons node and not a
     # string.
@@ -57,18 +62,12 @@ def deploy_program(target, source, env):
         # Use an explicit cp command rather than Copy. Both the Copy() API
         # and default behavior regarding deep/shallow copies changed in
         # scons v2.3.5. This created a problem when copying symlinked
-        # objects such as system dynamic libraries.
-        actions.append (Action('cp ' + libfile.get_abspath() + ' ' + libdest))
+        # objects such as system dynamic libraries.  This should be portable
+        # enough since deploy is not used on Windows.
+        actions.append(Action('cp ' + libfile.get_abspath() + ' ' + libdest))
     return env.Execute(actions)
 
 
-# 2009-09-25 GJG: The parameters for creating a global Action seem to have
-# changed.  Instead of taking a list of variables, the variables are passed
-# as parameters.  Instead of risking that the new form would break users of
-# older scons version, don't pass the variables variables.
-#
-# Actually, it seems better to generate the list of Mkdir and Copy, so
-# scons can execute them and use the default messages and signatures.
 # Ultimately, DeployProgram probably should be a wrapper which creates
 # individual builders for copying all the shared libraries and the program.
 # That way all the copied files would be targets which would be erased by a
@@ -85,12 +84,9 @@ class DeployWarning(SCons.Warnings.Warning):
 
 
 def generate(env):
-    if 'DEPLOY_SHARED_LIBS' not in env:
-        env['DEPLOY_SHARED_LIBS'] = []
-    if 'DEPLOY_DIRECTORY' not in env:
-        env['DEPLOY_DIRECTORY'] = "#deploy"
-    if 'DEPLOY_BINDIR' not in env:
-        env['DEPLOY_BINDIR'] = "bin"
+    env.SetDefault(DEPLOY_SHARED_LIBS=[])
+    env.SetDefault(DEPLOY_DIRECTORY="#deploy")
+    env.SetDefault(DEPLOY_BINDIR="bin")
     env['BUILDERS']['DeployProgram'] = deploy_program_builder
 
 
