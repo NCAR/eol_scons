@@ -406,6 +406,7 @@ _qtmodules = [
     ('QtScript',),
 
     # Qt5 modules
+    ('QtConcurrent',),
     ('QtWidgets', 'QtCore'),
     ('QtPrintSupport', 'QtCore'),
     ('QtWebKitWidgets',),
