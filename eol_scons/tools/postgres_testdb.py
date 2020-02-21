@@ -317,8 +317,8 @@ class PostgresTestDB(object):
     def _opensql(self, sqlfile):
         if sqlfile.endswith(".gz"):
             print("opening sql file with gzip...")
-            tfile = tempfile.TemporaryFile()
-            gz = gzip.open(sqlfile, "r")
+            tfile = tempfile.TemporaryFile(mode='w+t')
+            gz = gzip.open(sqlfile, "rt")
             tfile.writelines(gz)
             gz.close()
             tfile.seek(0)
