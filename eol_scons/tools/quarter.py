@@ -2,7 +2,7 @@
 import sys
 
 def generate(env):
-    env.Require('qt4')
+    env.Require('qt5')
     env.Require('coin')
     
     if sys.platform in ['linux', 'linux2']: 
@@ -15,14 +15,15 @@ def generate(env):
         env.AppendUnique(LIBS=['Quarter'])
 
     if sys.platform == 'darwin':
-        qtframes = ['QtGui', 'QtCore', 'QtOpenGL']
-    
-        env.AppendUnique(FRAMEWORKS=['Inventor', 'Quarter']+qtframes)
-        
+        env.AppendUnique(LIBS=['Quarter'])
+        qtframes = ['QtGui', 'QtCore', 'QtWidget', 'QtOpenGL']
+#    
+#        env.AppendUnique(FRAMEWORKS=['Inventor', 'Quarter']+qtframes)
+#        
         if 'QT4DIR' in env:
             qtframeworkdir = env['QT4DIR']+'/Frameworks'
         else:
-            qtframeworkdir = '/usr/local/Frameworks'
+            qtframeworkdir = '/usr/local/opt/qt5/Frameworks'
             
         env.AppendUnique(FRAMEWORKPATH=['/Library/Frameworks', qtframeworkdir])
         
@@ -31,6 +32,8 @@ def generate(env):
         for f in qtframes:
             framepath = qtframeworkdir+'/'+f+'.framework/Headers'
             env.AppendUnique(CPPPATH=[framepath])
+
+        env.AppendUnique(LIBS=["Quarter"])
     
     if sys.platform == 'win32':
         env.AppendUnique(CXXFLAGS=["-DCOIN_NOT_DLL","-DQUARTER_NOT_DLL"])

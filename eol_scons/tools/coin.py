@@ -25,6 +25,9 @@ for the Coin version on which Quarter depends.""",
         
     _options.Update(env)
     prefix = getPrefix(env, apply_config = True)
+    if env['PLATFORM'] == 'darwin':
+        env.Append(LIBS=["coin"])
+
     if env['PLATFORM'] == 'win32':
         env.AppendUnique(CPPDEFINES=["COIN_NOT_DLL"])
         env.AppendUnique(CPPPATH=["$COIN_DIR/include"])
