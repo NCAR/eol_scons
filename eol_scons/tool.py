@@ -413,12 +413,6 @@ _qtmodules = [
     ('QtWebEngine',),
     ('QtWebView', 'QtWebEngineWidgets'),
     ('QtWebEngineWidgets',),
-    ('Qt3DCore',),
-    ('Qt3DRender',),
-    ('Qt3DInput',),
-    ('Qt3DLogic',),
-    ('Qt3DExtras',),
-    ('Qt3DAnimation'),
 ]
 
 
