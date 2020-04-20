@@ -27,6 +27,7 @@ for the Coin version on which Quarter depends.""",
     prefix = getPrefix(env, apply_config = True)
     if env['PLATFORM'] == 'darwin':
         env.Append(LIBS=["coin"])
+        env.AppendUnique(FRAMEWORKS=["CoreFoundation"])
 
     if env['PLATFORM'] == 'win32':
         env.AppendUnique(CPPDEFINES=["COIN_NOT_DLL"])
