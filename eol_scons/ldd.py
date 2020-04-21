@@ -18,10 +18,11 @@ def ldd(node, env, names=None):
     lddout = lddprocess.communicate()[0].decode()
     env.LogDebug(lddout)
     for line in lddout.splitlines():
-        match = re.search(r"lib(.+)\.so.*=> (.+) \(.*\)", line)
+        # add second group to regex to exclude version number from libname
+        match = re.search(r"lib(.+?)(-[\d.]*)?\.so.*=> (.+) \(.*\)", line)
         if match:
             libname = match.group(1)
-            lib = env.File(match.group(2))
+            lib = env.File(match.group(3))
             if ((names is None or libname in names) and
                 libname not in libraries):
                 env.LogDebug("Found %s" % (str(lib)))
@@ -46,4 +47,3 @@ if __name__ == "__main__":
     _dump_libs({ k:v for k,v in libs.items() if 'python' in k })
     libs = ldd(env.File("/usr/lib64/libboost_python37.so"), env)
     _dump_libs({ k:v for k,v in libs.items() if 'python' in k })
-
