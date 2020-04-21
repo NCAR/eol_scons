@@ -29,6 +29,9 @@ for the Coin version on which Quarter depends.""",
         env.Append(LIBS=["coin"])
         env.AppendUnique(FRAMEWORKS=["CoreFoundation"])
 
+    if (env['PLATFORM'] =='posix'):
+        env.Append(LIBS=["Coin", 'GLU', 'dl', 'GL','X11'])
+
     if env['PLATFORM'] == 'win32':
         env.AppendUnique(CPPDEFINES=["COIN_NOT_DLL"])
         env.AppendUnique(CPPPATH=["$COIN_DIR/include"])
