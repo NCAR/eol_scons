@@ -32,14 +32,15 @@ for the Coin version on which Quarter depends.""",
     if (env['PLATFORM'] =='posix'):
         env.Append(LIBS=["Coin", 'GLU', 'dl', 'GL','X11'])
 
-    if env['PLATFORM'] == 'win32':
+    if env['PLATFORM'] == 'msys':
         env.AppendUnique(CPPDEFINES=["COIN_NOT_DLL"])
         env.AppendUnique(CPPPATH=["$COIN_DIR/include"])
         env.Append(LIBPATH=["$COIN_DIR/lib"])
-        env.Append(LIBS=["coin"])
+        env.Append(LIBS=["Coin"])
         env.Append(LIBS=['opengl32'])
         env.Append(LIBS=['glu32'])
         env.Append(LIBS=['gdi32'])
+        env.Append(LIBS=['openal'])
     if 'COIN_DOXDIR' not in env:
         # When installed into the system as the Coin2-devel package,
         # the doxygen html has a custom path.

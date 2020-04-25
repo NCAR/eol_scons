@@ -35,9 +35,15 @@ def generate(env):
 
         env.AppendUnique(LIBS=["Quarter"])
     
-    if sys.platform == 'win32':
-        env.AppendUnique(CXXFLAGS=["-DCOIN_NOT_DLL","-DQUARTER_NOT_DLL"])
-        env.AppendUnique(LIBS=["Quarter", "Coin"])
+    if sys.platform == 'msys':
+        env.AppendUnique(CXXFLAGS=["-DQUARTER_NOT_DLL"])
+        env.AppendUnique(CPPPATH=["/mingw64/include/qwt"])
+        env.Append(LIBS=["Quarter"])
+        env.Append(LIBS=["Qt5Widgets"])
+        env.Append(LIBS=["Qt5Gui"])
+        env.Append(LIBS=["Qt5OpenGL"])
+        env.Append(LIBPATH=["/usr/local/bin"])
+
 
 def exists(env):
     return True
