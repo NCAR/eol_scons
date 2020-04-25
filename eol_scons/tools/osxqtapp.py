@@ -242,13 +242,13 @@ def _create_bundle(target, source, env):
         bundle_version=appversion, 
         icon_filename=iconname)
     infofilepath = contentsdir.get_abspath() + '/Info.plist'
-    infoplistfile = file(infofilepath,"w")
+    infoplistfile = open(infofilepath,"w")
     infoplistfile.write(info)
     
     # Create launch_app script in the MacOS directory.
     scripttext = _make_launch_app(exename)
     filepath = macosdir.get_abspath() + '/launch_app'
-    launchappfile = file(filepath,"w")
+    launchappfile = open(filepath,"w")
     launchappfile.write(scripttext)
     os.chmod(filepath, 0o775)
         
