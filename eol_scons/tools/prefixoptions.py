@@ -1,5 +1,6 @@
 
 import os
+import re
 
 _options = None
 
@@ -19,6 +20,32 @@ def SetupVariables(env):
     _options.Add ('INSTALL_PREFIX',
                   "The root installation directory for bin, lib, and include.",
                   default_install)
+
+
+def AppendCppLastPath(env, incdir):
+    # We want the opt path to be last, since it is a fallback for any
+    # headers not found in the source tree or in other specific
+    # directories.  Do that by duplicating _CPPINCFLAGS except for a
+    # different variable, CPPLASTPATH.  _CPPINCFLAGS is actually a
+    # complicated function call which expands CPPPATH into the compiler
+    # flags.  This tries to be portable and simple by using duplicating the
+    # same construct but for a different path variable, CPPLASTPATH.
+    if 'CPPLASTPATH' not in env:
+        cppincflags = env['_CPPINCFLAGS']
+        lastincflags = re.sub(r"\bCPPPATH\b", 'CPPLASTPATH', cppincflags)
+        env['_CPPINCFLAGS'] = cppincflags + ' ' + lastincflags
+        env['CPPLASTPATH'] = []
+    env.AppendUnique(CPPLASTPATH=[incdir])
+
+
+def AppendLibLastPath(env, libdir):
+    # Same as AppendCppLastPath except for LIBPATH.
+    if 'LIBLASTPATH' not in env:
+        libdirflags = env['_LIBDIRFLAGS']
+        lastlibflags = re.sub(r"\bLIBPATH\b", 'LIBLASTPATH', libdirflags)
+        env['_LIBDIRFLAGS'] = libdirflags + ' ' + lastlibflags
+        env['LIBLASTPATH'] = []
+    env.AppendUnique(LIBLASTPATH=[libdir])
 
 
 def OptPrefixSetup(env):
@@ -41,9 +68,9 @@ def OptPrefixSetup(env):
         env.PrependENVPath('PATH', opt_bin)
     if os.path.exists(opt_lib):
         env.AppendUnique(RPATH=[opt_lib])
-        env.AppendUnique(LIBPATH=[opt_lib] )
+        AppendLibLastPath(env, opt_lib)
     if os.path.exists(opt_inc):
-        env.AppendUnique(CPPPATH=[opt_inc] )
+        AppendCppLastPath(env, opt_inc)
     return env
 
 
