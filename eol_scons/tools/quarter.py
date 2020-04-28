@@ -10,22 +10,8 @@ def generate(env):
         pass
 
     if sys.platform == 'darwin':
-        qtframes = ['QtGui', 'QtCore', 'QtWidget', 'QtOpenGL']
-        if 'QT4DIR' in env:
-            qtframeworkdir = env['QT4DIR']+'/Frameworks'
-        else:
-            qtframeworkdir = '/usr/local/opt/qt5/Frameworks'
-            
-        env.AppendUnique(FRAMEWORKPATH=['/Library/Frameworks', qtframeworkdir])
-        
-        # Add paths directly to the qt headers, because the Quarter code include
-        # statements don't specify the framework name.
-        for f in qtframes:
-            framepath = qtframeworkdir+'/'+f+'.framework/Headers'
-            env.AppendUnique(CPPPATH=[framepath])
+        pass
 
-        env.AppendUnique(LIBS=["Quarter"])
-    
     if sys.platform == 'msys':
         env.AppendUnique(CXXFLAGS=["-DQUARTER_NOT_DLL"])
         env.Append(LIBS=["Quarter"])
@@ -35,4 +21,3 @@ def generate(env):
 
 def exists(env):
     return True
-
