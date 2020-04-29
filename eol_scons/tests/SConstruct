@@ -153,12 +153,16 @@ class TestEOLScons(unittest.TestCase):
         tut['canfestival'] = SCons.Errors.StopError
         tut['osxqtapp'] = SCons.Errors.StopError
         tut['xmlrpc_server_abyss++'] = SCons.Errors.StopError
+        tut['boost_python'] = (lambda result: result is None or
+                               type(result) == SCons.Errors.StopError)
         # No point testing these directly since they conflict.  Tools which
         # do require qt modules will be tested with QT_VERSION=5.
-        del tut['qt']
         del tut['qt4']
         del tut['qt5']
-
+        # These tools should be deprecated or just removed.
+        del tut['qt']
+        del tut['ace_qt']
+        del tut['qtdir']
         for toolname, error in tut.items():
             result = None
             try:
@@ -170,12 +174,16 @@ class TestEOLScons(unittest.TestCase):
                 # stack trace for finding syntax errors.
                 if error is None:
                     raise ex
-            if result is None:
-                self.assert_(error is None)
-            else:
+            if error is None:
+                self.assert_(result is None)
+            elif error == SCons.Errors.StopError:
                 print(" got result type %s and expected %s" %
                       (type(result), error))
                 self.assert_(type(result) == error)
+            else:
+                # tool uses a function to test the result
+                print(" got result %s, testing if valid..." % (str(result)))
+                self.assert_(error(result))
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)
