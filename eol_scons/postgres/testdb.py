@@ -346,7 +346,7 @@ class PostgresTestDB:
         self.parseDatabase(sqlfile)
 
     @staticmethod
-    def action_init(_target_, source, env):
+    def action_init(target, source, env):
         pg = env.PostgresTestDB()
         pg._log("enter action_init")
         # Look for an optional SQL source to load.
@@ -364,19 +364,19 @@ class PostgresTestDB:
         return 0
 
     @staticmethod
-    def action_start(_target_, _source_, env):
+    def action_start(target, source, env):
         pg = env.PostgresTestDB()
         pg.start()
         return 0
 
     @staticmethod
-    def action_stop(_target_, _source_, env):
+    def action_stop(target, source, env):
         pg = env.PostgresTestDB()
         pg.stop()
         return 0
 
     @staticmethod
-    def action_destroy(_target_, _source_, env):
+    def action_destroy(target, source, env):
         pg = env.PostgresTestDB()
         pg.destroy()
         return 0
@@ -460,20 +460,17 @@ class AircraftTestDB(PostgresTestDB):
             self.stopevent = None
 
     @staticmethod
-    def action_start_realtime(_target_, _source_, env):
+    def action_start_realtime(target, source, env):
         # Run a thread to simulate real-time on the database.
         pg = env.PostgresTestDB()
         pg.startRealtime()
         return 0
 
-    action_start_realtime = staticmethod(action_start_realtime)
-
-    def action_stop_realtime(_target_, _source_, env):
+    @staticmethod
+    def action_stop_realtime(target, source, env):
         pg = env.PostgresTestDB()
         pg.stopRealtime()
         return 0
-
-    action_stop_realtime = staticmethod(action_stop_realtime)
 
 
 def getPath():
