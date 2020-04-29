@@ -62,7 +62,7 @@ def _bitrock(target, source, env):
         sources = [source]
 
     bitrock = str(env['BITROCK'])
-    version = env['REPO_VERSION']
+    version = env['REPO_REVISION']
     version = version.replace(':', '-')
     xml = str(sources[0])
     
