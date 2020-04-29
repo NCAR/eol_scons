@@ -31,7 +31,7 @@ def _find_bitrock(env):
         pass
 
     if sys.platform == 'win32' or sys.platform == 'msys':
-        node = env.FindFile('builder-cli.exe', ['C:/Tools/BitRock/bin/'])
+        node = env.FindFile('builder-cli.exe', ['/c/Tools/BitRock/bin/'])
         return node
     
     if sys.platform == 'darwin':
@@ -62,14 +62,15 @@ def _bitrock(target, source, env):
         sources = [source]
 
     bitrock = str(env['BITROCK'])
-    svnversion = env['SVNVERSION']
+    version = env['REPO_VERSION']
+    version = version.replace(':', '-')
     xml = str(sources[0])
     
     # Run bitrock.
-    subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+svnversion,], 
+    subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+version,], 
         stderr=subprocess.STDOUT, bufsize=1)
 
-def BitRock(env, destfile, bitrockxml, source, svnversion, *args, **kw):
+def BitRock(env, destfile, bitrockxml, source, version, *args, **kw):
     """
     A psuedo-builder for creating BitRock installers. 
     
@@ -85,14 +86,14 @@ def BitRock(env, destfile, bitrockxml, source, svnversion, *args, **kw):
     file path for bitrock; this will involve modifying the bitrock xml
     file. 
     
-    The svnversion value is passed to bitrock as the svnversion variable.
+    The git version value is passed to bitrock as the version variable.
 
  	Parameters:
  	destfile   -- The target generated installer file. This should be 
  	              the same as the output file specified in the xml file.
  	bitrockxml -- The bitrock configuration
  	sources    -- Other dependencies that should trigger a rebuild.
- 	svnversion -- The version number that will be fed to bitrock.
+ 	version    -- The version number that will be fed to bitrock.
  	 
     """
     
@@ -101,7 +102,7 @@ def BitRock(env, destfile, bitrockxml, source, svnversion, *args, **kw):
         sources = [source]
 
     # Create the installer dependencies and actions.
-    installer = env.RunBitRock(destfile,  [bitrockxml] + sources, SVNVERSION=svnversion)
+    installer = env.RunBitRock(destfile,  [bitrockxml] + sources, SVNVERSION=version)
     env.AlwaysBuild(installer)
     env.Clean(installer, installer)
 
