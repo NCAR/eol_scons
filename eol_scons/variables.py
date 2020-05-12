@@ -13,6 +13,8 @@ the default environment is not recursive because this function is not
 called (via _update_variables) until global Variables have been added.
 """
 
+from __future__ import print_function
+
 import sys
 import traceback
 
