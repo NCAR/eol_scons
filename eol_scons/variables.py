@@ -12,18 +12,17 @@ default is the directory containing the SConstruct file.  The creation of
 the default environment is not recursive because this function is not
 called (via _update_variables) until global Variables have been added.
 """
-from __future__ import print_function
 
-import os
 import sys
+import traceback
 
 import SCons.Variables
+import SCons.Script
 from SCons.Script import Variables
 from SCons.Script import DefaultEnvironment
 from SCons.Script import BoolVariable
 
 import eol_scons.debug
-import traceback
 
 _global_variables = None
 _cache_variables = None
@@ -97,7 +96,7 @@ class VariableCache(SCons.Variables.Variables):
         else:
             env.LogDebug("no value cached for %s" % (key))
         return value
-        
+
     def store(self, env, name, value):
         # Update the cache
         key = self.cacheKey(name)
@@ -140,13 +139,14 @@ def _CacheVariables(env):
     return ToolCacheVariables(env)
 
 
-def _AliasHelpText(env_):
+def _AliasHelpText(env):
     """
     Generate help text for all the aliases by tapping into the default
     AliasNameSpace, and listing their dependency nodes.
     """
     aliases = SCons.Node.Alias.default_ans
-    names = aliases.keys()
+    # Get the alias keys (names) as a list
+    names = list(aliases)
     names.sort()
     text = "Aliases:\n"
     width = max([len(n) for n in [""] + names])
@@ -229,7 +229,6 @@ def _SetHelp(env, text=None):
         env.SetHelp("See here for custom help.")
         env.AddHelp()
     """
-    import SCons.Script
     SCons.Script.help_text = None
     if text is None:
         text = _GenerateHelpText(env)
@@ -260,7 +259,6 @@ def _AddHelp(env, text=None):
     # Because of the change in how HelpFunction() works between v2.3 and
     # v3.0, the only way to be sure we always append to the current
     # help_text is to manipulate help_text directly.
-    import SCons.Script
     SCons.Script.help_text = SCons.Script.help_text + text
 
 
@@ -289,5 +287,3 @@ def _update_variables(env):
     if 'eolsconscache' in env:
         global _enable_cache
         _enable_cache = env['eolsconscache']
-
-
