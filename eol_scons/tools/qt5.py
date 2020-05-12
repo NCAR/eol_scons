@@ -741,13 +741,15 @@ def enable_module_osx(env, module, debug=False):
 
 def deploy_linux(env):
     """
-    Linux distributions need to include the  xcb platform file and its dependencies,
-    which don't get added when the deploy tool is used on the application because 
-    they don't show up as dependencies in ldd.
+    Linux distributions need to include the xcb platform file and its
+    dependencies, which don't get added when the deploy tool is used on the
+    application because they don't show up as dependencies in ldd.
+
     - copy libqxcb into (application)/bin/platforms
     - copy Qt5DBus, Qt5XcbQpa, xcb-icccm, and xcb-render-util to (application)/lib
     """
-    shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm', 'xcb-render-util', 'xcb-image']
+    shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm',
+                   'xcb-render-util', 'xcb-image']
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
     xcbpath = ""
     if env['QT5DIR'] == USE_PKG_CONFIG:
@@ -757,7 +759,7 @@ def deploy_linux(env):
         xcbpath = os.path.join(env['QT5DIR'], "plugins/platforms/libqxcb.so")
     xcbnode = env.File(xcbpath)
     xcb = env.DeployProgram(xcbnode, DEPLOY_BINDIR="bin/platforms")
-    env.Default(xcb)
+    return xcb
 
 
 def exists(_env):
