@@ -159,7 +159,7 @@ ul { margin-top: 2px; margin-bottom: 2px }
             sources = self.beforeImages() + self.afterImages()
         from SCons.Action import Action
         action = Action(self.builder,
-                        cmdstr="Generating html comparison page $TARGET")
+                        cmdstr="Generating html comparison page $TARGET.abspath")
         page = env.Command(pagepath, [env.Value(contents)] + sources,
                            action)
         return page
