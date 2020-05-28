@@ -171,7 +171,6 @@ def _macdeployqt(target, source, env):
     """
     bundle = str(source[0])
 
-    print(">>>>>> macdplqt")
     # macdeployqt will give volume name of bundle, so cd to directory just above.
     d = os.path.dirname(bundle)
     cwd = os.getcwd()
@@ -180,7 +179,8 @@ def _macdeployqt(target, source, env):
 
     # Remove any existing .dmg file
     dmg = tmpbundle.replace('.app', '.dmg')
-    os.remove(dmg)
+    if os.path.isfile(dmg):
+      os.remove(dmg)
 
     # Run macdeployqt
     Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg',)
@@ -273,9 +273,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     """
 
     # Establish some useful attributes.
-    exename    = str(os.path.basename(appexe))
     bundledir  = Dir(str(destdir))
-    exe        = File(str(bundledir) + '/Contents/MacOS/' + exename)
     icon       = File(str(bundledir) + '/Contents/Resources/' + str(os.path.basename(appicon)))
     info       = File(str(bundledir) + '/Contents/Info.plist')
 
@@ -286,7 +284,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
 
     # Run macdeployqt on the bundle. 
     bogustarget = str(bundledir) + '_bogus'
-    mdqt = env.MacDeployQt(bogustarget, bundle, EXENAME=exename)
+    mdqt = env.MacDeployQt(bogustarget, bundle)
     env.AlwaysBuild(mdqt)
 
     return mdqt
