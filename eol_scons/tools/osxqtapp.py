@@ -57,19 +57,19 @@ SCons.Warnings.enableWarningClass(ToolOsxQtAppWarning)
 def _make_info_plist(bundle_name, bundle_identifier, bundle_signature, bundle_version, icon_filename):
     """
     Return a customized Info.plist. This is a manifest that is found in Contents/ in the bundle.
-    
+
     Parameters:
 		Should be self evident       
     """
-    
-    
+
+
     bundleName        = bundle_name
     bundleDisplayName = bundle_name
     bundleIdentifier  = bundle_identifier
     bundleVersion     = bundle_version
     bundleSignature   = bundle_signature
     bundleIconFile    = icon_filename
-    
+
     info = r"""
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -88,27 +88,28 @@ def _make_info_plist(bundle_name, bundle_identifier, bundle_signature, bundle_ve
 	<key>CFBundleSignature</key>
 	<string>%s</string>
 	<key>CFBundleExecutable</key>
-	<string>launch_app</string>
+	<string>%s</string>
 	<key>CFBundleIconFile</key>
 	<string>%s</string>
 </dict>
 </plist>
     """ %(
-        bundleName, 
+        bundleName,
         bundleDisplayName,
-        bundleIdentifier, 
-        bundleVersion, 
-        bundleSignature, 
+        bundleIdentifier,
+        bundleVersion,
+        bundleSignature,
+        bundleIdentifier,
         bundleIconFile
     )
-    
+
     return info
-    
+
 def _make_launch_app(appexe_filename):
     """
     Create the text for a script which sets DYLD_LIBRARY_PATH and DYLD_FRAMEWORK_PATH
     and then exec's the program
-    
+
     Parameters:
     appexe_filename -- The executable name, which will be found in Contents/MacOS
     """
@@ -132,11 +133,11 @@ exec $DIR/%s
 
     # Return the text of the customized script
     return script
-    
+
 def _find_mdqt(env):
     """ 
     Look for macdeployqt.
-    
+
     Returns the path to the executable, if found. Otherwise
     raises an error exception.
     """
@@ -167,49 +168,44 @@ def _macdeployqt(target, source, env):
     source[0] -- The bundle directory, e.g. RICProxy-6454.app.
     
     env['EXENAME']    -- e.g. ric_proxy
-    
-    Since macdeployqt requires the bundle to be have the same name as the executable
-    inside of it, the bundle directory is first renamed, macdeployqt is applied,
-    and then the bundle is renamed to the original.
     """
-    bundle = source[0]
-    exename = env['EXENAME']
-    
-    d = os.path.dirname(str(bundle))
-    tmpbundle = d + '/' + exename + '.app'
-    
-    # Get rid of the temporary bundle, if it has been left lying around
-    Execute(Delete(tmpbundle))
-    
-    # Move the existing bundle
-    Execute(Move(tmpbundle, bundle))
-    
+    bundle = str(source[0])
+
+    print(">>>>>> macdplqt")
+    # macdeployqt will give volume name of bundle, so cd to directory just above.
+    d = os.path.dirname(bundle)
+    cwd = os.getcwd()
+    os.chdir(d)
+    tmpbundle = str(os.path.basename(bundle))
+
+    # Remove any existing .dmg file
+    dmg = tmpbundle.replace('.app', '.dmg')
+    os.remove(dmg)
+
     # Run macdeployqt
-    # For some reason, I couldn't get Execute(Command)) to work, so
-    # fall back to using subprocess.
-    Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -verbose=3',)
-    
-    # Move temporary bundle back
-    Execute(Move(bundle, tmpbundle))
-    
+    Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg',)
+    # Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg -verbose=3',)
+
+    os.chdir(cwd)
+
 #
 # Builder to create a bundle.
 #
 def _create_bundle(target, source, env):
     """
     Create and populate an OSX application bundle.
-    
+
     Parameters:
     target[0] -- The bundle directory
-    
+
     source[0] -- The application executable file, e.g. #/proxy/ric_proxy.
     source[1] -- The application icon file, e.g. #/Resources/proxy/proxyIcons.icns.
-    
+
     Environment values:
     env['APPNAME']    -- The final application bundle name, e.g. RICProxy-5467M
     env['APPVERSION'] -- The version number to be included in the manifest, e.g. 5467M
     """
-    
+
     appname      = env['APPNAME']
     appversion   = env['APPVERSION']
     exename      = os.path.basename(str(source[0]))
@@ -229,11 +225,11 @@ def _create_bundle(target, source, env):
     Execute(Mkdir(contentsdir))    
     Execute(Mkdir(macosdir))    
     Execute(Mkdir(resourcesdir))    
-     
+
     # Copy the executable and icon
     Execute(Copy(macosdir, source[0]))
     Execute(Copy(resourcesdir, source[1]))
-            
+
     # Create Info.plist in the Contents/ directory
     info =  _make_info_plist(
         bundle_name=appname, 
@@ -244,38 +240,38 @@ def _create_bundle(target, source, env):
     infofilepath = contentsdir.get_abspath() + '/Info.plist'
     infoplistfile = open(infofilepath,"w")
     infoplistfile.write(info)
-    
+
     # Create launch_app script in the MacOS directory.
     scripttext = _make_launch_app(exename)
     filepath = macosdir.get_abspath() + '/launch_app'
     launchappfile = open(filepath,"w")
     launchappfile.write(scripttext)
     os.chmod(filepath, 0o775)
-        
+
 def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     """
     A pseudo-builder to create an OSX application bundle for a Qt application.
-    
+
     An OSX application bundle hierarchy is created, and the executable and 
     other artifacts are copied in. The macdeployqt application is run on
     the bundle in order to bring in supporting frameworks and libraries.
-    
+
     A script (launch_app) is created which sets environment values such as
     DYLD_LIBRARY_PATH and DYLD_FRAMEWORK_PATH to the locations within
     the bundle, and then runs the application. This script is designated as
     the application executable in the Info.plist file.
-    
+
     The final bundle name will be appname + '.app'. 
-    
+
     Parameters:
     destdir    -- The directory where the bundle will be created. Must end with '.app'
     appexe     -- The path to the application executable.
     appicon    -- The path to the application icon.
     appname    -- The final name of the app, without '.app'. E.g. 'Proxy-6457'
     appversion -- The version number to be included in Info.plist
-    
+
     """
-    
+
     # Establish some useful attributes.
     exename    = str(os.path.basename(appexe))
     bundledir  = Dir(str(destdir))
