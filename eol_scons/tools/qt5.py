@@ -610,7 +610,7 @@ def enable_module_linux(env, module, debug=False):
             env.MergeFlags(cflags, unique=1)
             libflags = pc.RunConfig(env,
                                     'pkg-config --libs ' + modpackage)
-            env.MergeFlags(libflags, unique=0)
+            env.MergeFlags(libflags, unique=1)
         else:
             # warn if we haven't already
             if not (module in no_pkgconfig_warned):
