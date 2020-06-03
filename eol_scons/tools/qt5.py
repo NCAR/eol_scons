@@ -590,7 +590,7 @@ def enable_module_linux(env, module, debug=False):
         # 'pkg-config --variable=headerdir Qt'. If that's empty
         # (this happens on CentOS 5 systems...), try
         # 'pkg-config --variable=prefix QtCore' and append '/include'.
-        hdir = pc.RunConfig(env, 'pkg-config --variable=headerdir Qt5')
+        hdir = pc.RunConfig(env, 'pkg-config --silence-errors --variable=headerdir Qt5')
         if hdir == '':
             prefix = pc.RunConfig(env,
                                   'pkg-config --variable=prefix Qt5Core')
