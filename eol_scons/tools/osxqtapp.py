@@ -171,10 +171,6 @@ def _macdeployqt(target, source, env):
     """
     bundle = str(source[0])
 
-    # macdeployqt will give volume name of bundle, so cd to directory just above.
-    d = os.path.dirname(bundle)
-    cwd = os.getcwd()
-    os.chdir(d)
     tmpbundle = str(os.path.basename(bundle))
 
     # Remove any existing .dmg file
@@ -183,10 +179,9 @@ def _macdeployqt(target, source, env):
       os.remove(dmg)
 
     # Run macdeployqt
-    Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg',)
+    # macdeployqt will give volume name of bundle, so cd to directory just above.
+    Execute(env.ChdirActions([env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg'], os.path.dirname(bundle)))
     # Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg -verbose=3',)
-
-    os.chdir(cwd)
 
 #
 # Builder to create a bundle.
