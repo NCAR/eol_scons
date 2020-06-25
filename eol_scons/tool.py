@@ -315,7 +315,7 @@ def generate(env, **_kw):
     # and may someday again) re-ordered later on the command-line, putting
     # local includes first, but apparently that is not soon enough to
     # affect the scons scan.
-    env.PrependUnique(CPPPATH=['#'])
+    env.PrependUnique(CPPPATH=[env.Dir('#')])
 
     # Override the library builders to share targets across a project.
     eol_scons.library.ReplaceLibraryBuilders(env)

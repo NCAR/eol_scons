@@ -49,14 +49,23 @@ def boost_version(env):
     # C++-specific flags like c++11 are invalid.  The _CCCOMCOM is
     # important because it is the CPPPATH expansion.
     # 
-    command = str('(echo "#include <boost/version.hpp>"; '
-                  'echo "BOOST_VERSION") | '
-                  '$CXX -E $CCFLAGS $_CCCOMCOM -o - - 2>/dev/null | '
-                  'egrep -v "^#"')
-    cmd = env.subst(command)
+    cppsource = """
+#include <boost/version.hpp>
+BOOST_VERSION
+"""
+    command = str('$CXX -E $CCFLAGS $_CCCOMCOM -o - -')
+    # subst_list returns a list of CmdStringHolder instances inside a list,
+    # so convert it to a simple argument list of strings.
+    cmd = [str(arg) for arg in env.subst_list(command)[0]]
     import subprocess as sp
-    # print(cmd)
-    version = sp.check_output(cmd, shell=True).strip()
+    env.LogDebug("boost_version(): %s" % (cmd))
+    subp = sp.Popen(cmd, shell=False, stdin=sp.PIPE, stdout=sp.PIPE,
+                    universal_newlines=True)
+    output = subp.communicate(cppsource)[0]
+    if subp.returncode:
+      print("boost_version() failed: %s" % (cmd))
+      env.Exit(1)
+    version = output.splitlines()[-1]
     if version:
       version = int(version)
       env['BOOST_VERSION'] = version
