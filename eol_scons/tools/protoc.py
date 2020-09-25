@@ -33,10 +33,14 @@ import os.path
 protocs = 'protoc'
 
 ProtocAction = SCons.Action.Action('$PROTOCCOM', '$PROTOCCOMSTR')
+
 def ProtocEmitter(target, source, env):
     dirOfCallingSConscript = Dir('.').srcnode()
     env.Prepend(PROTOCPROTOPATH = dirOfCallingSConscript.path)
 
+    # Completely replace target, since SCons default target is wrong,
+    # just the source with the srcsuffix removed.
+    target = []
     source_with_corrected_path = []
     for src in source:
         commonprefix = os.path.commonprefix([dirOfCallingSConscript.path, src.srcnode().path])
@@ -63,12 +67,14 @@ def ProtocEmitter(target, source, env):
     except KeyError:
         pass
 
-    #~ print "PROTOC SOURCE:", [str(s) for s in source]
-    #~ print "PROTOC TARGET:", [str(s) for s in target]
-
     return target, source
 
 ProtocBuilder = SCons.Builder.Builder(action = ProtocAction,
+                                   emitter = ProtocEmitter,
+                                   srcsuffix = '$PROTOCSRCSUFFIX')
+
+ProtocPythonAction = SCons.Action.Action('$PROTOCPYTHONCOM')
+ProtocPythonBuilder = SCons.Builder.Builder(action = ProtocPythonAction,
                                    emitter = ProtocEmitter,
                                    srcsuffix = '$PROTOCSRCSUFFIX')
 
@@ -77,16 +83,14 @@ def generate(env):
     
     Set PROTOCPYTHONOUTDIR='dir' in order to generate python.
     """
-    try:
-        bld = env['BUILDERS']['Protoc']
-    except KeyError:
-        bld = ProtocBuilder
-        env['BUILDERS']['Protoc'] = bld
+    env.Append(BUILDERS = {'Protoc': ProtocBuilder,
+                           'ProtocPython': ProtocPythonBuilder})
 
     env['PROTOC']        = env.Detect(protocs) or 'protoc'
     env['PROTOCFLAGS']   = SCons.Util.CLVar('')
     env['PROTOCPROTOPATH'] = SCons.Util.CLVar('')
     env['PROTOCCOM']     = '$PROTOC ${["-I%s"%x for x in PROTOCPROTOPATH]} $PROTOCFLAGS --cpp_out=$PROTOCCPPOUTFLAGS$PROTOCOUTDIR ${PROTOCPYTHONOUTDIR and ("--python_out="+PROTOCPYTHONOUTDIR) or ""} ${PROTOCFDSOUT and ("-o"+PROTOCFDSOUT) or ""} ${SOURCES}'
+    env['PROTOCPYTHONCOM']     = '$PROTOC ${["-I%s"%x for x in PROTOCPROTOPATH]} $PROTOCFLAGS ${"--python_out="+PROTOCPYTHONOUTDIR} ${PROTOCFDSOUT and ("-o"+PROTOCFDSOUT) or ""} ${SOURCES}'
     env['PROTOCOUTDIR'] = '${SOURCE.dir}'
     env['PROTOCPYTHONOUTDIR'] = '${SOURCE.dir}'
     env['PROTOCSRCSUFFIX']  = '.proto'
