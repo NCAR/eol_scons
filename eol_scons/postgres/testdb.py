@@ -309,12 +309,16 @@ class PostgresTestDB:
             del env['PGDATABASE']
         return env
 
-    def createUser(self, user):
+    def createUser(self, user, password=None):
         # In case PGUSER has already been set in the environment from a
         # previous run, we need to explicitly unset it to connect as the
         # admin user.
         self.PGUSER = None
-        self._psql("template1", "create user \"%s\" with createdb;" % (user))
+        pwd = ""
+        if password:
+            pwd = "PASSWORD '%s'" % (password)
+        self._psql("template1", "CREATE USER \"%s\" "
+                   "WITH %s CREATEDB;" % (user, pwd))
         self.PGUSER = user
 
     def createDatabase(self, database):
