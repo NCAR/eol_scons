@@ -1,3 +1,5 @@
+# -*- python -*-
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 """
 SCons tool which provides a builder for Linux kernel modules.
 
@@ -73,6 +75,7 @@ from __future__ import print_function
 
 import os
 import re
+import fnmatch
 import subprocess
 import string
 import SCons.Errors
@@ -80,9 +83,18 @@ import SCons
 
 from subprocess import Popen,PIPE
 
+_default_kerneldir = None
+
+# Set to 1 to enable debugging output
+_debug = 0
+
+# Debugging print
+def pdebug(msg):
+    if _debug: print(msg)
+
 def Kmake(env,target,source):
 
-    if 'KERNELDIR' not in env or env['KERNELDIR'] == '':
+    if 'KERNELDIR' not in env:
         print("KERNELDIR not specified, %s will not be built" %
               (target[0].abspath))
         return None
@@ -105,7 +117,10 @@ def Kmake(env,target,source):
         print("replaced KERNELDIR=* with KERNELDIR=%s" % (env['KERNELDIR']))
 
     if not os.path.exists(env.subst(env['KERNELDIR'])):
-        print('Error: KERNELDIR=' + env.subst(env['KERNELDIR']) + ' not found.')
+        msg = ('Error: KERNELDIR=' + env.subst(env['KERNELDIR']) +
+                ' not found.')
+        print(msg)
+        raise SCons.Errors.StopError(msg)
 
     # Have the shell subprocess do a cd to the source directory.
     # If scons/python does it, then the -j multithreaded option doesn't work.
@@ -130,20 +145,35 @@ def Kmake(env,target,source):
 def kemitter(target, source, env):
     return ([target, 'Module.symvers'], source)
 
-_default_kerneldir = None
+def _get_output(cmd):
+    "Get command output or stderr if it fails"
+    pdebug("kerneldir: running '%s'" % (" ".join(cmd)))
+    child = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    output = child.communicate()
+    sout = output[0].decode().strip()
+    eout = output[1].decode().strip()
+    pdebug("%s output: %s" % (" ".join(cmd),sout))
+    pdebug("%s error: %s" % (" ".join(cmd),eout))
+    pdebug("%s returncode: %d" % (" ".join(cmd), child.returncode))
+    if child.returncode != 0:
+        raise RuntimeError(" ".join(cmd) + ": " + eout)
+    return sout
 
-def kerneldir_default():
+def _GetOSId():
+    "Read /etc/os-release to find value of ID"
+    try:
+        out = _get_output(["sh","-c",". /etc/os-release; echo $ID"])
+    except Exception as error:
+        msg = "Cannot determine OS ID: %s" % (error)
+        raise SCons.Errors.StopError(msg)
+    return out
+
+def _GetKernelDir():
     """
     Return the default kernel directory on this system.
     """
-    # The default kernel directory should always be the same, so no need to
-    # generate it more than once.
-    global _default_kerneldir
-    if _default_kerneldir:
-        return _default_kerneldir
 
-    krel = Popen(['uname','-r'],stdout=PIPE).communicate()[0].decode().rstrip("\n")
-    # How to build KERNELDIR from uname:
+    # Settings of KERNELDIR:
     # EL5, i686, PAE: (merlot)
     #   uname -r: 2.6.18-164.9.1.el5PAE
     #   uname -m: i686
@@ -159,25 +189,90 @@ def kerneldir_default():
     #   uname -m: i686
     #   kernel-PAE-devel path: /usr/src/kernels/2.6.30.10-105.fc11.i686.PAE
     #   KERNELDIR is /usr/src/kernels/`uname -r`
-    #
-    kdir = '/usr/src/kernels/' + krel
-    # Debian
-    if not os.path.exists(kdir):
-        kdir = '/usr/src/linux-headers-' + krel
-    if not os.path.exists(kdir):
-        kmach = Popen(['uname','-m'],stdout=PIPE).communicate()[0]
-        kmach = kmach.decode().rstrip("\n")
-        kdir = '/usr/src/kernels/' + krel + '-' + kmach
-        if not os.path.exists(kdir):
-            # Remove PAE or xen from uname -r output
-            krel = krel.replace("xen","")
-            krel = krel.replace("PAE","")
-            kdir = '/usr/src/kernels/' + krel + '-' + kmach
+    # armel debian systems, with custom kernels
+    #   /usr/src/linux-headers-3.16.0-titan2 
+    #   /usr/src/linux-headers-3.16.0-viper2 
+    # VortexDX3, ubuntu
+    #   uname -r: 4.6.6
+    #   uname -m: i686
+    #   factory installation:
+    #       /usr/src/linux-headers-4.4.6
+    #   working versions from linux-headers packages:
+    #       /usr/src/linux-headers-x.y.z-n-generic
+    #       eg: /usr/src/linux-headers-4.4.0-190-generic
+    #   The linux-headers-x.y.z package also installs
+    #       /usr/src/linux-headers-x.y.z-n
+    #       but one can't build modules from that tree, you get
+
+    # The default kernel directory should always be the same, so no need to
+    # generate it more than once.
+    global _default_kerneldir
+    if _default_kerneldir:
+        return _default_kerneldir
+
+    osid = _GetOSId()
+    pdebug("osid=%s" % (osid))
+
+    # A kernel header directory must contain some autoconf files, otherwise
+    # you'll get this error when building the modules:
+    #   ERROR: Kernel configuration is invalid.
+    #         include/generated/autoconf.h or include/config/auto.conf are missing.
+    #   WARNING: Symbol version dump ./Module.symvers
+    #       is missing; modules will have no dependencies and modversions.
+    autoconf = "include/generated/autoconf.h"
+
+    # When building in a docker container, uname gives the version of the host
+    # kernel, which is likely not the kernel you're building for.
+    # So search for directories of the kernel headers, using the path
+    # convention of the OS ID found in /etc/os-release.
+    # There doesn't seem to be a foolproof way to determine if you're running
+    # in a container for all versions of docker or lxc
+
+    kdir = ''
+
+    if osid == "ubuntu"  or osid == "debian":
+        srcdir = "/usr/src"
+        dmatch = "linux-headers-*"
+        dirs = [d for d in os.listdir(srcdir)
+            if os.path.isdir(os.path.join(srcdir,d)) and
+                fnmatch.fnmatch(d,dmatch) and
+                os.path.isfile(os.path.join(srcdir,d,autoconf))]
+        pdebug("KERNELDIRs matching %s: %s" %
+            (os.path.join(srcdir,dmatch),",".join(dirs)))
+
+        if len(dirs) > 0:
+            kdir = os.path.join(srcdir,dirs[0])
+        if len(dirs) > 1:
+            print("Warning: %d KERNELDIRs found: %s"
+                % (len(dirs), ", ".join(dirs)))
+            print("Arbitrarily choosing the first one: %s" % (kdir))
+
+    else:       # if not ubuntu or debian assume RedHat:  centos, fedora
+        srcdir = "/usr/src/kernels"
+        dirs = [d for d in os.listdir(srcdir)
+            if os.path.isdir(os.path.join(srcdir,d)) and
+                os.path.isfile(os.path.join(srcdir,d,autoconf))]
+        pdebug("KERNELDIRs in %s: %s" % (srcdir,",".join(dirs)))
+
+        if len(dirs) > 1:
+            print("Warning: %d KERNELDIRs found: %s"
+                % (len(dirs), ", ".join(dirs)))
+            # On RedHat, assume we're not in a container and use "uname -r" to
+            # match the KERNELDIR
+            krel = _get_output(['uname','-r'])
+            pdebug("Looking for match with $(uname -r): %s" % krel)
+            udirs = [d for d in dirs if fnmatch.fnmatch(d,krel + '*')]
+            if len(udirs) > 0:
+                dirs = udirs
+        if len(dirs) > 0:
+            kdir = os.path.join(srcdir,dirs[0])
+        if len(dirs) > 1:
+            print("Warning: %d KERNELDIRs found: %s"
+                % (len(dirs), ", ".join(dirs)))
+            print("Arbitrarily choosing the first one: %s" % (kdir))
 
     _default_kerneldir = kdir
-    print("KERNELDIRDEFAULT=%s" % (kdir))
     return kdir
-
 
 def generate(env, **kw):
 
@@ -187,21 +282,23 @@ def generate(env, **kw):
 
     # If KERNELDIR is not defined or is '*', then an attempt will be
     # made to find the location of the kernel development tree on the
-    # current system. The kernel tree is typically provided by the
-    # "kernel-devel" package. This tool will try to find the tree
-    # using the uname command and the usual path conventions used
-    # by RedHat.
+    # current system.
 
     # The above syntax is necessary if this generate is expected to
     # change the value of KERNELDIR. If instead one does:
     #   env.Clone(tools=['kmake'],KERNELDIR='*')
     # then KERNELDIR gets reset back to '*' after this generate is called.
 
+    env.AddMethod(_GetKernelDir, "GetKernelDir")
+    env.AddMethod(_GetOSId, "GetOSId")
+
     if 'KERNELDIR' in kw:
         env['KERNELDIR'] = kw.get('KERNELDIR')
 
-    kdir = kerneldir_default()
+    kdir = _GetKernelDir()
     env.Replace(KERNELDIRDEFAULT = kdir)
+    print("KERNELDIRDEFAULT=%s" % (kdir))
+
     if 'KERNELDIR' not in env or env['KERNELDIR'] == '*':
         env.Replace(KERNELDIR = kdir)
 
