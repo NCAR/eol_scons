@@ -81,30 +81,20 @@ def RemoveDefaultHook():
         SCons.Tool.DefaultToolpath.remove(hooks_dir)
 
 
-# I'm not sure this could ever be run twice if it is only imported as a
-# python package, since python should never import a package twice.  So
-# maybe this extra machinery can be removed someday.
+_eolsconsdir = os.path.abspath(os.path.dirname(__file__))
+tools_dir = os.path.normpath(os.path.join(_eolsconsdir, "tools"))
+hooks_dir = os.path.normpath(os.path.join(_eolsconsdir, "hooks"))
 
-try:
-    _eolsconsdir
-    Debug("eol_scons previously initialized")
+InstallToolsPath()
+DefineQtTools()
 
-except NameError:
-    _eolsconsdir = os.path.abspath(os.path.dirname(__file__))
-    tools_dir = os.path.normpath(os.path.join(_eolsconsdir, "tools"))
-    hooks_dir = os.path.normpath(os.path.join(_eolsconsdir, "hooks"))
-
-    InstallToolsPath()
-    DefineQtTools()
-
-    # Create the DefaultEnvironment which is used for SCons.Script
-    # functions that are called as plain functions, without an environment.
-    # In SCons/Defaults.py this becomes a global which is returned on all
-    # successive calls.  Also, create this here before the default.py hook
-    # tool is added to the tool path, since that can cause infinite
-    # recursion.
-    Debug("Creating DefaultEnvironment()...")
-    SCons.Defaults.DefaultEnvironment()
-    InstallDefaultHook()
-    Debug("eol_scons.__init__ loaded: %s." % (__file__))
-
+# Create the DefaultEnvironment which is used for SCons.Script
+# functions that are called as plain functions, without an environment.
+# In SCons/Defaults.py this becomes a global which is returned on all
+# successive calls.  Also, create this here before the default.py hook
+# tool is added to the tool path, since that can cause infinite
+# recursion.
+Debug("Creating DefaultEnvironment()...")
+SCons.Defaults.DefaultEnvironment()
+InstallDefaultHook()
+Debug("eol_scons.__init__ loaded: %s." % (__file__))
