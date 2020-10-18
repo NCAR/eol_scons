@@ -35,8 +35,8 @@ Use the first soqt-config found in this list of paths:
     # configuration chosen here.
 
     def find_path(paths, p):
-        for i in range(0, len(paths)):
-            if paths[i].find(p) >= 0:
+        for i, path in enumerate(paths):
+            if p in str(path):
                 return i
         return -1
 
