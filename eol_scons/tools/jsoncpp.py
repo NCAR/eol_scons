@@ -1,14 +1,8 @@
-import os
+import eol_scons.parseconfig as pc
 
 def generate(env):
-    if os.path.exists("/etc/centos-release"):
-        f = open("/etc/centos-release")
-        line = f.readline()
-        if " 7." in line:
-            env.AppendUnique(CPPPATH=['/usr/include/jsoncpp'])
+    pc.ParseConfig(env, 'pkg-config --cflags --libs jsoncpp')
 
-    env.Append(LIBS=['jsoncpp',])
-        
 def exists(env):
     return True
 
