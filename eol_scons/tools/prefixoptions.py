@@ -159,7 +159,7 @@ def InstallPrefixSetup(env):
     if not env.subst(env.get('DEFAULT_INSTALL_PREFIX','')):
         if sys.platform == 'darwin':
             env['DEFAULT_INSTALL_PREFIX'] = '/usr/local'
-        else
+        else:
             env['DEFAULT_INSTALL_PREFIX'] = '/opt/local'
 
     env['INSTALL_LIBDIR'] = "$INSTALL_PREFIX/lib"
