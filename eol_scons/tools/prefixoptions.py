@@ -157,7 +157,11 @@ def InstallPrefixSetup(env):
     # install prefix has no affect unless INSTALL_PREFIX has not been
     # changed.
     if not env.subst(env.get('DEFAULT_INSTALL_PREFIX','')):
-        env['DEFAULT_INSTALL_PREFIX'] = '/opt/local'
+        if sys.platform == 'darwin':
+            env['DEFAULT_INSTALL_PREFIX'] = '/usr/local'
+        else
+            env['DEFAULT_INSTALL_PREFIX'] = '/opt/local'
+
     env['INSTALL_LIBDIR'] = "$INSTALL_PREFIX/lib"
     env['INSTALL_BINDIR'] = "$INSTALL_PREFIX/bin"
     env['INSTALL_INCDIR'] = "$INSTALL_PREFIX/include"
