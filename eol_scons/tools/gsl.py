@@ -1,13 +1,9 @@
 # GNU Scientific Library.
 
-import os, os.path
+import eol_scons.parseconfig as pc
 
 def generate(env):
-  env.Append(LIBS=['gsl','gslcblas'])
-  # On msys the math functions come in via libmsvcrt.a, and there will be
-  # multiple definitions if add -lm.
-  if env['PLATFORM'] != 'msys':
-    env.Append(LIBS=['m'])
+    pc.ParseConfig(env, 'pkg-config --cflags --libs gsl')
 
 
 def exists(env):
