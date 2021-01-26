@@ -8,6 +8,7 @@ import os
 
 import eol_scons.postgres.testdb as pgt
 
+
 def dumpdb(target, _source_, env):
     platform = env['AIRCRAFT']
     db = "real-time"
@@ -21,7 +22,7 @@ def dumpdb(target, _source_, env):
 def DumpAircraftSQL(env, sqltarget, aircraft):
     from SCons.Script import BUILD_TARGETS
     if [t for t in BUILD_TARGETS if str(t).endswith(sqltarget)]:
-        sql = env.Command(sqltarget, None, env.Action(dumpdb), 
+        sql = env.Command(sqltarget, None, env.Action(dumpdb),
                           AIRCRAFT=aircraft)
         env.AlwaysBuild(sql)
 
@@ -58,7 +59,7 @@ def exists(env):
     if not pgctl:
         import SCons
         SCons.Warnings.warn(
-            SCons.Warnings.Warning,
+            SCons.Warnings.WarningOnByDefault,
             "Could not find pg_ctl program.  "
             "postgres_testdb tool not available.")
         return False

@@ -32,7 +32,6 @@ from SCons.Variables import PathVariable
 from SCons.Script import Scanner
 
 import eol_scons.parseconfig as pc
-import eol_scons
 from eol_scons import Debug
 from functools import reduce
 
@@ -40,13 +39,18 @@ _options = None
 USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT4"
 
-class ToolQt4Warning(SCons.Warnings.Warning):
+
+class ToolQt4Warning(SCons.Warnings.WarningOnByDefault):
     pass
+
+
 class GeneratedMocFileNotIncluded(ToolQt4Warning):
     pass
+
+
 class Qt4ModuleIssue(ToolQt4Warning):
     pass
-SCons.Warnings.enableWarningClass(ToolQt4Warning)
+
 
 qrcinclude_re = re.compile(r'<file[^>]*>([^<]*)</file>', re.M)
 
@@ -56,6 +60,7 @@ if SCons.Util.case_sensitive_suffixes('.h', '.H'):
     header_extensions.append('.H')
 cxx_suffixes = [".c", ".cxx", ".cpp", ".cc"]
 
+
 def _checkMocIncluded(target, source, env):
     moc = target[0]
     cpp = source[0]
@@ -63,19 +68,20 @@ def _checkMocIncluded(target, source, env):
     # not really sure about the path transformations (moc.cwd? cpp.cwd?) :-/
     path = SCons.Defaults.CScan.path_function(env, moc.cwd)
     includes = SCons.Defaults.CScan(cpp, env, path)
-    if not moc in includes:
+    if moc not in includes:
         SCons.Warnings.warn(
             GeneratedMocFileNotIncluded,
             "Generated moc file '%s' is not included by '%s'" %
             (str(moc), str(cpp)))
 
+
 def _find_file(filename, paths, node_factory):
-    retval = None
     for dir in paths:
         node = node_factory(filename, dir)
         if node.rexists():
             return node
     return None
+
 
 class _Automoc(object):
     """
@@ -102,11 +108,12 @@ class _Automoc(object):
         # Q_OBJECT detection
         q_object_search = re.compile(r'[^A-Za-z0-9]Q_OBJECT[^A-Za-z0-9]') 
         # cxx and c comment 'eater'
-        #comment = re.compile(r'(//.*)|(/\*(([^*])|(\*[^/]))*\*/)')
+        # comment = re.compile(r'(//.*)|(/\*(([^*])|(\*[^/]))*\*/)')
         # CW: something must be wrong with the regexp. See also bug #998222
         #     CURRENTLY THERE IS NO TEST CASE FOR THAT
 
-        # The following is kind of hacky to get builders working properly (FIXME)
+        # The following is kind of hacky to get builders working properly
+        # (FIXME)
         objBuilderEnv = objBuilder.env
         objBuilder.env = env
         mocBuilderEnv = env.Moc4.env
@@ -116,7 +123,7 @@ class _Automoc(object):
         out_sources = source[:]
 
         Debug("%s: scanning [%s] to add targets to [%s]." %
-              (self.objBuilderName, 
+              (self.objBuilderName,
                ",".join([str(s) for s in source]),
                ",".join([str(t) for t in target])), env)
         for obj in source:
@@ -138,19 +145,19 @@ class _Automoc(object):
 
             if not obj.has_builder():
                 # binary obj file provided
-                Debug("scons: qt4: '%s' seems to be a binary. Discarded." % 
+                Debug("scons: qt4: '%s' seems to be a binary. Discarded." %
                       str(obj), env)
                 continue
 
             cpp = obj.sources[0]
             if not SCons.Util.splitext(str(cpp))[1] in cxx_suffixes:
-                Debug("scons: qt4: '%s' is not a C++ file. Discarded." % 
+                Debug("scons: qt4: '%s' is not a C++ file. Discarded." %
                       str(cpp), env)
                 # c or fortran source
                 continue
-            #cpp_contents = comment.sub('', cpp.get_text_contents())
+            # cpp_contents = comment.sub('', cpp.get_text_contents())
             cpp_contents = cpp.get_text_contents()
-            h=None
+            h = None
             for h_ext in header_extensions:
                 # try to find the header file in the corresponding source
                 # directory
@@ -171,7 +178,7 @@ class _Automoc(object):
                 moc_cpp = env.Moc4(h)
                 moc_o = objBuilder(moc_cpp)
                 out_sources.append(moc_o)
-                #moc_cpp.target_scanner = SCons.Defaults.CScan
+                # moc_cpp.target_scanner = SCons.Defaults.CScan
                 Debug("scons: qt4: found Q_OBJECT macro in '%s', "
                       "moc'ing to '%s'" % (str(h), str(moc_cpp)), env)
             if cpp and q_object_search.search(cpp_contents):
@@ -181,17 +188,19 @@ class _Automoc(object):
                 env.Ignore(moc, moc)
                 Debug("scons: qt4: found Q_OBJECT macro in '%s', "
                       "moc'ing to '%s'" % (str(cpp), str(moc)), env)
-                #moc.source_scanner = SCons.Defaults.CScan
+                # moc.source_scanner = SCons.Defaults.CScan
         # restore the original env attributes (FIXME)
         objBuilder.env = objBuilderEnv
         env.Moc4.env = mocBuilderEnv
 
         return (target, out_sources)
 
+
 AutomocShared = _Automoc('SharedObject')
 AutomocStatic = _Automoc('StaticObject')
 
-def _locateQt4Command(env, command) :
+
+def _locateQt4Command(env, command):
     # Check the cache
     cache = env.CacheVariables()
     key = "qt4_" + command
@@ -208,26 +217,27 @@ def _locateQt4Command(env, command) :
     # If env['QT4DIR'] is defined, add the associated bin directory to our
     # search path for the commands
     #
-    if ('QT4DIR' in env):
-        # If we're using pkg-config, assume all Qt4 binaries live in 
+    if 'QT4DIR' in env:
+        # If we're using pkg-config, assume all Qt4 binaries live in
         # <prefix_from_pkgconfig>/bin.  This is slightly dangerous,
         # but seems to match all installation schemes I've seen so far,
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if (env['QT4DIR'] == USE_PKG_CONFIG):
-            qt4Prefix = pc.RunConfig(env, 'pkg-config --variable=prefix QtCore')
+            qt4Prefix = pc.RunConfig(
+                env, 'pkg-config --variable=prefix QtCore')
             qt4BinDir = os.path.join(qt4Prefix, 'bin')
         # Otherwise, look for Qt4 binaries in <QT4DIR>/bin
         else:
             qt4BinDir = os.path.join(env['QT4DIR'], 'bin')
 
-    # If we built a qt4BinDir, check (only) there first for the command. 
-    # This will make sure we get e.g., <myQT4DIR>/bin/moc ahead of 
-    # /usr/bin/moc-qt4 in the case where we have a standard installation 
-    # but we're trying to use a custom one by setting QT4DIR.
+    # If we built a qt4BinDir, check (only) there first for the command.
+    # This will make sure we get e.g., <myQT4DIR>/bin/moc ahead of
+    # /usr/bin/moc-qt4 in the case where we have a standard installation but
+    # we're trying to use a custom one by setting QT4DIR.
     if (qt4BinDir):
         # check for the binaries in *just* qt4BinDir
-        result = reduce(lambda a,b: a or env.WhereIs(b, [qt4BinDir]), 
+        result = reduce(lambda a,b: a or env.WhereIs(b, [qt4BinDir]),
                         cmds, None)
 
     # Check the default path
@@ -252,6 +262,7 @@ qrcbuilder = None
 uic4builder = None
 mocBld = None
 
+
 def _scanResources(node, env, path, arg):
     contents = node.get_text_contents()
     includes = qrcinclude_re.findall(contents)
@@ -262,31 +273,31 @@ def create_builders():
     global tsbuilder, qmbuilder, qrcscanner, qrcbuilder, uic4builder, mocBld
 
     # Translation builder
-    tsbuilder = SCons.Builder.Builder(action =
+    tsbuilder = SCons.Builder.Builder(action=
                                       '$QT4_LUPDATE $SOURCES -ts $TARGETS',
                                       multi=1)
-    qmbuilder = SCons.Builder.Builder(action =['$QT4_LRELEASE $SOURCE',    ],
-                                      src_suffix = '.ts',
-                                      suffix = '.qm',
-                                      single_source = True)
+    qmbuilder = SCons.Builder.Builder(action=['$QT4_LRELEASE $SOURCE', ],
+                                      src_suffix='.ts',
+                                      suffix='.qm',
+                                      single_source=True)
 
     # Resource builder
-    qrcscanner = Scanner(name = 'qrcfile',
-        function = _scanResources,
-        argument = None,
-        skeys = ['.qrc'])
+    qrcscanner = Scanner(name='qrcfile',
+                         function=_scanResources,
+                         argument=None,
+                         skeys=['.qrc'])
     qrcbuilder = SCons.Builder.Builder(
         action='$QT4_RCC $QT4_QRCFLAGS $SOURCE -o $TARGET',
-        source_scanner = qrcscanner,
-        src_suffix = '$QT4_QRCSUFFIX',
-        suffix = '$QT4_QRCCXXSUFFIX',
-        prefix = '$QT4_QRCCXXPREFIX',
-        single_source = True)
+        source_scanner=qrcscanner,
+        src_suffix='$QT4_QRCSUFFIX',
+        suffix='$QT4_QRCCXXSUFFIX',
+        prefix='$QT4_QRCCXXPREFIX',
+        single_source=True)
     uic4builder = SCons.Builder.Builder(action='$QT4_UIC4CMD',
                                         src_suffix='$QT4_UISUFFIX',
                                         suffix='$QT4_UICDECLSUFFIX',
                                         prefix='$QT4_UICDECLPREFIX',
-                                        single_source = True)
+                                        single_source=True)
     mocBld = SCons.Builder.Builder(action={}, prefix={}, suffix={})
     for h in header_extensions:
         mocBld.add_action(h, '$QT4_MOCFROMHCMD')
@@ -303,12 +314,13 @@ create_builders()
 
 _pkgConfigKnowsQt4 = None
 
+
 def checkPkgConfig(env):
     #
     # See if pkg-config knows about Qt4 on this system
     #
     global _pkgConfigKnowsQt4
-    if _pkgConfigKnowsQt4 == None:
+    if _pkgConfigKnowsQt4 is None:
         check = pc.CheckConfig(env, 'pkg-config --exists QtCore')
         _pkgConfigKnowsQt4 = check
     return _pkgConfigKnowsQt4
@@ -321,7 +333,7 @@ def generate(env):
         msg = str("Cannot require qt4 tool after another version "
                   "(%d) already loaded." % (env.get('QT_VERSION')))
         raise SCons.Errors.StopError(msg)
-        
+
     env['QT_VERSION'] = 4
 
     # Only need to setup any particular environment once.
@@ -331,17 +343,19 @@ def generate(env):
     global _options
     if not _options:
         _options = env.GlobalVariables()
-        _options.AddVariables(PathVariable('QT4DIR',
-       'Parent directory of qt4 bin, include and lib sub-directories. The default location is determined from the path to qt4 tools and from pkg-config, so QT4DIR typically does not need to be specified.', None, PathVariable.PathAccept))
-        _options.AddVariables(PathVariable('QT4INCDIR',
-            'Override the qt4 include directory when QT4DIR is set to a path.\n'
-            'The default location is QT4DIR/include, but sometimes the system\n'
-            'uses a path like /usr/include/qt4, so this allows\n'
-            'setting QT4DIR=/usr but QT4INCDIR=/usr/include/qt4.',
-            None, PathVariable.PathAccept))
+        _options.AddVariables(
+            PathVariable('QT4DIR', """
+Parent directory of qt4 bin, include and lib sub-directories.  The default
+location is determined from the path to qt4 tools and from pkg-config, so
+QT4DIR typically does not need to be specified.""".strip(), None,
+                         PathVariable.PathAccept))
+        _options.AddVariables(PathVariable('QT4INCDIR', """
+Override the qt4 include directory when QT4DIR is set to a path.  The
+default location is QT4DIR/include, but sometimes the system uses a path
+like /usr/include/qt4, so this allows setting QT4DIR=/usr but
+QT4INCDIR=/usr/include/qt4.""".strip(), None, PathVariable.PathAccept))
     _options.Update(env)
 
-    # 
     # Try to find the Qt4 installation location, trying in order:
     #    o command line QT4DIR option
     #    o OS environment QT4DIR
@@ -349,7 +363,7 @@ def generate(env):
     #    o parent of directory holding moc-qt4 in the execution path
     #    o parent of directory holding moc in the execution path
     # At the end of checking, either env['QT4DIR'] will point to the
-    # top of the installation, it will be set to USE_PKG_CONFIG, or 
+    # top of the installation, it will be set to USE_PKG_CONFIG, or
     # we will raise an exception.
     #
     if ('QT4DIR' in env):
@@ -358,8 +372,8 @@ def generate(env):
         env['QT4DIR'] = os.environ['QT4DIR']
     elif (env['PLATFORM'] == 'win32'):
         print()
-        print("For Windows, QT4DIR must be set" + \
-            " on the command line or in the environment.")
+        print("For Windows, QT4DIR must be set "
+              "on the command line or in the environment.")
         print("E.g.:")
         print("    scons QT4DIR='/c/QtSDK/Desktop/Qt/4.7.4/mingw'")
         print()
@@ -370,9 +384,9 @@ def generate(env):
         if moc:
             env['QT4DIR'] = os.path.dirname(os.path.dirname(moc))
         elif os.path.exists('/usr/lib64/qt4'):
-            env['QT4DIR'] = '/usr/lib64/qt4';
+            env['QT4DIR'] = '/usr/lib64/qt4'
         elif os.path.exists('/usr/lib/qt4'):
-            env['QT4DIR'] = '/usr/lib/qt4';
+            env['QT4DIR'] = '/usr/lib/qt4'
 
     env.AddMethod(enable_modules, "EnableQtModules")
     # Backwards compatibility:
@@ -442,7 +456,7 @@ def generate(env):
     static_obj, shared_obj = SCons.Tool.createObjBuilders(env)
     static_obj.src_builder.append('Uic4')
     shared_obj.src_builder.append('Uic4')
-    
+
     # We use the emitters of Program / StaticLibrary / SharedLibrary
     # to scan for moc'able files
     # We can't refer to the builders directly, we have to fetch them
@@ -630,5 +644,3 @@ def enable_modules(self, modules, debug=False) :
 
 def exists(env):
     return True
-
-

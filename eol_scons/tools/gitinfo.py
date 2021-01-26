@@ -12,14 +12,14 @@ Example usage:
 env = Environment(tools = ['default', gitinfo'])
 repoinfo = env.GitInfo('repoInfo.h', '#/')
 env.Default(repoinfo)
- 
+
 Useful hint: If a scons tool such as this (i.e contains exists() and
 generate()) is not located in the site_tools directory,
 just add a toolpath to locate it. E.g:
 env = Environment(tools = ['default', 'gitinfo'], toolpath=['#/'])
 
-There are two parts to the source code for this tool. 
-1) The GitInfo class manages the collection of git information. 
+There are two parts to the source code for this tool.
+1) The GitInfo class manages the collection of git information.
 2) The collection of global functions provides the framework of the scons tool.
 
 Just specifying gitinfo as a tool causes the repository variables to be
@@ -43,7 +43,6 @@ has been retained in gitinfo, as there may be a need for this later.
 """
 
 import os
-import string
 
 from SCons.Builder import Builder
 from SCons.Action import Action
@@ -55,9 +54,12 @@ from eol_scons.gitinfo import GitInfo
 # Set to 1 to enable debugging output
 _debug = 0
 
+
 # Debugging print
 def pdebug(msg):
-    if _debug: print(msg)
+    if _debug:
+        print(msg)
+
 
 #####################################################################
 # Integrate GitInfo with SCons
@@ -74,9 +76,9 @@ def _get_workdir(env, source):
 
     pdebug("_get_workdir source=" + str(['%s' % d for d in source]))
     workdir = source
-    if type(source) == type(""):
+    if isinstance(source, str):
         workdir = env.Dir(source)
-    elif type(source) == type([]):
+    elif isinstance(source, list):
         workdir = source[0]
     if workdir.isfile():
         workdir = workdir.get_dir()
@@ -85,8 +87,10 @@ def _get_workdir(env, source):
     pdebug("get_workdir(%s) ==> %s" % (str(source[0]), workdir.get_abspath()))
     return workdir.get_abspath()
 
+
 # A dictionary used to cache a GitInfo instance for a given working directory.
 _gitinfomap = {}
+
 
 def _load_gitinfo(env, workdir):
     """
@@ -115,7 +119,7 @@ def gitinfo_emitter_value(target, source, env):
     gitinfo = _load_gitinfo(env, workdir)
     # If the git info command fails with an error, we don't
     # update the target it if exists.  Have to mark the
-    # target as Precious so that scons doesn't delete it 
+    # target as Precious so that scons doesn't delete it
     # before the check for existence in the action.
     # I suppose the correct thing to do if subversion fails
     # and the file exists, is to return a source Value
@@ -123,16 +127,20 @@ def gitinfo_emitter_value(target, source, env):
     env.Precious(target)
     return target, [Value(gitinfo.generateHeader())]
 
+
 def gitinfo_do_update_target(target, source):
     # If a git error, don't overwrite existing file
     text = source[0].get_text_contents()
     return text.find("Git error:") < 0 or not os.path.exists(target[0].path)
 
+
 def gitinfo_action_print(target, source, env):
     if gitinfo_do_update_target(target, source):
         return "Generating %s" % target[0]
     else:
+
         return "Not updating %s" % target[0] + " due to git error"
+
 
 def gitinfo_build_value(env, target, source):
     "Build header based on contents in the source."
@@ -144,7 +152,7 @@ def gitinfo_build_value(env, target, source):
         out.close()
 
 
-class GitInfoWarning(SCons.Warnings.Warning):
+class GitInfoWarning(SCons.Warnings.WarningOnByDefault):
     pass
 
 
@@ -162,15 +170,15 @@ def generate(env):
 
     pdebug("gitinfo: generate()")
     gitinfobuilder = Builder(
-        action = Action(gitinfo_build_value, gitinfo_action_print),
-        source_factory = FS.default_fs.Entry,
-        emitter = gitinfo_emitter_value)
+        action=Action(gitinfo_build_value, gitinfo_action_print),
+        source_factory=FS.default_fs.Entry,
+        emitter=gitinfo_emitter_value)
     env['BUILDERS']['GitInfo'] = gitinfobuilder
     env['GIT'] = "git"
     env['GITVERSION'] = "gitversion"
     # Use the default location for the subversion Windows installer.
     if env['PLATFORM'] == 'win32':
-        gitbin=r'c:\Tools\git\bin'
+        gitbin = r'c:\Tools\git\bin'
         env.PrependENVPath('PATH', gitbin)
         # env['GIT'] = os.path.join(gitbin, "git")
         # env['GITVERSION'] = os.path.join(gitbin, "gitversion")
@@ -193,5 +201,3 @@ def exists(env):
             "Could not find git program. gitinfo tool not available.")
         return False
     return True
-
-

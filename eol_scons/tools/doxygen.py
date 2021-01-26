@@ -3,20 +3,17 @@
 from __future__ import print_function
 import os
 import hashlib
-import string
 import SCons
 import SCons.Node
 import SCons.Util
 from SCons.Script import Builder
 from SCons.Script import Action
-from SCons.Node import FS
 import shutil
-import fnmatch
 from fnmatch import fnmatch
 
 try:
     from StringIO import StringIO
-except:
+except ImportError:
     from io import StringIO
 
 import eol_scons
@@ -24,15 +21,15 @@ _debug = eol_scons.LookupDebug('doxygen')
 if _debug:
     print("doxygen debug enabled.")
 
+
 def ddebug():
     return _debug
+
 
 def dprint(msg):
     if ddebug():
         print(msg)
 
-class DoxygenWarning(SCons.Warnings.Warning):
-    pass
 
 def apidocssubdir(node):
     """
@@ -84,7 +81,7 @@ def CheckMissingHeaders(subdir, doxfiles, ignores):
     # print "Files: ", doxfiles
     # print "Ignores: ", ignores
     for root, dirs, files in os.walk(subdir):
-        files = filter(lambda f: 
+        files = filter(lambda f:
                        not fnmatch(f, "moc_*")
                        and not fnmatch(f, "ui_*")
                        and not fnmatch(f, "*.ui*")
@@ -94,9 +91,9 @@ def CheckMissingHeaders(subdir, doxfiles, ignores):
         if '.svn' in dirs:
             dirs.remove('.svn')
 
-    known = [ os.path.normpath(os.path.join(subdir, p))
-              for p in doxfiles+ignores ]
-    missing = [ f for f in found if f not in known ]
+    known = [os.path.normpath(os.path.join(subdir, p))
+             for p in doxfiles + ignores]
+    missing = [f for f in found if f not in known]
     missing.sort()
     if len(missing) > 0:
         print("Header files missing in "+subdir+":")
@@ -104,7 +101,7 @@ def CheckMissingHeaders(subdir, doxfiles, ignores):
     return missing
 
 
-def Doxyfile_Emitter (target, source, env):
+def Doxyfile_Emitter(target, source, env):
     """
     Modify the source list to create the correct dependencies.  Due to an
     error on Gary's part which established a poorly-thought-out convention,
@@ -127,7 +124,7 @@ def Doxyfile_Emitter (target, source, env):
            (",".join([str(t) for t in target]),
             ",".join([str(s) for s in source])))
     contents = Doxyfile_contents(target, source, env)
-    source = [ env.Value(contents) ]
+    source = [env.Value(contents)]
     try:
         source.append(env.File(env['DOXYFILE_FILE']))
         dprint("added Doxyfile dependency: " + str(source[-1]))
@@ -139,14 +136,14 @@ def Doxyfile_Emitter (target, source, env):
                (",".join([str(t) for t in target]),
                 ",".join([hashlib.md5(str(s)).hexdigest() for s in source])))
     return target, source
-    
 
-def Doxyfile_Builder (target, source, env):
+
+def Doxyfile_Builder(target, source, env):
     "The source node should be the Doxyfile contents generated in the emitter."
     docsdir = str(target[0].get_dir())
     try:
         os.makedirs(docsdir)
-    except:
+    except OSError:
         if not os.access(docsdir, os.W_OK):
             raise
     dprint(docsdir + " exists")
@@ -161,7 +158,7 @@ def Doxyfile_Builder (target, source, env):
     dfile.close()
 
 
-def Doxyfile_contents (target, source, env):
+def Doxyfile_contents(target, source, env):
     """
     Generate a standard Doxyfile for the Doxygen builder.  This builder expects
     one target, the name of the doxygen config file to generate.  The
@@ -186,7 +183,7 @@ def Doxyfile_contents (target, source, env):
     This should hold verbatim Doxyfile configuration text which will be
     appended to the generated Doxyfile, thus overriding any of the default
     configuration settings.
-                        
+
     DOXYFILE_DICT
 
     A dictionary of Doxygen configuration parameters which will be
@@ -218,27 +215,26 @@ def Doxyfile_contents (target, source, env):
     Here are examples of some of the Doxyfile configuration parameters
     which typically need to be set for each documentation target.  Unless
     set explicitly, they are given defaults in the Doxyfile.
-    
+
     PROJECT_NAME        Title of project, defaults to the source directory.
     PROJECT_NUMBER      Version string for the project.  Defaults to 1.0
 
-    """ 
+    """
 
     dprint("entering doxyfile_contents...")
-    topdir = target[0].Dir('#')
     subdir = source[0].get_dir()
     docsdir = str(target[0].get_dir())
 
     if 'DOXYFILE_IGNORES' in env:
         ignores = env['DOXYFILE_IGNORES']
         if CheckMissingHeaders(subdir.get_path(env.Dir('#')),
-                               [s.get_path(subdir) for s in source], 
+                               [s.get_path(subdir) for s in source],
                                ignores):
             return -1
 
     doxyfile = None
     try:
-        doxyfile = env.File (env['DOXYFILE_FILE'], subdir)
+        doxyfile = env.File(env['DOXYFILE_FILE'], subdir)
     except KeyError:
         pass
 
@@ -262,7 +258,7 @@ GENERATE_MAN           = NO
 # templates.
 PREDEFINED = DOXYGEN
 
-# 
+#
 # Specifically disable extracting private class members and file static
 # members, for the case of generating documentation for only the public
 # interface of a library.  Instead require individual directories to
@@ -312,18 +308,18 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
     dfile.write("INPUT                  = \\\n")
     for s in source:
         # Source files named Doxyfile or index.html are not inputs.
-        if ((not doxyfile or s.path != doxyfile.path) and 
-            (s.name != 'index.html')):
+        if ((not doxyfile or
+             s.path != doxyfile.path) and (s.name != 'index.html')):
             dfile.write("%s \\\n" % s.get_abspath())
-            
-    dfile.write ("\n")
+
+    dfile.write("\n")
     outputdir = docsdir
     dfile.write("OUTPUT_DIRECTORY       = %s\n" % outputdir)
     dfile.write("HTML_OUTPUT            = html\n")
     dfile.write("LATEX_OUTPUT           = latex\n")
     dfile.write("RTF_OUTPUT             = rtf\n")
     dfile.write("MAN_OUTPUT             = man\n")
-    dfile.write("GENERATE_TAGFILE       = %s\n" % \
+    dfile.write("GENERATE_TAGFILE       = %s\n" %
                 os.path.join(outputdir, tagfilename(source[0])))
 
     # Parse DOXREF for references to other tag files, internal and
@@ -347,7 +343,7 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
 
     doxref = env['DOXREF']
     dprint("Parsing DOXREF for tag references: %s" % (str(doxref)))
-    tagfiles={}
+    tagfiles = {}
     for tagref in doxref:
         tag = env.subst(tagref)
         (tagpath, colon, docpath) = tag.partition(':')
@@ -359,14 +355,14 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
                 tagfiles[tag] = "%s=%s" % (tagpath, docpath)
                 dprint("Using explicit doxref: %s" % (tagfiles[tag]))
             else:
-                print("Tagfile with explicit doxref does not exist, ignored: %s" %
-                      (tag))
+                print("Tagfile with explicit doxref "
+                      "does not exist, ignored: %s" % (tag))
         else:
             # Assume the tagfile will be generated under apidocs
-            qtag=tagpath.replace("/","_")
-            tagdir="%s/../%s" % (outputdir, qtag)
-            tagpath="%s/%s.tag" % (tagdir, qtag)
-            docpath="../../%s/html" % (qtag)
+            qtag = tagpath.replace("/", "_")
+            tagdir = "%s/../%s" % (outputdir, qtag)
+            tagpath = "%s/%s.tag" % (tagdir, qtag)
+            docpath = "../../%s/html" % (qtag)
             tagfiles[tag] = "%s=%s" % (tagpath, docpath)
             dprint("Expanded tagfile reference: %s" % (tagfiles[tag]))
 
@@ -380,7 +376,7 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
     dfile.write(env.subst(env['DOXYFILE_TEXT']))
 
     for k, v in env['DOXYFILE_DICT'].items():
-        dfile.write ("%s = \"%s\"\n" % (k, env.subst(str(v))))
+        dfile.write('%s = "%s"\n' % (k, env.subst(str(v))))
 
     dprint("leaving doxyfile_contents.")
     doxyfile = dfile.getvalue()
@@ -388,8 +384,9 @@ EXTENSION_MAPPING = no_extension=C++ dox=C++
     return doxyfile
 
 
-def doxyfile_message (target, source, env):
+def doxyfile_message(target, source, env):
     return "creating Doxygen config file '%s'" % target[0]
+
 
 doxyfile_variables = [
     'DOXYFILE_TEXT',
@@ -398,11 +395,12 @@ doxyfile_variables = [
     'DOXREF'
     ]
 
-doxyfile_action = Action( Doxyfile_Builder, doxyfile_message,
-                          varlist = doxyfile_variables)
 
-doxyfile_builder = Builder( action = doxyfile_action,
-                            emitter = Doxyfile_Emitter )
+doxyfile_action = Action(Doxyfile_Builder, doxyfile_message,
+                         varlist=doxyfile_variables)
+
+doxyfile_builder = Builder(action=doxyfile_action,
+                           emitter=Doxyfile_Emitter)
 
 
 def _parse_doxyfile(dfilenode):
@@ -434,13 +432,13 @@ def _parse_doxyfile(dfilenode):
     return parms
 
 
-def Doxygen_Emitter (target, source, env):
+def Doxygen_Emitter(target, source, env):
     """
     Add the output HTML index file as the doxygen target, representative of
     all of the files which will be generated by doxygen.  The first (and
     only) source should be the Doxyfile, and the output is expected to go
     under that directory.
-    
+
     If an explicit target location has been specified (as in it hasn't
     defaulted to be the same as the source), then use that target.
     """
@@ -507,14 +505,14 @@ def Doxygen_Emitter (target, source, env):
     env['DOXYGEN_OUTPUT_DIRECTORY'] = output
     html = os.path.join(output, dfile.get('HTML_OUTPUT', 'html'))
     env['DOXYGEN_HTML_OUTPUT'] = html
-    dprint("DOXYGEN_OUTPUT_DIRECTORY set: %s" % 
+    dprint("DOXYGEN_OUTPUT_DIRECTORY set: %s" %
            (env.get('DOXYGEN_OUTPUT_DIRECTORY', "")))
 
     # Now that we know the output directory, we can set a target (assuming
     # html output) unless an explicit target was provided.
     t = target
     if str(target[0]) == str(source[0]):
-        t = [ env.File(os.path.join(html, "index.html")) ]
+        t = [env.File(os.path.join(html, "index.html"))]
         dprint("doxygen_emitter: target set to %s" % (str(t[0])))
 
     # This builder may also generate a tag file.
@@ -524,12 +522,13 @@ def Doxygen_Emitter (target, source, env):
 
     dprint("leaving Doxygen_Emitter")
     return t, source
-    
 
-doxygen_action = Action (['$DOXYGEN_COM'])
 
-doxygen_builder = Builder( action = doxygen_action,
-                           emitter = Doxygen_Emitter )
+doxygen_action = Action(['$DOXYGEN_COM'])
+
+doxygen_builder = Builder(action=doxygen_action,
+                          emitter=Doxygen_Emitter)
+
 
 def Doxygen(env, target=None, source=None, **kw):
     "The Doxygen method is a pseudo-builder so it can add to Clean targets."
@@ -538,8 +537,8 @@ def Doxygen(env, target=None, source=None, **kw):
     if not target:
         target = source
     tdoxygen = env.DoxygenBuilder(target, source, **kw)
-    # The builder emitter should set the outputs we want to add to a 
-    # Clean target.
+    # The builder emitter should set the outputs we want to add to a Clean
+    # target.
     output = env.get('DOXYGEN_OUTPUT_DIRECTORY', None)
     dprint("output=%s" % (output))
     if output:
@@ -556,9 +555,11 @@ _project = {}
 
 _disable_subprojects = False
 
+
 def ApidocsDisable(env, disable):
     global _disable_subprojects
     _disable_subprojects = disable
+
 
 def _projectAddApidocs(env, source, **kw):
     global _project
@@ -598,7 +599,7 @@ def ApidocsProject(env, name, version, source=None, **kw):
     source files can be passed via @p source.
     """
     doxdict = kw.get('DOXYFILE_DICT', {})
-    doxdict.update({'PROJECT_NAME':name, 'PROJECT_NUMBER':version})
+    doxdict.update({'PROJECT_NAME': name, 'PROJECT_NUMBER': version})
     kw['DOXYFILE_DICT'] = doxdict
     project = _projectAddApidocs(env, source or [], **kw)
     docsdir = os.path.join(env['APIDOCSDIR'], name)
@@ -610,9 +611,9 @@ def ApidocsProject(env, name, version, source=None, **kw):
     env.Precious(doxyfile)
     tdoxygen = env.Doxygen(source=doxyfile, **kw)
     return tdoxygen
-    
 
-def ApidocsIndex (env, source, **kw):
+
+def ApidocsIndex(env, source, **kw):
     doxyconf = """
 OUTPUT_DIRECTORY       = apidocs
 HTML_OUTPUT            = .
@@ -636,7 +637,6 @@ GENERATE_HTML          = YES
                      source=[df], **kw)
     return dx
 
-from SCons.Script import Environment
 
 def SetDoxref(env, name, tagfile, url):
     """
@@ -674,5 +674,6 @@ def generate(env):
     readme = os.path.abspath(readme)
     env.SetDefault(EOL_SCONS_README=env.File(readme))
 
+
 def exists(env):
-    return env.Detect ('doxygen')
+    return env.Detect('doxygen')

@@ -4,10 +4,10 @@
 # Run this test script with 'scons --site-dir=../../../site_scons'
 
 import os
-import sys
 
 import eol_scons
 import SCons
+import glob
 
 # I don't know what this was supposed to test, but it now interferes
 # with the rest of the tests because loading the eol_scons tool explicitly
@@ -20,21 +20,20 @@ tooldir = eol_scons.tools_dir
 v = eol_scons.GlobalVariables(os.getcwd() + '/dummy-config.py')
 
 # Search the tools directory to find all the tools possible to load.
-import glob
 toolfiles = glob.glob(tooldir + "/*.py")
-toolnames = [ os.path.splitext(os.path.basename(f))[0] 
-              for f in toolfiles ]
-ignore_tools = [ 'gcc', 'msvc', 
-                 'gcc68k',
-                 'pyqt', # appears to be outdated
-                 'mex', # needs matlab installed
-                 'xmlrpc_client++', # also appears to be outdated
-                 'armcross',
-                 'armbecross',
-                 'windriver',
-                 'vxworks',
-                 'eol_scons_tool'
-                 ]
+toolnames = [os.path.splitext(os.path.basename(f))[0]
+             for f in toolfiles]
+ignore_tools = ['gcc', 'msvc',
+                'gcc68k',
+                'pyqt',  # appears to be outdated
+                'mex',  # needs matlab installed
+                'xmlrpc_client++',  # also appears to be outdated
+                'armcross',
+                'armbecross',
+                'windriver',
+                'vxworks',
+                'eol_scons_tool'
+                ]
 for it in ignore_tools:
     toolnames.remove(it)
 
@@ -94,7 +93,7 @@ class TestEOLScons(unittest.TestCase):
         self.assert_('prefixoptions' in gtools)
         self.assert_('tnt' in gtools)
         self.assertEqual(len(gtools), 2)
-                         
+
     def test_4_subdir_subdir_global_tools(self):
         subtools = sub2.GlobalTools()
         self.assert_(subtools == [])
@@ -150,6 +149,7 @@ class TestEOLScons(unittest.TestCase):
         if env.Detect('cppunit-config'):
             tut['cppunit'] = None
         tut['lrose'] = SCons.Errors.StopError
+        tut['apar'] = SCons.Errors.StopError
         tut['canfestival'] = SCons.Errors.StopError
         tut['osxqtapp'] = SCons.Errors.StopError
         tut['xmlrpc_server_abyss++'] = SCons.Errors.StopError
@@ -195,4 +195,3 @@ Exit(len(results.errors))
 # env.Append(LIBS = [ "logx", "boost_date_time" ])
 # print boost.boost_libflags(env)
 # print env.subst(env["_LIBFLAGS"])
-

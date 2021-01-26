@@ -61,10 +61,13 @@ from SCons.Builder import Builder
 from SCons.Action import Action
 from SCons.Variables import EnumVariable
 
-class ValgrindWarning(SCons.Warnings.Warning):
+
+class ValgrindWarning(SCons.Warnings.WarningOnByDefault):
     pass
 
+
 _options = None
+
 
 def findValgrind(env):
     global _options
@@ -79,11 +82,11 @@ def findValgrind(env):
     # run environment.
     if env.get('VALGRIND_PATH'):
         return env['VALGRIND_PATH']
-    extra_paths = [ '/usr/bin' ]
+    extra_paths = ['/usr/bin']
     if 'OPT_PREFIX' in env:
         extra_paths.append("%s/bin" % env['OPT_PREFIX'])
-    opts = ['el4','el3','ws3','fc4','fc3','fc2']
-    extra_paths.extend([ "/net/opt_lnx/local_%s/bin" % o for o in opts])
+    opts = ['el4', 'el3', 'ws3', 'fc4', 'fc3', 'fc2']
+    extra_paths.extend(["/net/opt_lnx/local_%s/bin" % o for o in opts])
     return env.WhereIs('valgrind', extra_paths)
 
 
@@ -96,10 +99,10 @@ def getValgrindPath(env):
 
 def _parseValgrindOutput(log):
     # Parse valgrind error summary lines
-    rxmap = { 'nerrors' : re.compile(r"ERROR SUMMARY: *([\d,]+) *"),
-              'dlost' : re.compile(r"definitely lost: *([\d,]+) bytes"),
-              'plost' : re.compile(r"possibly lost: *([\d,]+) bytes"),
-              'ilost' : re.compile(r"indirectly lost: *([\d,]+) bytes") }
+    rxmap = {'nerrors': re.compile(r"ERROR SUMMARY: *([\d,]+) *"),
+             'dlost': re.compile(r"definitely lost: *([\d,]+) bytes"),
+             'plost': re.compile(r"possibly lost: *([\d,]+) bytes"),
+             'ilost': re.compile(r"indirectly lost: *([\d,]+) bytes")}
     rxnoleaks = re.compile(r"no leaks are possible")
     results = {}
     # Look for the tool in the first 10 lines of the file.  Limit the line
@@ -120,7 +123,6 @@ def _parseValgrindOutput(log):
         return None
     results['tool'] = match.group(1)
     while line:
-        l = line.strip()
         if rxnoleaks.search(line):
             results['dlost'] = 0
             results['plost'] = 0
@@ -130,11 +132,11 @@ def _parseValgrindOutput(log):
             match = rx.search(line)
             if match:
                 print("valgrind: %s in %s" % (vname, line))
-                results[vname] = int(match.group(1).replace(',',''))
+                results[vname] = int(match.group(1).replace(',', ''))
         line = log.readline()
 
     return results
-        
+
 
 _valgrind_example = """\
 11111
@@ -181,23 +183,24 @@ received signal Interrupt(2), si_signo=2, si_errno=0, si_code=0
 ==20791== ERROR SUMMARY: 17 errors from 17 contexts (suppressed: 143 from 117)
 """
 
+
 # Run this test like so:
 #
 # env PYTHONPATH=/usr/lib/scons py.test -v valgrind.py
 
 def test_parsevalgrind():
     import io
-    log = io.StringIO(_valgrind_example.decode('ascii'))
+    log = io.StringIO(_valgrind_example)
     results = _parseValgrindOutput(log)
     assert results['dlost'] == 408
     assert results['ilost'] == 3854
     assert results['plost'] == 191841
     assert results['nerrors'] == 16
     assert results['tool'] == 'Memcheck'
-    log = io.StringIO(_helgrind_example.decode('ascii'))
+    log = io.StringIO(_helgrind_example)
     results = _parseValgrindOutput(log)
     assert results['tool'] == 'Helgrind'
-    assert ('dlost' in results) == False
+    assert 'dlost' not in results
     assert results['nerrors'] == 17
 
 
@@ -249,7 +252,7 @@ def Valgrind(env, targets, sources, actions, **kw):
     targets = env.Flatten([targets])
     suppfile = [src for src in sources
                 if str(src).endswith("vg.suppressions.txt")]
-    suppressions=""
+    suppressions = ""
     if suppfile:
         suppfile = env.File(suppfile[0])
         suppressions = " --suppressions=%s" % (suppfile.get_abspath())
@@ -282,11 +285,8 @@ def Valgrind(env, targets, sources, actions, **kw):
     return output
 
 
-
-
-
-
 _variables = None
+
 
 def _setup_variables(env):
     global _variables
@@ -315,8 +315,8 @@ def generate(env):
     # remote' command.
     env['ENV']['HOSTNAME'] = os.getenv('HOSTNAME')
     env['ENV']['USER'] = os.getenv('USER')
-    env.Append(BUILDERS = {'ValgrindLog' : Builder(action = ValgrindLog,
-                                                   emitter = ValgrindLog_emit) })
+    env.Append(BUILDERS={'ValgrindLog': Builder(action=ValgrindLog,
+                                                emitter=ValgrindLog_emit)})
     env.AddMethod(Valgrind)
 
 

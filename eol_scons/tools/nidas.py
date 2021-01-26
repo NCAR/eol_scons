@@ -66,12 +66,13 @@ import re
 import eol_scons
 import eol_scons.parseconfig as pc
 import sharedlibrary
-from SCons.Variables import EnumVariable
 import SCons.Warnings
 from SCons.Script.SConscript import global_exports
 
-class NidasPathNotDirectory(SCons.Warnings.Warning):
+
+class NidasPathNotDirectory(SCons.Warnings.WarningOnByDefault):
     pass
+
 
 _options = None
 USE_PKG_CONFIG = 'pkg-config'
@@ -98,7 +99,7 @@ def _applyInsideSource(env):
     Build up the library nodes from the built targets.
     """
     arch = env['ARCH']  # empty string for native builds
-    libsyms = ['LIBNIDAS_UTIL','LIBNIDAS','LIBNIDAS_DYNLD']
+    libsyms = ['LIBNIDAS_UTIL', 'LIBNIDAS', 'LIBNIDAS_DYNLD']
     libmap = dict(zip(libsyms, libsyms))
     libpath = []
     for k in libmap.keys():
@@ -108,46 +109,50 @@ def _applyInsideSource(env):
             env[k] = lib
             libpath.append(lib.Dir(''))
 
-    # Inside the  source tree, the build dir  paths have to come  first, to take
-    # precedence over any  other library paths (ie OTHER_PREFIX)  added by other
-    # tools or for third-party libraries.
-    env.Prepend(LIBPATH = libpath)
+    # Inside the  source tree, the build dir  paths have to come  first, to
+    # take precedence over any  other library paths (ie OTHER_PREFIX)  added
+    # by other tools or for third-party libraries.
+    env.Prepend(LIBPATH=libpath)
     env.Tool("xercesc")
     env.Tool('xmlrpc')
 
     # Set LD_LIBRARY_PATH to the locally built libraries, for builders like
     # tests which want to run the nidas apps.  Also include nc_server_rpc,
     # in case it is not on the system path but NIDAS was built against it.
-    ldlibdirs = [ env.File(l).Dir('').abspath for l in libmap.values() ]
-    env['ENV']['LD_LIBRARY_PATH'] = ":".join(ldlibdirs + ['/opt/nc_server/lib'])
+    ldlibdirs = [env.File(l).Dir('').abspath for l in libmap.values()]
+    env['ENV']['LD_LIBRARY_PATH'] = ":".join(ldlibdirs +
+                                             ['/opt/nc_server/lib'])
     return True
 
 
 _nidas_apps = {}
 
+
 def _NidasAddApp(env, node):
     arch = env['ARCH']
     name = env.subst("${TARGET.filebase}", target=node)
-    _nidas_apps[(name,arch)] = node
+    _nidas_apps[(name, arch)] = node
+
 
 def _NidasProgram(env, target=None, source=None, libs=None):
     "Wrapper to build a program against full nidas libs and add it to apps."
-    arch = env['ARCH']
     if not source:
         source = target
         target = None
     if libs is None:
         libs = _NidasLibs(env)
-    node = env.Program(target=target, source=source, 
+    node = env.Program(target=target, source=source,
                        LIBS=env['LIBS'] + libs)
     inode = env.Install('$PREFIX/bin', node)
     env.Clean('install', inode)
     env.NidasAddApp(node)
     return node
 
+
 def _NidasUtilProgram(env, target=None, source=None):
     "Wrapper to build a program against nidas util libs and add it to apps."
     return _NidasProgram(env, target, source, _NidasUtilLibs(env))
+
 
 def _NidasPlainProgram(env, target=None, source=None):
     "Wrapper to build a plain program but with the nidas install extras."
@@ -161,11 +166,13 @@ def _NidasPlainProgram(env, target=None, source=None):
 # to the LIBPATH set when the nidas tool is applied.
 def _NidasLibs(env):
     # return ['$LIBNIDAS','$LIBNIDAS_DYNLD','$LIBNIDAS_UTIL']
-    return ['nidas','nidas_dynld','nidas_util']
+    return ['nidas', 'nidas_dynld', 'nidas_util']
+
 
 def _NidasUtilLibs(env):
     # return ['$LIBNIDAS_UTIL']
     return ['nidas_util']
+
 
 def _NidasApp(env, name):
     # If inside the source tree, look for the given app in the source tree
@@ -215,10 +222,10 @@ def _NidasAppFindFile(env, name):
     eol_scons.Debug("Found app: %s" % (str(app)))
     return app
 
+
 def _check_nc_server(env, lib):
     lddcmd = ["ldd", lib]
     lddprocess = sp.Popen(lddcmd, stdout=sp.PIPE, env=env['ENV'])
-    found = False
     lddout = lddprocess.communicate()[0]
     return bool(re.search('libnc_server_rpc', lddout))
 
@@ -243,8 +250,8 @@ def _addOptions(env, inside=False):
         if inside:
             default_nidas_path = ''
         _options = env.GlobalVariables()
-        _options.Add('NIDAS_PATH',
-"""Set the NIDAS prefix paths to build against, and enable builds of
+        _options.Add('NIDAS_PATH', """
+Set the NIDAS prefix paths to build against, and enable builds of
 components which use NIDAS. Setting this to empty outside the NIDAS source
 tree disables components which need NIDAS.  Within the NIDAS source tree, this
 variable is empty by default, which builds against the libraries and
@@ -257,7 +264,6 @@ relative to the top directory.  Set NIDAS_PATH to '%s' to use
 the settings from the system pkg-config.""" % (USE_PKG_CONFIG),
                      default_nidas_path)
     _options.Update(env)
-
 
 
 def generate(env):
@@ -291,7 +297,7 @@ def generate(env):
     eol_scons.Debug("applying nidas tool to %s, PREFIX=%s, "
                     "%s source tree, NIDAS_PATH=%s" %
                     (env.Dir('.').abspath, env.get('PREFIX'),
-                     ['outside','inside'][int(inside)],
+                     ['outside', 'inside'][int(inside)],
                      env.get('NIDAS_PATH', '<na>')))
 
     # First check if inside the tree and nidas prefix not overridden.
@@ -307,7 +313,7 @@ def generate(env):
     env['NIDAS_INSIDE_SOURCE'] = False
 
     nidas_paths = []
-    nidas_libs = ['nidas','nidas_dynld','nidas_util']
+    nidas_libs = ['nidas', 'nidas_dynld', 'nidas_util']
     env['LIBNIDAS'] = 'nidas'
     env['LIBNIDAS_DYNLD'] = 'nidas_dynld'
     env['LIBNIDAS_UTIL'] = 'nidas_util'
@@ -318,19 +324,20 @@ def generate(env):
             # env['ENV'] may have PKG_CONFIG_PATH
             exists = pc.CheckConfig(env, 'pkg-config nidas')
             env.EnableNIDAS = (lambda: exists)
-        except:
+        except Exception:
             pass
         if env.EnableNIDAS():
             print("Using pkg-config for nidas build variables")
             # Don't try here to make things unique in CFLAGS; just do an append
-            pc.ParseConfig(env, 'pkg-config --cflags --libs nidas', unique=False)
+            pc.ParseConfig(env, 'pkg-config --cflags --libs nidas',
+                           unique=False)
             # Set NIDAS_PREFIX from the pkg-config prefix.
-            env['NIDAS_PREFIX'] = pc.PkgConfigPrefix(env, 'nidas',
-                                                     default_prefix='/opt/nidas')
-            env.LogDebug('NIDAS_PREFIX set from pkg-config: %s' % 
+            env['NIDAS_PREFIX'] = pc.PkgConfigPrefix(
+                env, 'nidas', default_prefix='/opt/nidas')
+            env.LogDebug('NIDAS_PREFIX set from pkg-config: %s' %
                          (env['NIDAS_PREFIX']))
-            env['NIDAS_LD_RUN_PATH'] = pc.RunConfig(env, 
-                "pkg-config --libs-only-L nidas").lstrip("-L")
+            env['NIDAS_LD_RUN_PATH'] = pc.RunConfig(
+                env, "pkg-config --libs-only-L nidas").lstrip("-L")
 
         else:
             # NIDAS_PATH explicitly requested it, but pkg-config wasn't found.
@@ -338,7 +345,7 @@ def generate(env):
                                          "'pkg-config --exists nidas' failed")
 
     elif env['NIDAS_PATH'] != '':
-        paths=env['NIDAS_PATH'].split(",")
+        paths = env['NIDAS_PATH'].split(",")
         for p in paths:
             np = env.Dir("#").Dir(env.subst(p)).get_abspath()
             if not os.path.isdir(np):
@@ -348,11 +355,12 @@ def generate(env):
             else:
                 nidas_paths.append(np)
         if len(nidas_paths) == 0:
-            raise NidasPathNotDirectory(
-                "No directories found in NIDAS_PATH: %s; " % \
+            SCons.Warnings.warn(
+                NidasPathNotDirectory,
+                "No directories found in NIDAS_PATH: %s; " %
                 env['NIDAS_PATH'] + "disable NIDAS with NIDAS_PATH=''")
         env.EnableNIDAS = (lambda: 1)
-        env.Append(CPPPATH=[os.path.join(p,'include') 
+        env.Append(CPPPATH=[os.path.join(p, 'include')
                             for p in nidas_paths])
 
         libpaths = _resolve_libpaths(env, nidas_paths)
@@ -367,11 +375,11 @@ def generate(env):
                 nidas_prefix = os.path.dirname(str(p))
                 env['NIDAS_LD_RUN_PATH'] = str(p)
                 # Suspend this check for now.  If nidas was built against
-                # nc_server, as is usually the case, then the link should work even
-                # without specifying the nc_server library since it's named in the
-                # nidas_dynld library.  This may need to be revisited for the
-                # corner cases where nc_server is not installed in a system
-                # location.
+                # nc_server, as is usually the case, then the link should
+                # work even without specifying the nc_server library since
+                # it's named in the nidas_dynld library.  This may need to
+                # be revisited for the corner cases where nc_server is not
+                # installed in a system location.
                 if False and _check_nc_server(env, pnidas):
                     # Really the only support for building with nc_server
                     # is using pkg-config, so use it.  Pass any
@@ -404,7 +412,6 @@ def generate(env):
         # No NIDAS dependencies will be added to the environment, and
         # EnableNIDAS() stays false.
         env.EnableNIDAS = (lambda: 0)
-
 
 
 def exists(env):

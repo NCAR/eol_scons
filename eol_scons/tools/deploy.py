@@ -1,11 +1,8 @@
 from __future__ import print_function
 import os
-import re
-import subprocess
 import SCons
 from SCons.Builder import Builder
 from SCons.Action import Action
-import shutil
 
 from SCons.Defaults import Copy
 
@@ -17,11 +14,12 @@ from eol_scons.ldd import ldd
 from eol_scons.chdir import MkdirIfMissing
 Mkdir = MkdirIfMissing
 
+
 def makedirs(dirpath):
     try:
         print(("mkdir ", dirpath))
         os.makedirs(dirpath)
-    except:
+    except OSError:
         if not os.access(dirpath, os.W_OK):
             raise
 
@@ -52,10 +50,10 @@ def deploy_program(target, source, env):
     dpath = env.Dir(str(env['DEPLOY_DIRECTORY'])).get_path()
     bindir = os.path.join(dpath, env['DEPLOY_BINDIR'])
     libdir = os.path.join(dpath, "lib")
-    actions = [ Mkdir(bindir), Mkdir(libdir) ]
+    actions = [Mkdir(bindir), Mkdir(libdir)]
     progdest = target[0]
     libraries = ldd(source[0], env, env['DEPLOY_SHARED_LIBS'])
-    actions.append (Copy(progdest, source[0]))
+    actions.append(Copy(progdest, source[0]))
     for k in libraries:
         libfile = libraries[k]
         libdest = os.path.join(libdir, libfile.name)
@@ -73,13 +71,12 @@ def deploy_program(target, source, env):
 # That way all the copied files would be targets which would be erased by a
 # scons clean, and they would be copied over if the system library source
 # changed.  Oh well, this works for now.
-# 
 
-deploy_program_builder = Builder(action = deploy_program,
-                                 emitter = deploy_program_emitter)
+deploy_program_builder = Builder(action=deploy_program,
+                                 emitter=deploy_program_emitter)
 
 
-class DeployWarning(SCons.Warnings.Warning):
+class DeployWarning(SCons.Errors.UserError):
     pass
 
 
@@ -92,4 +89,3 @@ def generate(env):
 
 def exists(env):
     return True
-

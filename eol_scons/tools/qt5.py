@@ -1,5 +1,4 @@
 # -*- python -*-
-
 """
 This tool adds Qt5 include paths and libraries to the build
 environment.  Qt5 is similar to Qt4 in that it is divided into many
@@ -57,13 +56,18 @@ _options = None
 USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT5"
 
-class ToolQt5Warning(SCons.Warnings.Warning):
+
+class ToolQt5Warning(SCons.Warnings.WarningOnByDefault):
     pass
+
+
 class GeneratedMocFileNotIncluded(ToolQt5Warning):
     pass
+
+
 class Qt5ModuleIssue(ToolQt5Warning):
     pass
-SCons.Warnings.enableWarningClass(ToolQt5Warning)
+
 
 qrcinclude_re = re.compile(r'<file[^>]*>([^<]*)</file>', re.M)
 
@@ -73,6 +77,7 @@ if SCons.Util.case_sensitive_suffixes('.h', '.H'):
     header_extensions.append('.H')
 cxx_suffixes = [".c", ".cxx", ".cpp", ".cc"]
 
+
 def _checkMocIncluded(target, source, env):
     moc = target[0]
     cpp = source[0]
@@ -80,11 +85,12 @@ def _checkMocIncluded(target, source, env):
     # not really sure about the path transformations (moc.cwd? cpp.cwd?) :-/
     path = SCons.Defaults.CScan.path_function(env, moc.cwd)
     includes = SCons.Defaults.CScan(cpp, env, path)
-    if not moc in includes:
+    if moc not in includes:
         SCons.Warnings.warn(
             GeneratedMocFileNotIncluded,
             "Generated moc file '%s' is not included by '%s'" %
             (str(moc), str(cpp)))
+
 
 def _find_file(filename, paths, node_factory):
     for d in paths:
@@ -92,6 +98,7 @@ def _find_file(filename, paths, node_factory):
         if node.rexists():
             return node
     return None
+
 
 class _Automoc(object):
     """
@@ -116,9 +123,9 @@ class _Automoc(object):
 
         # some regular expressions:
         # Q_OBJECT detection
-        q_object_search = re.compile(r'[^A-Za-z0-9]Q_OBJECT[^A-Za-z0-9]') 
+        q_object_search = re.compile(r'[^A-Za-z0-9]Q_OBJECT[^A-Za-z0-9]')
         # cxx and c comment 'eater'
-        #comment = re.compile(r'(//.*)|(/\*(([^*])|(\*[^/]))*\*/)')
+        # comment = re.compile(r'(//.*)|(/\*(([^*])|(\*[^/]))*\*/)')
         # CW: something must be wrong with the regexp. See also bug #998222
         #     CURRENTLY THERE IS NO TEST CASE FOR THAT
 
@@ -133,7 +140,7 @@ class _Automoc(object):
         out_sources = source[:]
 
         Debug("%s: scanning [%s] to add targets to [%s]." %
-              (self.objBuilderName, 
+              (self.objBuilderName,
                ",".join([str(s) for s in source]),
                ",".join([str(t) for t in target])), env)
         for obj in source:
@@ -143,29 +150,28 @@ class _Automoc(object):
             # use its single entry as the obj.  Not sure why this has become
             # an issue now...
             #
-            if (not isinstance(obj, SCons.Node.FS.Entry)):
-                try:
-                    if (len(obj) != 1):
-                        raise SCons.Errors.StopError("expected one source")
-                    obj = obj[0]
-                except:
-                    errmsg = "qt5/_Automoc_ got a bad source object: "
-                    errmsg += str(obj)
-                    raise SCons.Errors.StopError(errmsg)
+            if isinstance(obj, list):
+                if len(obj) != 1:
+                    raise SCons.Errors.StopError("expected one source")
+                obj = obj[0]
+            if not isinstance(obj, SCons.Node.FS.Entry):
+                errmsg = "qt5/_Automoc_ got a bad source object: "
+                errmsg += str(obj)
+                raise SCons.Errors.StopError(errmsg)
 
             if not obj.has_builder():
                 # binary obj file provided
-                Debug("scons: qt5: '%s' seems to be a binary. Discarded." % 
+                Debug("scons: qt5: '%s' seems to be a binary. Discarded." %
                       str(obj), env)
                 continue
 
             cpp = obj.sources[0]
             if not SCons.Util.splitext(str(cpp))[1] in cxx_suffixes:
-                Debug("scons: qt5: '%s' is not a C++ file. Discarded." % 
+                Debug("scons: qt5: '%s' is not a C++ file. Discarded." %
                       str(cpp), env)
                 # c or fortran source
                 continue
-            #cpp_contents = comment.sub('', cpp.get_text_contents())
+            # cpp_contents = comment.sub('', cpp.get_text_contents())
             cpp_contents = cpp.get_text_contents()
             h = None
             for h_ext in header_extensions:
@@ -174,9 +180,9 @@ class _Automoc(object):
                 hname = SCons.Util.splitext(cpp.name)[0] + h_ext
                 h = _find_file(hname, (cpp.get_dir(),), FS.File)
                 if h:
-                    Debug("scons: qt5: Scanning '%s' (header of '%s')" % 
+                    Debug("scons: qt5: Scanning '%s' (header of '%s')" %
                           (str(h), str(cpp)), env)
-                    #h_contents = comment.sub('', h.get_text_contents())
+                    # h_contents = comment.sub('', h.get_text_contents())
                     h_contents = h.get_text_contents()
                     break
             if not h:
@@ -186,7 +192,7 @@ class _Automoc(object):
                 moc_cpp = env.Moc5(h)
                 moc_o = objBuilder(moc_cpp)
                 out_sources.append(moc_o)
-                #moc_cpp.target_scanner = SCons.Defaults.CScan
+                # moc_cpp.target_scanner = SCons.Defaults.CScan
                 Debug("scons: qt5: found Q_OBJECT macro in '%s', "
                       "moc'ing to '%s'" % (str(h), str(moc_cpp)), env)
             if cpp and q_object_search.search(cpp_contents):
@@ -196,15 +202,17 @@ class _Automoc(object):
                 env.Ignore(moc, moc)
                 Debug("scons: qt5: found Q_OBJECT macro in '%s', "
                       "moc'ing to '%s'" % (str(cpp), str(moc)), env)
-                #moc.source_scanner = SCons.Defaults.CScan
+                # moc.source_scanner = SCons.Defaults.CScan
         # restore the original env attributes (FIXME)
         objBuilder.env = objBuilderEnv
         env.Moc5.env = mocBuilderEnv
 
         return (target, out_sources)
 
+
 AutomocShared = _Automoc('SharedObject')
 AutomocStatic = _Automoc('StaticObject')
+
 
 def _locateQt5Command(env, command):
     # Check the cache
@@ -225,7 +233,7 @@ def _locateQt5Command(env, command):
     # search path for the commands
     #
     if 'QT5DIR' in env:
-        # If we're using pkg-config, assume all Qt5 binaries live in 
+        # If we're using pkg-config, assume all Qt5 binaries live in
         # <prefix_from_pkgconfig>/bin.  This is slightly dangerous,
         # but seems to match all installation schemes I've seen so far,
         # and the "prefix" variable appears to always be available (again,
@@ -238,10 +246,10 @@ def _locateQt5Command(env, command):
         else:
             qtbindir = os.path.join(env['QT5DIR'], 'bin')
 
-    # If we built a qtbindir, check (only) there first for the command. 
-    # This will make sure we get e.g., <myQT5DIR>/bin/moc ahead of 
-    # /usr/bin/moc-qt5 in the case where we have a standard installation 
-    # but we're trying to use a custom one by setting QT5DIR.
+    # If we built a qtbindir, check (only) there first for the command.
+    # This will make sure we get e.g., <myQT5DIR>/bin/moc ahead of
+    # /usr/bin/moc-qt5 in the case where we have a standard installation but
+    # we're trying to use a custom one by setting QT5DIR.
     if qtbindir:
         # check for the binaries in *just* qtbindir
         result = None
@@ -271,6 +279,7 @@ qrcbuilder = None
 uic5builder = None
 mocBld = None
 
+
 def _scanResources(node, _env, _path, _arg):
     contents = node.get_text_contents()
     includes = qrcinclude_re.findall(contents)
@@ -281,9 +290,8 @@ def create_builders():
     global tsbuilder, qmbuilder, qrcscanner, qrcbuilder, uic5builder, mocBld
 
     # Translation builder
-    tsbuilder = SCons.Builder.Builder(action=
-                                      '$QT5_LUPDATE $SOURCES -ts $TARGETS',
-                                      multi=1)
+    tsbuilder = SCons.Builder.Builder(
+        action='$QT5_LUPDATE $SOURCES -ts $TARGETS', multi=1)
     qmbuilder = SCons.Builder.Builder(action=['$QT5_LRELEASE $SOURCE'],
                                       src_suffix='.ts', suffix='.qm',
                                       single_source=True)
@@ -317,6 +325,7 @@ create_builders()
 
 _pkgConfigKnowsQt5 = None
 
+
 def checkPkgConfig(env):
     #
     # See if pkg-config knows about Qt5 on this system
@@ -339,7 +348,7 @@ def generate(env):
         msg = str("Cannot require qt5 tool after another version "
                   "(%d) already loaded." % (env.get('QT_VERSION')))
         raise SCons.Errors.StopError(msg)
-        
+
     env['QT_VERSION'] = 5
 
     global _options
@@ -361,7 +370,6 @@ def generate(env):
                                            PathVariable.PathAccept))
     _options.Update(env)
 
-    # 
     # Try to find the Qt5 installation location, trying in order:
     #    o command line QT5DIR option
     #    o OS environment QT5DIR
@@ -369,7 +377,7 @@ def generate(env):
     #    o parent of directory holding moc-qt5 in the execution path
     #    o parent of directory holding moc in the execution path
     # At the end of checking, either env['QT5DIR'] will point to the
-    # top of the installation, it will be set to USE_PKG_CONFIG, or 
+    # top of the installation, it will be set to USE_PKG_CONFIG, or
     # we will raise an exception.
     #
     if ('QT5DIR' in env):
@@ -397,9 +405,8 @@ E.g.:
     env.AddMethod(deploy_linux, "DeployQtLinux")
 
     if 'QT5DIR' not in env:
-	# Dont stop, just print a warning. Later, a user call of
-	# EnableQtModules() will return False if QT5DIR is not found.
-
+        # Dont stop, just print a warning. Later, a user call of
+        # EnableQtModules() will return False if QT5DIR is not found.
         errmsg = "Qt5 not found, try setting QT5DIR."
         # raise SCons.Errors.StopError, errmsg
         print(errmsg)
@@ -434,18 +441,19 @@ E.g.:
     env['QT5_QRCCXXSUFFIX'] = '$CXXFILESUFFIX'
     env['QT5_QRCCXXPREFIX'] = 'qrc_'
 
-    env.Append(BUILDERS={'Ts':tsbuilder})
-    env.Append(BUILDERS={'Qm':qmbuilder})
+    env.Append(BUILDERS={'Ts': tsbuilder})
+    env.Append(BUILDERS={'Qm': qmbuilder})
 
     env.Append(SCANNERS=qrcscanner)
-    env.Append(BUILDERS={'Qrc':qrcbuilder})
+    env.Append(BUILDERS={'Qrc': qrcbuilder})
 
     # Interface builder
     env['QT5_UIC5CMD'] = [
-        SCons.Util.CLVar('$QT5_UIC $QT5_UICDECLFLAGS -o ${TARGETS[0]} $SOURCE'),
+        SCons.Util.CLVar(
+            '$QT5_UIC $QT5_UICDECLFLAGS -o ${TARGETS[0]} $SOURCE'),
         ]
-    env.Append(BUILDERS={'Uic5':uic5builder})
-    env.Append(BUILDERS={'Uic':uic5builder})
+    env.Append(BUILDERS={'Uic5': uic5builder})
+    env.Append(BUILDERS={'Uic': uic5builder})
 
     # Metaobject builder
     env['QT5_MOCFROMHCMD'] = (
@@ -454,20 +462,20 @@ E.g.:
         SCons.Util.CLVar('$QT5_MOC $QT5_MOCFROMCXXFLAGS '
                          '-o ${TARGETS[0]} $SOURCE'),
         SCons.Action.Action(_checkMocIncluded, None)]
-    env.Append(BUILDERS={'Moc5':mocBld})
-    env.Append(BUILDERS={'Moc':mocBld})
+    env.Append(BUILDERS={'Moc5': mocBld})
+    env.Append(BUILDERS={'Moc': mocBld})
 
     # er... no idea what that was for
     static_obj, shared_obj = SCons.Tool.createObjBuilders(env)
     static_obj.src_builder.append('Uic5')
     shared_obj.src_builder.append('Uic5')
-    
+
     # We use the emitters of Program / StaticLibrary / SharedLibrary
     # to scan for moc'able files
     # We can't refer to the builders directly, we have to fetch them
     # as Environment attributes because that sets them up to be called
     # correctly later by our emitter.
-    #env.AppendUnique(PROGEMITTER =[AutomocStatic],
+    # env.AppendUnique(PROGEMITTER =[AutomocStatic],
     #                 SHLIBEMITTER=[AutomocShared],
     #                 LIBEMITTER  =[AutomocStatic],
     #                 # Of course, we need to link against the qt5 libraries
@@ -504,6 +512,8 @@ def _checkQtCore(env):
 
 
 no_pkgconfig_warned = []
+
+
 def enable_modules(env, modules, debug=False):
     """
     Enable the given Qt modules in the given Environment for the current
@@ -590,7 +600,8 @@ def enable_module_linux(env, module, debug=False):
         # 'pkg-config --variable=headerdir Qt'. If that's empty
         # (this happens on CentOS 5 systems...), try
         # 'pkg-config --variable=prefix QtCore' and append '/include'.
-        hdir = pc.RunConfig(env, 'pkg-config --silence-errors --variable=headerdir Qt5')
+        hdir = pc.RunConfig(
+            env, 'pkg-config --silence-errors --variable=headerdir Qt5')
         if hdir == '':
             prefix = pc.RunConfig(env,
                                   'pkg-config --variable=prefix Qt5Core')
@@ -681,8 +692,8 @@ def enable_module_linux(env, module, debug=False):
     # This seems to be related to issues with moc-qt5 and headers
     # installed under /usr/include/qt5 rather than /usr/include.
     if module == "QtDesigner" or module == "QtUiPlugin":
-        env.AppendUnique(QT5_MOCFROMHFLAGS=
-                         ['-I' + os.path.join(hdir, module)])
+        env.AppendUnique(
+            QT5_MOCFROMHFLAGS=['-I' + os.path.join(hdir, module)])
 
     # For QtCore at least, check that compiler can find the
     # library.  Do not propagate any current LIBS, since the
@@ -728,7 +739,7 @@ def enable_module_osx(env, module, debug=False):
     """
     if debug:
         print("Enabling debug for Qt5 modules has no effect on OSX.")
-    env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib',])
+    env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib', ])
 
     # FRAMEWORKS appears not to be used in Sierra.  Caused "ld:
     # framework not found QtWidget".
@@ -736,8 +747,10 @@ def enable_module_osx(env, module, debug=False):
 
     # Add include paths for the modules. One would think that the
     # frameworks would do this, but apparently not.
-    env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers',])
+    env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module +
+                              '.framework/Headers', ])
     return True
+
 
 def deploy_linux(env):
     """
@@ -746,7 +759,8 @@ def deploy_linux(env):
     application because they don't show up as dependencies in ldd.
 
     - copy libqxcb into (application)/bin/platforms
-    - copy Qt5DBus, Qt5XcbQpa, xcb-icccm, and xcb-render-util to (application)/lib
+    - copy Qt5DBus, Qt5XcbQpa, xcb-icccm, and xcb-render-util to
+      (application)/lib
     """
     shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm',
                    'xcb-render-util', 'xcb-image']
@@ -772,9 +786,8 @@ def test_replace_drive():
     b = env.File("C:/b")
     c = env.File("/c/etc")
     u = env.Dir("/tmp")
-    l = ["C:/a", b, c, u, "C:"]
-    l2 = l
-    replace_drive_specs(l)
-    assert(l == ["/c/a", "/c/b", c, u, "/c"])
-    assert(l2 == l)
-
+    l1 = ["C:/a", b, c, u, "C:"]
+    l2 = l1
+    replace_drive_specs(l1)
+    assert(l1 == ["/c/a", "/c/b", c, u, "/c"])
+    assert(l2 == l1)
