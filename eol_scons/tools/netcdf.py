@@ -3,6 +3,7 @@
 import os, os.path
 import string
 import SCons
+import eol_scons.parseconfig as pc
 
 _netcdf_source_file = """
 #include <netcdf.h>
@@ -23,6 +24,8 @@ def CheckNetCDF(context):
 _settings = {}
 
 def _calculate_settings(env, settings):
+
+
     prefix = env.subst(env.get('OPT_PREFIX', '/usr/local'))
     # Look in the typical locations for the netcdf headers, and see
     # that the location gets added to the CPP paths.
@@ -102,12 +105,18 @@ def generate(env):
     # case that would introduce a default /opt/local that interferes
     # with building a project.
     # env.Require('prefixoptions')
+    
+    # using pkg-config is hopefully all that is needed, but we'll continue
+    # instead of returning in case some folks depend on a wierd configuration
+    if pc.ParseConfig(env,
+                      'pkg-config --silence-errors --cflags --libs netcdf'):
+        pass
+
     if not _settings:
         _calculate_settings(env, _settings)
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
-    env.Append(LIBS=_settings['LIBS'])
+    env.AppendUnique(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=_settings['LIBPATH'])
-
 
 def exists(env):
     return True
