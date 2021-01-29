@@ -12,6 +12,31 @@ _debug = False
 
 import SCons.Util
 
+"""
+Notes on PKG_CONFIG environment variables.
+
+pkg-config searches PKG_CONFIG_PATH first, then PKG_CONFIG_LIBDIR,
+or if that is not defined, the default system path, which can be
+displayed by:
+    pkg-config --variable pc_path pkg-config
+
+To see which pkg-config file will be used for a module, in this case
+netcdf, do:
+    pkg-config --path netcdf
+
+For a cross-build you may want to override PKG_CONFIG_LIBDIR and not
+PKG_CONFIG_PATH, to ensure that pkg-config files for only the desired
+architecture are found.
+
+When pkg-config is run by this tool its environment is set from the
+ENV member of the build Environment. (An overuse of the word!)
+This tool does not propagate PKG_CONFIG_* variables from the Unix
+environment, os.environ, to ENV. The user must set them:
+    env = Environment(ENV={'PKG_CONFIG_LIBDIR': '/usr/lib/armel-linux-gnu/pkg-config'})
+or
+    env.PrependENVPath('PKG_CONFIG_PATH', '/path/to/custom/pcfiles')
+"""
+
 is_String = SCons.Util.is_String
 is_List = SCons.Util.is_List
 
@@ -73,8 +98,8 @@ def _get_config(env, search_paths, config_script, args):
     command does not need to be run every time a tool needs to run the same
     config script.  However, the results are specific to the Environment,
     since the results can change depending upon the Environment running
-    them.  For example, PKG_CONFIG_PATH might be different for different
-    environments, and cross-build environments will return different
+    them.  For example, PKG_CONFIG_PATH or PKG_CONFIG_LIBDIR might be different
+    for different environments, and cross-build environments will return different
     results.  The goal is to avoid redundant runs of the same config script
     when called for the same environment, such as redundant applications of
     the same tool.
@@ -129,23 +154,22 @@ def _get_config(env, search_paths, config_script, args):
 
 def PassPkgConfigPath(env, psenv=None):
     """
-    Propagate PKG_CONFIG_PATH to the scons process environment (ENV) if
-    it's set anywhere in the scons construction or process environment.
+    Propagate PKG_CONFIG_PATH and PKG_CONFIG_LIBDIR to the scons process
+    environment (ENV) if they are set anywhere in the scons construction or
+    process environment.
     This is not done by default because it violates the scons principle of
     precisely controlling the build environment.  If a build did not
-    explicitly pass PKG_CONFIG_PATH into ENV, then it may have a good
-    reason for that.
+    explicitly pass PKG_CONFIG_PATH or PKG_CONFIG_LIBDIR into ENV, then it
+    may have a good reason for that.
+
     """
     if psenv is None:
         psenv = env['ENV']
-    pcp = 'PKG_CONFIG_PATH'
-    if pcp in psenv:
-        pass
-    elif pcp in env:
-        psenv[pcp] = env[pcp]
-    elif os.environ.get(pcp):
-        psenv[pcp] = os.environ.get(pcp)
-
+    for pcp in ('PKG_CONFIG_PATH', 'PKG_CONFIG_LIBDIR'):
+        if pcp in psenv:
+            pass
+        elif pcp in os.environ:
+            psenv[pcp] = os.environ.get(pcp)
 
 def RunConfig(env, command):
     """
