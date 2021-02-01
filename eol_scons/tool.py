@@ -103,7 +103,7 @@ def _RequireGlobal(env, tools):
     gkey = _setup_global_tools(env)
     _global_tools[gkey].extend(tools)
     return env.Require(tools)
-    
+
 
 def _findToolFile(env, name):
     global _tool_matches
@@ -148,31 +148,53 @@ def _findToolFile(env, name):
     toolfilename = "tool_" + name + ".py"
     return [f for f in _tool_matches if toolfilename == os.path.basename(f)]
 
+# Keep a stack of tools as they are loaded, since loading a tool may trigger
+# other tools to be loaded, and we need to catch cyclic dependencies where a
+# tool file is being loaded but does not define it's tool function before it
+# is loaded again.
+_tool_stack = []
 
 def _loadToolFile(env, name):
-    # See if there's a file named "tool_<tool>.py" somewhere under the
-    # top directory.  If we find one, load it as a SConscript which 
-    # should define and export the tool.
-    tool = None
+    """
+    See if there's a file named "tool_<tool>.py" somewhere under the top
+    directory.  If we find one, load it as a SConscript which should define
+    and export the tool.
+    """
     matchlist = _findToolFile(env, name)
-    # If we got a match, load it
-    if matchlist:
-        # If we got more than one match, complain...
-        if len(matchlist) > 1:
-            print("Warning: multiple tool files for " + name + ": " + 
-                  str(matchlist) + ", using the first one")
-        # Load the first match
-        toolscript = matchlist[0]
-        env.LogDebug("Loading %s to get tool %s..." % (toolscript, name))
-        env.SConscript(toolscript)
-        # After loading the script, make sure the tool appeared 
-        # in the global exports list.
-        if name in global_exports:
-            tool = global_exports[name]
-        else:
-            raise SCons.Errors.StopError("Tool error: %s "
-                                         "does not export symbol '%s'" %
-                                         (toolscript, name))
+    # No match, no load.
+    if not matchlist:
+        return None
+    # Catch a recursive tool load.
+    if name in _tool_stack:
+        print("***** While tool '%s' is already being loaded, the same tool\n"
+              "***** has been requested again, before the tool function has\n"
+              "***** been exported.  This is likely a cyclic dependency.\n"
+              "      Current stack:" % (name))
+        print("\n".join([" "*7+"%s" % t for t in _tool_stack]))
+        # We have to return None here, which probably means the caller
+        # environment will not be modified as expected.  Since the tool
+        # search will continue, another scons tool might be found and
+        # applied instead.  Most likely scons will exit with a tool error.
+        return None
+    # If we got more than one match, complain...
+    if len(matchlist) > 1:
+        print("Warning: multiple tool files for " + name + ": " +
+              str(matchlist) + ", using the first one")
+    # Load the first match
+    toolscript = matchlist[0]
+    env.LogDebug("Loading %s to get tool %s..." % (toolscript, name))
+    _tool_stack.append(name)
+    env.SConscript(toolscript)
+    _tool_stack.pop()
+    # After loading the script, make sure the tool appeared in the global
+    # exports list.
+    tool = None
+    if name in global_exports:
+        tool = global_exports[name]
+    else:
+        raise SCons.Errors.StopError("Tool error: %s "
+                                     "does not export symbol '%s'" %
+                                     (toolscript, name))
     return tool
 
 
@@ -195,7 +217,7 @@ def _Tool(env, tool, toolpath=None, **kw):
     if SCons.Util.is_String(tool):
         name = env.subst(tool)
         tool = None
-        
+
         # Is the tool already in our tool dictionary?
         if name in _tool_dict:
             env.LogDebug("Found tool %s already loaded" % name)
@@ -238,7 +260,7 @@ def _Tool(env, tool, toolpath=None, **kw):
             toolpath = [env._find_toolpath_dir(tool) for tool in toolpath]
             tool = SCons.Tool.Tool(*(name, toolpath), **kw)
             env.LogDebug("Tool loaded: %s" % name)
-            # If the tool is not specialized with keywords, then we can 
+            # If the tool is not specialized with keywords, then we can
             # stash this particular instance and avoid reloading it.
             if tool and not kw:
                 _tool_dict[name] = tool
@@ -247,7 +269,9 @@ def _Tool(env, tool, toolpath=None, **kw):
                              "keyword parameters." % (name))
 
     env.LogDebug("Applying tool %s" % name)
+    _tool_stack.append("applying-%s" % (name))
     tool(env)
+    _tool_stack.pop()
     env.LogDebug("...after applying tool %s: %s" % (name, esd.Watches(env)))
     # We could regenerate the help text after each tool is loaded,
     # presuming that only tools add variables, but that would not catch
@@ -419,4 +443,3 @@ _qtmodules = [
 def DefineQtTools():
     for qtmod in _qtmodules:
         export_qt_module_tool(qtmod)
-
