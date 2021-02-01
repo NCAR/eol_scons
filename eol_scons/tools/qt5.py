@@ -50,6 +50,7 @@ from SCons.Variables import PathVariable
 from SCons.Script import Scanner
 
 import eol_scons.parseconfig as pc
+import eol_scons.debug as esd
 from eol_scons import Debug
 
 _options = None
@@ -616,12 +617,13 @@ def enable_module_linux(env, module, debug=False):
             # added just once (unique=1).  Otherwise projects like
             # ASPEN which require qt modules many times over end up
             # with dozens of superfluous CPP includes and defines.
-            cflags = pc.RunConfig(env,
-                                  'pkg-config --cflags ' + modpackage)
+            pkgc = 'pkg-config --cflags --libs ' + modpackage
+            env.LogDebug("Before qt5 runconfig '%s': %s" %
+                         (pkgc, esd.Watches(env)))
+            cflags = pc.RunConfig(env, pkgc)
             env.MergeFlags(cflags, unique=1)
-            libflags = pc.RunConfig(env,
-                                    'pkg-config --libs ' + modpackage)
-            env.MergeFlags(libflags, unique=1)
+            env.LogDebug("After qt5 mergeflags '%s': %s" %
+                         (cflags, esd.Watches(env)))
         else:
             # warn if we haven't already
             if not (module in no_pkgconfig_warned):
