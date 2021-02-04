@@ -65,7 +65,7 @@ def _calculate_settings(env, settings):
     # effect when a program is built with this environment, and they
     # can change which netcdf library gets linked.
 
-    libs = ['netcdf_c++', 'netcdf']
+    libs = ['netcdf']
     settings['LIBS'] = libs
 
     if env.GetOption('clean') or env.GetOption('help'):
