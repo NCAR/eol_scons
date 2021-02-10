@@ -18,6 +18,11 @@ def generate(env):
         env.Append(LIBS=["GL"])
         env.Append(LIBS=["X11"])
 
+    if env['PLATFORM'] == 'msys':
+        env.Append(LIBS=['opengl32'])
+        env.Append(LIBS=['glu32'])
+        env.Append(LIBS=['gdi32'])
+
     if env['PLATFORM'] == 'darwin':
         env.AppendUnique(FRAMEWORKS=['CoreFoundation'])
         env.AppendUnique(FRAMEWORKS=['CoreGraphics'])
