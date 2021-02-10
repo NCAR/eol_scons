@@ -220,51 +220,13 @@ def _filter_ldflags(flags):
     return flags
 
 
-def ParseConfigPrefix(env, config_script, search_prefixes,
-                      default_prefix = "$OPT_PREFIX", apply_config = False):
-    """Search for a config script and parse the output."""
-    search_paths = [ os.path.join(env.subst(x),"bin")
-                     for x in [ y for y in search_prefixes if y ] ]
-    if search_paths:
-        search_paths = [ p for p in search_paths if os.path.exists(p) ]
-    prefix = default_prefix
-    if env['PLATFORM'] == 'win32':    
-        return prefix
-
-    prefix = _get_config(env, search_paths, config_script, ['--prefix'])[1]
-    if apply_config:
-        flags = _get_config(env, search_paths, config_script,
-                            ['--cppflags', '--ldflags', '--libs'])[1]
-        if flags:
-            if _debug: print("Merging " + flags)
-            flags = _filter_ldflags(flags)
-            env.MergeFlags(flags)
-        else:
-            if _debug: print("No flags from %s" % (config_script))
-        ldflags = _get_config(env, search_paths, config_script,
-                              ['--ldflags'])[1]
-        ldflags = _filter_ldflags(ldflags)
-                              
-        if ldflags:
-            ldflags = ldflags.split()
-            for flag in ldflags:
-                if flag.find('-L') != -1:
-                    if (flag.strip().index('-L') == 0):
-                        # remove the -L to get the directory, and make the
-                        # resulting path absolute
-                        dir = os.path.abspath(flag.replace('-L', ''))
-                        env.Append(RPATH=dir)
-    return prefix
-
-
 def PkgConfigPrefix(env, pkg_name, default_prefix = "$OPT_PREFIX"):
     """Search for a config script and parse the output."""
     search_prefixes = ['/usr']
     search_paths = [ os.path.join(env.subst(x),"bin")
                      for x in [y for y in search_prefixes if y] ]
     prefix = None
-    if env['PLATFORM'] != 'win32':    
-        prefix = _get_config(env, search_paths, 'pkg-config',
+    prefix = _get_config(env, search_paths, 'pkg-config',
                              ["--variable=prefix", pkg_name])[1]
     if not prefix:
         prefix = default_prefix
