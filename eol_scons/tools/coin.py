@@ -5,7 +5,11 @@ import eol_scons.parseconfig as pc
 
 
 def generate(env):
-    pc.ParseConfig(env,
+    if env['PLATFORM'] == 'msys':
+        pc.ParseConfig(env,
+		'pkg-config --silence-errors --with-path=/usr/local/lib/pkgconfig --cflags --libs Coin')
+    else:
+        pc.ParseConfig(env,
 		'pkg-config --silence-errors --cflags --libs Coin')
 
     if env['PLATFORM'] == 'posix':
