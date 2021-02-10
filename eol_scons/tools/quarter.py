@@ -9,9 +9,6 @@ def generate(env):
 
     if sys.platform == 'msys':
         env.AppendUnique(CXXFLAGS=["-DQUARTER_NOT_DLL"])
-        env.Append(LIBS=["Qt5Widgets"])
-        env.Append(LIBS=["Qt5Gui"])
-        env.Append(LIBS=["Qt5OpenGL"])
 
 def exists(env):
     return True
