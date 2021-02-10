@@ -6,6 +6,7 @@ import eol_scons.parseconfig as pc
 
 def generate(env):
     if env['PLATFORM'] == 'msys':
+        env.AppendUnique(CXXFLAGS=["-DCOIN_NOT_DLL"])
         pc.ParseConfig(env,
 		'pkg-config --silence-errors --with-path=/usr/local/lib/pkgconfig --cflags --libs Coin')
     else:
