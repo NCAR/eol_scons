@@ -478,7 +478,18 @@ class AircraftTestDB(PostgresTestDB):
 
 
 def getPath():
-    return __file__
+    """
+    Return the path to this file suitable for running directly with python,
+    such as from other shell scripts.
+    """
+    # Sometimes __file__ is the pyc file, but we specifically want the .py
+    # file so it can be called from different interpreters, if necessary.
+    # Running a pyc file with a different interpreter than the one which
+    # compiled it causes "RuntimeError: Bad magic number in .pyc file".
+    # There may be more robust ways to do this, to provide a hook which
+    # other scripts can use to call back into this module, which do not
+    # depend on deriving the path to this module.
+    return os.path.abspath(os.path.splitext(__file__)[0] + ".py")
 
 
 _usage = """\
@@ -542,6 +553,8 @@ def main():
         for k, v in env.items():
             sys.stdout.write('setenv %s "%s"; ' % (k, v))
         sys.stdout.write("\n")
+    elif op == "path":
+        print("%s" % (getPath()))
     else:
         print(_usage)
     return 0
