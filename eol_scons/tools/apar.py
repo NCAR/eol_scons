@@ -1,6 +1,7 @@
 # -*- python -*-
 
 import os, os.path
+import platform
 import string
 import SCons
 
@@ -46,8 +47,10 @@ def _calculate_settings(env, settings):
     else:
         print("Using APAR directory", prefix)
     
-    # Libs will be in <prefix>/lib
+    # Libs will be in <prefix>/lib64 or <prefix>/lib
     libdir = os.path.join(prefix, 'lib')
+    if platform.machine()[-2:] == '64':
+        libdir += '64'
     settings['LIBDIR'] = libdir
     
     # Headers will be in <prefix>/include
