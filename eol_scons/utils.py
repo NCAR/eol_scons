@@ -23,7 +23,7 @@ def get_cxxversion(env):
         # do g++ --version, grab 3rd field for CXXVERSION
         revline = subprocess.Popen([env['CXX'],'--version'],
                                    env={'PATH':env['ENV']['PATH']},
-                                   stdout=subprocess.PIPE).stdout.readline()
+                                   stdout=subprocess.PIPE,universal_newlines=True).stdout.readline()
         rev = re.split('\s+',revline)[2]
         return rev
     except OSError as xxx_todo_changeme:
