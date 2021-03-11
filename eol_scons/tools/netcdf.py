@@ -1,7 +1,7 @@
 # -*- python -*-
 
-import os, os.path
-import string
+import os
+import os.path
 import SCons
 import eol_scons.parseconfig as pc
 
@@ -14,6 +14,7 @@ int main(int argc, char **argv)
 }
 """
 
+
 def CheckNetCDF(context):
     context.Message('Checking for netcdf linking...')
     result = context.TryLink(_netcdf_source_file, '.c')
@@ -23,26 +24,26 @@ def CheckNetCDF(context):
 
 _settings = {}
 
-def _calculate_settings(env, settings):
 
+def _calculate_settings(env, settings):
 
     prefix = env.subst(env.get('OPT_PREFIX', '/usr/local'))
     # Look in the typical locations for the netcdf headers, and see
     # that the location gets added to the CPP paths.
-    incpaths = [ os.path.join(prefix,'include'),
-                 os.path.join(prefix,'include','netcdf'),
-                 "/usr/include/netcdf-3",
-                 "/usr/include/netcdf" ]
+    incpaths = [os.path.join(prefix, 'include'),
+                os.path.join(prefix, 'include', 'netcdf'),
+                "/usr/include/netcdf-3",
+                "/usr/include/netcdf"]
     # Netcdf 4.2 C++ API installs a /usr/include/netcdf header file,
     # which throws an exception in FindFile.  So cull the list of any
     # entries which are actually files.
-    incpaths = [ p for p in incpaths if os.path.isdir(p) ]
+    incpaths = [p for p in incpaths if os.path.isdir(p)]
     header = env.FindFile("netcdf.h", incpaths)
     headerdir = None
-    settings['CPPPATH'] = [ ]
+    settings['CPPPATH'] = []
     if header:
         headerdir = header.get_dir().get_abspath()
-        settings['CPPPATH'] = [ headerdir ]
+        settings['CPPPATH'] = [headerdir]
 
     # Now try to find the libraries, using the header as a hint.
     if not headerdir or headerdir.startswith("/usr/include"):
@@ -51,7 +52,7 @@ def _calculate_settings(env, settings):
         settings['LIBPATH'] = []
     else:
         # the header must have been found under OPT_PREFIX
-        settings['LIBPATH'] = [os.path.join(prefix,'lib')]
+        settings['LIBPATH'] = [os.path.join(prefix, 'lib')]
 
     if headerdir and headerdir.startswith("/usr/include/netcdf-3"):
         settings['LIBPATH'] = ['/usr/lib/netcdf-3']
@@ -75,7 +76,7 @@ def _calculate_settings(env, settings):
     clone.Replace(LIBS=libs)
     clone.AppendUnique(CPPPATH=settings['CPPPATH'])
     clone.AppendUnique(LIBPATH=settings['LIBPATH'])
-    conf = clone.Configure(custom_tests = { "CheckNetCDF" : CheckNetCDF })
+    conf = clone.Configure(custom_tests={"CheckNetCDF": CheckNetCDF})
     if not conf.CheckNetCDF():
         # First attempt without HDF5 failed, so try with HDF5
         libs.append(['hdf5_hl', 'hdf5', 'bz2'])
@@ -116,13 +117,13 @@ def generate(env):
     # case that would introduce a default /opt/local that interferes
     # with building a project.
     # env.Require('prefixoptions')
-    
+
     if not _settings:
         _calculate_settings(env, _settings)
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
     env.Append(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=_settings['LIBPATH'])
 
+
 def exists(env):
     return True
-
