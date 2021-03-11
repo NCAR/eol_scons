@@ -120,7 +120,7 @@ def generate(env):
     if not _settings:
         _calculate_settings(env, _settings)
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
-    env.AppendUnique(LIBS=_settings['LIBS'])
+    env.Append(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=_settings['LIBPATH'])
 
 def exists(env):
