@@ -30,9 +30,9 @@ def boost_libflags(env):
 
 def _append_boost_library(env, libname):
   if env['PLATFORM'] != 'darwin' and env['PLATFORM'] != 'msys':
-    env.AppendUnique(LIBS=[libname])
+    env.Append(LIBS=[libname])
   else:
-    env.AppendUnique(LIBS=[libname + "-mt"])
+    env.Append(LIBS=[libname + "-mt"])
 
 
 def boost_version(env):
