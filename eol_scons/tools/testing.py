@@ -60,7 +60,6 @@ env = Environment(tools=['default', 'testing', 'gtest'])
 """
 
 import subprocess
-import io
 import sys
 import os
 import re
@@ -68,23 +67,22 @@ import difflib
 
 import SCons
 import SCons.Script
-from SCons.Script import DefaultEnvironment
 from SCons.Action import Action
 from SCons.Action import ListAction
 from SCons.Script import Builder
 
 _echo_only = False
 
-_rxpatterns = [ r'^\d+ checks\.',
-                r'^\d+ failures\.',
-                r'^Running \d+ test cases\.\.\.',
-                r'^.+\(N\): .* passed',
-                r'^.+\(N\): .* FAIL',
-                r'^\*\*\* No errors detected',
-                r'^Leaving test case.*',
-                r'^Entering test case.*',
-                r'^\*\*\* Skipping test.*'
-                ]
+_rxpatterns = [r'^\d+ checks\.',
+               r'^\d+ failures\.',
+               r'^Running \d+ test cases\.\.\.',
+               r'^.+\(N\): .* passed',
+               r'^.+\(N\): .* FAIL',
+               r'^\*\*\* No errors detected',
+               r'^Leaving test case.*',
+               r'^Entering test case.*',
+               r'^\*\*\* Skipping test.*'
+               ]
 
 
 class _SpawnerLogger(object):
@@ -110,12 +108,12 @@ class _SpawnerLogger(object):
         """
         self._rxpass = None
         if rxpatterns:
-            self._rxpass = [ re.compile(rx) for rx in rxpatterns ]
+            self._rxpass = [re.compile(rx) for rx in rxpatterns]
 
     def open(self, logpath):
         self.logpath = logpath
         self.logfile = open(self.logpath, "w")
-        print("Writing test log '%s', filtering stdout and stderr." % 
+        print("Writing test log '%s', filtering stdout and stderr." %
               (self.logpath))
 
     def close(self):
@@ -130,7 +128,7 @@ class _SpawnerLogger(object):
         if _echo_only:
             cmd = [sh, '-c', 'echo "*** Skipping test: %s"' % (" ".join(args))]
         pipe = subprocess.Popen(cmd, env=env,
-                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
+                                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT,
                                 bufsize=1, close_fds=True, shell=False)
         pipe.stdin.close()
@@ -188,7 +186,7 @@ def _create_log_action(env, *args, **kw):
 def _test_builder(env, alias, sources, actions, logfile=None):
     if not alias:
         alias = 'xtest'
-    targets = [ env.File(alias) ]
+    targets = [env.File(alias)]
 
     # Use the Action() factory to create the action instance, which may
     # itself be a ListAction, then wrap the action/s in a LogAction
@@ -253,7 +251,7 @@ def _TestRun(env, alias, sources, actions):
 
 def _DefaultTest(env, xtest):
     "Add target to the default test alias 'test'."
-    alias = env.Alias('test', xtest)
+    env.Alias('test', xtest)
     return xtest
 
 
@@ -279,13 +277,14 @@ def diff_files(target, source, env):
     diffs = list(diff)
     if diffs:
         print("".join(diffs))
-        return str("Differences found between " + 
+        return str("Differences found between " +
                    str(source[0]) + " and " + str(source[1]))
     return None
 
+
 def diff_emitter(target, source, env):
     "Generate a target if not given."
-    #print("target:%s, source:%s" % (",".join([str(n) for n in target]),
+    # print("target:%s, source:%s" % (",".join([str(n) for n in target]),
     # ",".join([str(n) for n in source])))
     # SCons creates a default target when only sources are passed to the
     # Builder.  I think the algorithm truncates any suffix from the first
@@ -300,16 +299,18 @@ def diff_emitter(target, source, env):
         target = [diff]
     return target, source
 
+
 diff_builder = Builder(action=[diff_files], emitter=diff_emitter)
 
 
 def generate(env):
-    env.Append(BUILDERS = {'Diff':diff_builder})
+    env.Append(BUILDERS={'Diff': diff_builder})
     env.AddMethod(_TestLog, "TestLog")
     env.AddMethod(_TestRun, "TestRun")
     env.AddMethod(_DefaultTest, "DefaultTest")
     env.AddMethod(_get_page_instance, "ImageComparisonPage")
     env.AddMethod(_create_log_action, "LogAction")
+
 
 def exists(env):
     return True
@@ -318,9 +319,11 @@ def exists(env):
 def gtest(env):
     env.Append(LIBS=['gtest'])
 
+
 def gtest_main(env):
     env.Append(LIBS=['gtest_main'])
     env.Require('gtest')
+
 
 SCons.Script.Export('gtest')
 SCons.Script.Export('gtest_main')
