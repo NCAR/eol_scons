@@ -107,13 +107,13 @@ def Kmake(env,target,source):
     # kernel dir can be reset at any time back to '*'.  So catch this
     # situation and apply the default here.  The other way to handle this
     # is to change the default value for the KERNELDIR variable to
-    # $KERNELDIRDEFAULT, now that the generate() function of this tool sets
-    # KERNELDIRDEFAULT appropriately, and then KERNELDIR will be rendered
+    # $KERNELDIR_FOUND, now that the generate() function of this tool sets
+    # KERNELDIR_FOUND appropriately, and then KERNELDIR will be rendered
     # correctly on the command line.  For now, this should allow all the
     # existing uses of KERNELDIR to keep working as before.
 
     if env['KERNELDIR'] == '*':
-        env['KERNELDIR'] = '$KERNELDIRDEFAULT'
+        env['KERNELDIR'] = '$KERNELDIR_FOUND'
         print("replaced KERNELDIR=* with KERNELDIR=%s" % (env['KERNELDIR']))
 
     if not os.path.exists(env.subst(env['KERNELDIR'])):
@@ -296,8 +296,8 @@ def generate(env, **kw):
         env['KERNELDIR'] = kw.get('KERNELDIR')
 
     kdir = _GetKernelDir()
-    env.Replace(KERNELDIRDEFAULT = kdir)
-    print("KERNELDIRDEFAULT=%s" % (kdir))
+    env.Replace(KERNELDIR_FOUND = kdir)
+    print("setting KERNELDIR_FOUND=%s" % (kdir))
 
     if 'KERNELDIR' not in env or env['KERNELDIR'] == '*':
         env.Replace(KERNELDIR = kdir)
