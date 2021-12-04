@@ -47,7 +47,7 @@ def tdrpGenerator(source, target, env, for_signature):
     # The application name is the extension of the source file. I.e.,
     # if the source file is 'paramdef.foo', the application name is 'foo'.
     appname = source[0].name.split('.')[-1]
-    return 'cd %s; /usr/local/lrose/bin/tdrp_gen -f %s -c++ -prog %s' % (srcdir, source[0].name, appname)
+    return 'cd %s; /usr/local/lrose/bin/tdrp_gen -add_ncar_copyright -f %s -c++ -prog %s' % (srcdir, source[0].name, appname)
 
 tdrpParamsBuilder = Builder(generator = tdrpGenerator, 
                             emitter = tdrpModifyTargetAndSource)
