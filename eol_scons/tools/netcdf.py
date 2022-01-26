@@ -51,11 +51,14 @@ def _calculate_settings(env, settings):
         # anywhere else.
         settings['LIBPATH'] = []
     else:
-        # the header must have been found under OPT_PREFIX
-        settings['LIBPATH'] = [os.path.join(prefix, 'lib')]
+        # Assume libdir is same pattern as include directory.  See
+        # code three lines down for corner cases that may crop up.
+        libdir = headerdir.replace('include', 'lib')
+        settings['LIBPATH'] = [ libdir ]
 
-    if headerdir and headerdir.startswith("/usr/include/netcdf-3"):
-        settings['LIBPATH'] = ['/usr/lib/netcdf-3']
+# Unused corner case.
+#    if headerdir and headerdir.startswith("/usr/include/netcdf-3"):
+#        settings['LIBPATH'] = ['/usr/lib/netcdf-3']
 
     # Now check whether the HDF libraries are needed explicitly when
     # linking with netcdf.  Use a cloned Environment so Configure does
