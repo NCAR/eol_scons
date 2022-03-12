@@ -8,6 +8,7 @@ which depend on Qt.
 """
 
 import os
+import subprocess
 from SCons.Variables import PathVariable
 import platform
 import eol_scons.parseconfig as pc
@@ -26,6 +27,18 @@ def find_lib_subdir(path):
         if os.path.exists(libpath):
             return libpath
     return 
+
+def mac_sw_vers():
+    ''' 
+    Return a float of the OSX/MacOS software version, e.g. 10.15, 11.0, 12.1, etc.
+
+    Only the major and minor version numbers are considered.
+    '''
+    proc = subprocess.Popen(['sw_vers', '-productVersion'], env={'SYSTEM_VERSION_COMPAT':'0'},
+        stdout=subprocess.PIPE)
+    sw_vers = proc.communicate()[0].decode()
+    sw_vers = float('.'.join(sw_vers.split('.')[:2]))
+    return sw_vers
 
 
 class QwtTool(object):
@@ -58,7 +71,12 @@ class QwtTool(object):
             self.settings['LIBS'] = ['qwt']
             self.settings['LIBPATH'] = [qwt_libdir]
         else:
-            self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt/lib'
+            if mac_sw_vers() < 12.0:
+                self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt/lib'
+            else:
+                # On MacOS Monterey (v12) qwt for qt5 is installed
+                # as the brew package 'qwt-qt5'.
+                self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt-qt5/lib'
             self.settings['FRAMEWORKS']    = 'qwt'
 
         # RPATH was removed because the switch was not being added correctly to
@@ -90,6 +108,9 @@ class QwtTool(object):
             env.AppendUnique(CPPPATH=[env['QWTDIR']+'/include/qwt'])
 
         if env['PLATFORM'] == 'darwin':
+            # On MacOS Monterey (v10.16) the Framework include paths work
+            # and do not need to be explicitly specified.
+            if  mac_sw_vers() < 12.0:
                 self.settings['CPPPATH'] = '/usr/local/opt/qwt/lib/qwt.framework/Headers'
 
         plugindir='$QWTDIR/designer/plugins/designer'
@@ -124,7 +145,8 @@ class QwtTool(object):
 
         # RPATH was removed because the switch was not being added correctly to
         # MacOS clang calls, and builds/runs on Centos 7 & 8 work fine.
-        env.Append(CPPPATH=self.settings['CPPPATH'])
+        if 'CPPPATH' in self.settings:
+            env.Append(CPPPATH=self.settings['CPPPATH'])
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
 
