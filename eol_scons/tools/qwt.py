@@ -71,7 +71,7 @@ class QwtTool(object):
             self.settings['LIBS'] = ['qwt']
             self.settings['LIBPATH'] = [qwt_libdir]
         else:
-            if mac_sw_vers() < 12.0:
+            if mac_sw_vers() < 11.0:
                 self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt/lib'
             else:
                 # On MacOS Monterey (v12) qwt for qt5 is installed
@@ -110,7 +110,7 @@ class QwtTool(object):
         if env['PLATFORM'] == 'darwin':
             # On MacOS Monterey (v10.16) the Framework include paths work
             # and do not need to be explicitly specified.
-            if  mac_sw_vers() < 12.0:
+            if  mac_sw_vers() < 11.0:
                 self.settings['CPPPATH'] = '/usr/local/opt/qwt/lib/qwt.framework/Headers'
 
         plugindir='$QWTDIR/designer/plugins/designer'
