@@ -68,7 +68,11 @@ def OptPrefixSetup(env):
         # will be found first and used.
         env.PrependENVPath('PATH', opt_bin)
     if os.path.exists(opt_lib):
-        env.AppendUnique(RPATH=[opt_lib])
+        # This can break config checks and builds against conda installs,
+        # and it probably shouldn't be imposed automatically anyway.  Let
+        # the project decide if it wants OPT_PREFIX on RPATH.
+        #
+        # env.AppendUnique(RPATH=[opt_lib])
         AppendLibLastPath(env, opt_lib)
     if os.path.exists(opt_inc):
         AppendCppLastPath(env, opt_inc)
