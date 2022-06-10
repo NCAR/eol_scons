@@ -640,7 +640,7 @@ def enable_module_linux(env, module, debug=False):
         # but only on msys.
         if sys.platform == "cygwin":
             replace_drive_specs(env['CPPPATH'])
-            replace_drive_specs(env['LIBPATH'])
+            replace_drive_specs(env.get(['LIBPATH'], []))
 
     else:
         Debug("enabling module %s with QT5DIR=%s" %
@@ -660,14 +660,6 @@ def enable_module_linux(env, module, debug=False):
         if os.path.isdir(longpath):
             libpath = longpath
         env.AppendUnique(LIBPATH=[libpath])
-
-        # If this does not look like a system path, add it to
-        # RPATH.  This is helpful when different components have
-        # been built against different versions of Qt, but the one
-        # specified by this tool is the one that should take
-        # precedence.
-        if not libpath.startswith('/usr/lib'):
-            env.AppendUnique(RPATH=[libpath])
 
         # It is possible to override the Qt5 include path with the
         # QT5INCDIR variable.  This is necessary when specifically
