@@ -734,6 +734,7 @@ def enable_module_osx(env, module, debug=False):
     if debug:
         print("Enabling debug for Qt5 modules has no effect on OSX.")
 
+    # At this time we believe we can just use the enable_module_linux.
     return enable_module_linux(env, module, debug)
 
     if env['QT5DIR'] == USE_PKG_CONFIG:
