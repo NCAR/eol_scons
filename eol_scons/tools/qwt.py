@@ -81,13 +81,6 @@ class QwtTool(object):
                     else:
                         self.settings['CPPPATH'] = '/usr/include/qwt'
 
-        if env['PLATFORM'] == 'win32':
-            # On Windows, the qwt top will be
-            # C:/Tools/MinGW/msys/1.0/local/qwt/
-            # and the include directory is
-            # C:/Tools/MinGW/msys/1.0/local/qwt/include/qwt
-            env.AppendUnique(CPPPATH=[env['QWTDIR']+'/include/qwt'])
-
         if env['PLATFORM'] == 'darwin':
                 self.settings['CPPPATH'] = '/usr/local/opt/qwt/lib/qwt.framework/Headers'
 
@@ -112,6 +105,12 @@ class QwtTool(object):
                             unique = False)
             env.ParseConfig('pkg-config --libs ' + self.pkgConfigName,
                             unique = False)
+            if env['PLATFORM'] == 'darwin':
+              prefix = pc.PkgConfigVariable(env, 'Qt5Qwt6', 'libdir')
+              qwt_real_include_dir = prefix + '/qwt.framework/Headers'
+              print(qwt_real_include_dir)
+              env.AppendUnique(CPPPATH=qwt_real_include_dir)
+              # print(env['CPPPATH'])
             return
 
         if env['PLATFORM'] != 'darwin':

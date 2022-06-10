@@ -222,7 +222,7 @@ def _filter_ldflags(flags):
 
 def PkgConfigPrefix(env, pkg_name, default_prefix = "$OPT_PREFIX"):
     """Search for a config script and parse the output."""
-    search_prefixes = ['/usr']
+    search_prefixes = ['/usr', '/usr/local','/opt/homebrew','/mingw64']
     search_paths = [ os.path.join(env.subst(x),"bin")
                      for x in [y for y in search_prefixes if y] ]
     prefix = None
@@ -231,5 +231,16 @@ def PkgConfigPrefix(env, pkg_name, default_prefix = "$OPT_PREFIX"):
     if not prefix:
         prefix = default_prefix
     return prefix
+
+def PkgConfigVariable(env, pkg_name, variable):
+    """Search for a config script and parse the output."""
+    search_prefixes = ['/usr', '/usr/local','/opt/homebrew','/mingw64']
+    search_paths = [ os.path.join(env.subst(x),"bin")
+                     for x in [y for y in search_prefixes if y] ]
+    prefix = None
+    var = '--variable=' + variable
+    output = _get_config(env, search_paths, 'pkg-config',
+                             [var, pkg_name])[1]
+    return output
 
 

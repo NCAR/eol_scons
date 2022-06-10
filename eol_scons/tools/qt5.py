@@ -545,7 +545,7 @@ def enable_modules(env, modules, debug=False):
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
         ok = False
-        if sys.platform.startswith("linux") or sys.platform == "msys":
+        if sys.platform.startswith("linux") or sys.platform == "cygwin":
             ok = enable_module_linux(env, module, debug)
         if sys.platform == "win32":
             ok = enable_module_win(env, module, debug)
@@ -638,7 +638,7 @@ def enable_module_linux(env, module, debug=False):
         # On MSYS2 pkg-config is returning C: in the path, which scons then
         # adds a prefix (e.g. "plotlib/" in aeros).  Replace C: with /c,
         # but only on msys.
-        if sys.platform == "msys":
+        if sys.platform == "cygwin":
             replace_drive_specs(env['CPPPATH'])
             replace_drive_specs(env['LIBPATH'])
 
@@ -660,14 +660,6 @@ def enable_module_linux(env, module, debug=False):
         if os.path.isdir(longpath):
             libpath = longpath
         env.AppendUnique(LIBPATH=[libpath])
-
-        # If this does not look like a system path, add it to
-        # RPATH.  This is helpful when different components have
-        # been built against different versions of Qt, but the one
-        # specified by this tool is the one that should take
-        # precedence.
-        if not libpath.startswith('/usr/lib'):
-            env.AppendUnique(RPATH=[libpath])
 
         # It is possible to override the Qt5 include path with the
         # QT5INCDIR variable.  This is necessary when specifically
@@ -741,16 +733,22 @@ def enable_module_osx(env, module, debug=False):
     """
     if debug:
         print("Enabling debug for Qt5 modules has no effect on OSX.")
-    env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib', ])
 
-    # FRAMEWORKS appears not to be used in Sierra.  Caused "ld:
-    # framework not found QtWidget".
-    env.AppendUnique(FRAMEWORKS=[module])
+    return enable_module_linux(env, module, debug)
 
-    # Add include paths for the modules. One would think that the
-    # frameworks would do this, but apparently not.
-    env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module +
-                              '.framework/Headers', ])
+    if env['QT5DIR'] == USE_PKG_CONFIG:
+      print('call pkg-config please')
+    else:
+      env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib', ])
+
+      # FRAMEWORKS appears not to be used in Sierra.  Caused "ld:
+      # framework not found QtWidget".
+      env.AppendUnique(FRAMEWORKS=[module])
+
+      # Add include paths for the modules. One would think that the
+      # frameworks would do this, but apparently not.
+      env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers', ])
+
     return True
 
 
