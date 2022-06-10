@@ -545,7 +545,7 @@ def enable_modules(env, modules, debug=False):
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
         ok = False
-        if sys.platform.startswith("linux") or sys.platform == "msys":
+        if sys.platform.startswith("linux") or sys.platform == "cygwin":
             ok = enable_module_linux(env, module, debug)
         if sys.platform == "win32":
             ok = enable_module_win(env, module, debug)
@@ -638,7 +638,7 @@ def enable_module_linux(env, module, debug=False):
         # On MSYS2 pkg-config is returning C: in the path, which scons then
         # adds a prefix (e.g. "plotlib/" in aeros).  Replace C: with /c,
         # but only on msys.
-        if sys.platform == "msys":
+        if sys.platform == "cygwin":
             replace_drive_specs(env['CPPPATH'])
             replace_drive_specs(env['LIBPATH'])
 
