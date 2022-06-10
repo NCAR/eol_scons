@@ -640,7 +640,7 @@ def enable_module_linux(env, module, debug=False):
         # but only on msys.
         if sys.platform == "cygwin":
             replace_drive_specs(env['CPPPATH'])
-            replace_drive_specs(env.get(['LIBPATH'], []))
+            replace_drive_specs(env.get('LIBPATH', []))
 
     else:
         Debug("enabling module %s with QT5DIR=%s" %
