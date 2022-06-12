@@ -18,7 +18,7 @@ def boost_libflags(env):
     if SCons.Util.is_String(lib) and \
            lib.startswith("boost_") and \
            not lib.endswith("$BOOST_LIBRARY_SUFFIX"):
-      if env['PLATFORM'] == 'win32' and lib in liblibs:
+      if env['PLATFORM'] == 'msys' and lib in liblibs:
           lib = 'lib'+lib
       newlibs.append(lib+"$BOOST_LIBRARY_SUFFIX")
     else:

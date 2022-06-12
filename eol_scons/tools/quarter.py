@@ -7,7 +7,7 @@ def generate(env):
     env.Require('coin')
     env.Require(['qtgui', 'qtcore', 'qtwidgets', 'qtopengl', 'qwt'])
 
-    if sys.platform == 'msys':
+    if sys.platform == 'cygwin':
         env.AppendUnique(CXXFLAGS=["-DQUARTER_NOT_DLL"])
 
 def exists(env):
