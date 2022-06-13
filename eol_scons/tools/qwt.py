@@ -37,6 +37,7 @@ class QwtTool(object):
         if not self.settings:
             env.AddMethod(enable_qwt, "EnableQwt")
             self.calculate_settings(env)
+
         self.apply_settings(env)
 
     def calculate_settings(self, env):
@@ -45,7 +46,6 @@ class QwtTool(object):
             return
 
         self.settings['QWTDIR'] = qwt_dir
-        qwt_libdir = find_lib_subdir(qwt_dir)
 
         # These settings apply whether located manually or with pkg-config
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')
@@ -54,6 +54,8 @@ class QwtTool(object):
         if (qwt_dir == USE_PKG_CONFIG):
             return
             
+        qwt_libdir = find_lib_subdir(qwt_dir)
+
         if env['PLATFORM'] != 'darwin':
             self.settings['LIBS'] = ['qwt']
             self.settings['LIBPATH'] = [qwt_libdir]
@@ -101,10 +103,8 @@ class QwtTool(object):
 
         if (self.settings['QWTDIR'] == USE_PKG_CONFIG):
             # Don't try here to make things unique in CFLAGS; just do an append
-            env.ParseConfig('pkg-config --cflags ' + self.pkgConfigName,
-                            unique = False)
-            env.ParseConfig('pkg-config --libs ' + self.pkgConfigName,
-                            unique = False)
+            env.ParseConfig('pkg-config --cflags ' + self.pkgConfigName)
+            env.ParseConfig('pkg-config --libs ' + self.pkgConfigName)
 
             if env['PLATFORM'] == 'darwin':
               # On homebrew, the pkg-config includes points to class includes,
