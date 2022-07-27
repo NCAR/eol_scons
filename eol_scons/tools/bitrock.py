@@ -30,7 +30,7 @@ def _find_bitrock(env):
     except KeyError: 
         pass
 
-    if sys.platform == 'win32' or sys.platform == 'msys':
+    if sys.platform == 'win32' or sys.platform == 'cygwin':
         node = env.FindFile('builder-cli.exe', ['/c/Tools/BitRock/bin/'])
         return node
     
