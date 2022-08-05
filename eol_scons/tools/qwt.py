@@ -63,7 +63,6 @@ class QwtTool(object):
             self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt/lib'
             self.settings['FRAMEWORKS']    = 'qwt'
 
-        self.settings['RPATH'] = [qwt_libdir]
         if env['PLATFORM'] != 'darwin':
             if qwt_dir != "/usr":
                 self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
@@ -122,7 +121,6 @@ class QwtTool(object):
             env.AppendUnique(FRAMEWORKPATH=self.settings['FRAMEWORKPATH'])
             env.AppendUnique(FRAMEWORKS=self.settings['FRAMEWORKS'])
 
-        env.AppendUnique(RPATH=self.settings['RPATH'])
         env.Append(CPPPATH=self.settings['CPPPATH'])
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
