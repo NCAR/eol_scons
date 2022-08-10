@@ -733,16 +733,23 @@ def enable_module_osx(env, module, debug=False):
     """
     if debug:
         print("Enabling debug for Qt5 modules has no effect on OSX.")
-    env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib', ])
 
-    # FRAMEWORKS appears not to be used in Sierra.  Caused "ld:
-    # framework not found QtWidget".
-    env.AppendUnique(FRAMEWORKS=[module])
+    # At this time we believe we can just use the enable_module_linux.
+    return enable_module_linux(env, module, debug)
 
-    # Add include paths for the modules. One would think that the
-    # frameworks would do this, but apparently not.
-    env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module +
-                              '.framework/Headers', ])
+    if env['QT5DIR'] == USE_PKG_CONFIG:
+      print('call pkg-config please')
+    else:
+      env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib', ])
+
+      # FRAMEWORKS appears not to be used in Sierra.  Caused "ld:
+      # framework not found QtWidget".
+      env.AppendUnique(FRAMEWORKS=[module])
+
+      # Add include paths for the modules. One would think that the
+      # frameworks would do this, but apparently not.
+      env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers', ])
+
     return True
 
 

@@ -37,6 +37,7 @@ class QwtTool(object):
         if not self.settings:
             env.AddMethod(enable_qwt, "EnableQwt")
             self.calculate_settings(env)
+
         self.apply_settings(env)
 
     def calculate_settings(self, env):
@@ -45,7 +46,6 @@ class QwtTool(object):
             return
 
         self.settings['QWTDIR'] = qwt_dir
-        qwt_libdir = find_lib_subdir(qwt_dir)
 
         # These settings apply whether located manually or with pkg-config
         qwt_docdir = os.path.join(qwt_dir, 'doc', 'html')
@@ -54,6 +54,8 @@ class QwtTool(object):
         if (qwt_dir == USE_PKG_CONFIG):
             return
             
+        qwt_libdir = find_lib_subdir(qwt_dir)
+
         if env['PLATFORM'] != 'darwin':
             self.settings['LIBS'] = ['qwt']
             self.settings['LIBPATH'] = [qwt_libdir]
@@ -61,7 +63,6 @@ class QwtTool(object):
             self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt/lib'
             self.settings['FRAMEWORKS']    = 'qwt'
 
-        self.settings['RPATH'] = [qwt_libdir]
         if env['PLATFORM'] != 'darwin':
             if qwt_dir != "/usr":
                 self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include')]
@@ -80,13 +81,6 @@ class QwtTool(object):
                         print('Qwt using CPPPATH ' + eol_qwt_cpppath)
                     else:
                         self.settings['CPPPATH'] = '/usr/include/qwt'
-
-        if env['PLATFORM'] == 'win32':
-            # On Windows, the qwt top will be
-            # C:/Tools/MinGW/msys/1.0/local/qwt/
-            # and the include directory is
-            # C:/Tools/MinGW/msys/1.0/local/qwt/include/qwt
-            env.AppendUnique(CPPPATH=[env['QWTDIR']+'/include/qwt'])
 
         if env['PLATFORM'] == 'darwin':
                 self.settings['CPPPATH'] = '/usr/local/opt/qwt/lib/qwt.framework/Headers'
@@ -108,10 +102,16 @@ class QwtTool(object):
 
         if (self.settings['QWTDIR'] == USE_PKG_CONFIG):
             # Don't try here to make things unique in CFLAGS; just do an append
-            env.ParseConfig('pkg-config --cflags ' + self.pkgConfigName,
-                            unique = False)
-            env.ParseConfig('pkg-config --libs ' + self.pkgConfigName,
-                            unique = False)
+            env.ParseConfig('pkg-config --cflags ' + self.pkgConfigName)
+            env.ParseConfig('pkg-config --libs ' + self.pkgConfigName)
+
+            if env['PLATFORM'] == 'darwin':
+              # On homebrew, the pkg-config includes points to class includes,
+              # not the actual headers (QwtPlot instead of qwt_plot.h).  So we
+              # need to build up a -I for the real incldues.
+              prefix = pc.PkgConfigVariable(env, 'Qt5Qwt6', 'libdir')
+              qwt_real_include_dir = prefix + '/qwt.framework/Headers'
+              env.AppendUnique(CPPPATH=qwt_real_include_dir)
             return
 
         if env['PLATFORM'] != 'darwin':
@@ -121,7 +121,6 @@ class QwtTool(object):
             env.AppendUnique(FRAMEWORKPATH=self.settings['FRAMEWORKPATH'])
             env.AppendUnique(FRAMEWORKS=self.settings['FRAMEWORKS'])
 
-        env.AppendUnique(RPATH=self.settings['RPATH'])
         env.Append(CPPPATH=self.settings['CPPPATH'])
         env.Append(QT_UICIMPLFLAGS=self.settings['QT_UICIMPLFLAGS'])
         env.Append(QT_UICDECLFLAGS=self.settings['QT_UICDECLFLAGS'])
