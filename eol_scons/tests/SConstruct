@@ -25,7 +25,6 @@ toolnames = [os.path.splitext(os.path.basename(f))[0]
              for f in toolfiles]
 ignore_tools = ['gcc', 'msvc',
                 'gcc68k',
-                'pyqt',  # appears to be outdated
                 'mex',  # needs matlab installed
                 'xmlrpc_client++',  # also appears to be outdated
                 'armcross',
@@ -158,11 +157,7 @@ class TestEOLScons(unittest.TestCase):
         # No point testing these directly since they conflict.  Tools which
         # do require qt modules will be tested with QT_VERSION=5.
         del tut['qt4']
-        del tut['qt5']
-        # These tools should be deprecated or just removed.
-        del tut['qt']
-        del tut['ace_qt']
-        del tut['qtdir']
+        # del tut['qt5']
         for toolname, error in tut.items():
             result = None
             try:
