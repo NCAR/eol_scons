@@ -38,11 +38,24 @@ a comma-separated list.  The default for this project is '%s'.""" %
                          "${BUILDMODE_DEFAULT}", modes))
     options.Update(env)
     buildmodes = env.subst("${buildmode}").split(" ")
+    if 'all' in buildmodes:
+        buildmodes = modes
     for mode in buildmodes:
-        if mode == 'all':
-            env.Tool(modes)
-        elif mode != '' and mode != 'none':
-            env.Tool(mode)
+        if not mode or mode == 'none':
+            continue
+        try:
+            if mode == 'debug':
+                env.Debug()
+            elif mode == 'optimize':
+                env.Optimize()
+            elif mode == 'warnings':
+                env.Warnings()
+            elif mode == 'profile':
+                env.Profile()
+            else:
+                env.Tool(mode)
+        except:
+            print("No '%s' buildmode settings for this platform." % (mode))
 
 def exists(env):
     return True
