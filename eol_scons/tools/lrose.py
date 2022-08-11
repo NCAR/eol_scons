@@ -30,7 +30,7 @@ lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'Mdv', 'titan',
              'dsserver', 'Radx', 'Ncxx', 'rapformats',
              'euclid', 'rapmath', 'physics',
              'didss', 'toolsa', 'dataport', 'tdrp',
-             'netcdf', 'hdf5', 'pthread']
+             'netcdf', 'hdf5', 'pthread', 'bz2', 'fftw3']
 
 def _calculate_settings(env, settings):
     # Look for LROSE under $LROSE_INSTALL_DIR, /usr/local/lrose,
