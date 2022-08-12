@@ -13,10 +13,8 @@ BuildArch: noarch
 
 %if 0%{?rhel} < 8
 Requires: scons
-BuildRequires: python-devel
 %else
 Requires: python3-scons
-BuildRequires: python36-devel
 %endif
 
 Source: %{name}-%{version}.tar.gz
