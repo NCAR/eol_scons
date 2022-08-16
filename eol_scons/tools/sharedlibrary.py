@@ -1,11 +1,33 @@
-from __future__ import print_function
+
+"""
+Methods for creating and installing versioned shared libraries and the
+associated symbolic links.  The SCons built-in builders SharedLibrary() and
+InstallVersionedLib() now seem to work same as these builders, in which case
+it should be possible to deprecate these custom builders.
+"""
+
 import os
 import re
+from typing import Tuple
 from symlink import MakeSymLink
-from SCons.Node.FS import Dir,File
-from SCons.Script import Builder,Execute
+from SCons.Script import Builder, Environment
 import SCons.Defaults
 import SCons.Scanner.Prog
+
+
+def _extract_shlibversions_from_tag(tag: str) -> Tuple[int, int] or None:
+    """
+    Tag is expected in the form v(MMM).(NNN)(-xxx|.PPP), where MMM is the
+    major version, NNN is the minor version, PPP is a patchlevel, and xxx can
+    be some other string, like a pre-release.  The fields can be one or more
+    digits.  This tool only supports two shared library version numbers, a
+    major and a minor.  Return the versions as a tuple of int (major, minor), or None
+    if the tag could not be parsed.
+    """
+    rx = re.match(r"[Vv]([0-9]+)\.([0-9]+)([-.].*)?", tag)
+    if rx:
+        return (int(rx.group(1)), int(rx.group(2)))
+    return None
 
 
 def GetArchLibDir(env):
@@ -25,40 +47,43 @@ def GetArchLibDir(env):
     return libdir
 
 
-def SharedLibrary3Emitter(target,source,env):
-
+def SharedLibrary3Emitter(target, source, env: Environment):
     """
-    If 'xxx' was the target name passed to the SharedLibrary3 builder,
-    then the target passed to this emitter is libxxx.so.X.Y, assuming
-    $SHLIBPREFIX='lib', is the value of the prefix parameter when this
-    builder was created, and the suffix is '.so.X.Y', the concatenation of
-    $SHLIBSUFFIX + '.' + $SHLIBMAJORVERSION + '.' + $SHLIBMINORVERSION
+    Given a shared library name as the target in the form libname.so, append
+    targets for the versioned soname and versioned fullname.
 
-    This emitter returns three targets for the given sources,
-    in this order:
+    This emitter returns three targets in this order:
         libxxx.so, libxxx.so.X, and libxxx.so.X.Y
     """
+    libname = str(target[0])
+    env.LogDebug("SharedLibrary3Emitter(libname=%s, source=%s, env=%s)" %
+                 (libname, source[0], env.Dir('.')))
 
-    fullname = str(target[0])
+    if env.get("SHLIBMAJORVERSION"):
+        env.LogDebug("using existing setting: SHLIBMAJORVERSION=%s" %
+                     (env.get("SHLIBMAJORVERSION")))
+    elif env.get("REPO_TAG"):
+        rev = _extract_shlibversions_from_tag(env["REPO_TAG"])
+        if rev:
+            env["SHLIBMAJORVERSION"] = rev[0]
+            env["SHLIBMINORVERSION"] = rev[1]
+            env.LogDebug("Set SHLIBMAJORVERSION=%s and SHLIBMINORVERSION=%s "
+                         "from REPO_TAG=%s" % (env.get('SHLIBMAJORVERSION'),
+                         env.get('SHLIBMINORVERSION'), env.get('REPO_TAG')))
+        else:
+            print("*** could not parse SHLIB versions from REPO_TAG=%s ***" %
+                  (env.get('REPO_TAG')))
 
-    # Use reg expression substitution to remove the '.X.Y' from 'libxxx.so.X.Y'
-    try:
-        # Convert '.' to '\.' for exact matching.
-        versionsuffixre = re.sub(r'\.',r'\\.',
-                                 '.' + env['SHLIBMAJORVERSION'] + '.' +
-                                 env['SHLIBMINORVERSION'] + '$')
-    except KeyError:
-        print('Cannot find SHLIBMAJORVERSION or SHLIBMINORVERSION env variables')
+    if not env.get("SHLIBMAJORVERSION"):
+        print("*** No setting for SHLIBMAJORVERSION or REPO_TAG! ***")
 
-    libname = re.sub(versionsuffixre,'', fullname)
-    # print("fullname=" + fullname + ", libname=" + libname)
-
-    soname = libname + '.' + env['SHLIBMAJORVERSION']
-
+    soname = env.subst(libname + ".${SHLIBMAJORVERSION}")
+    fullname = env.subst(soname + ".${SHLIBMINORVERSION}")
+    env.LogDebug("emitting libname=%s, soname=%s, fullname=%s" %
+                 (libname, soname, fullname))
     return ([libname,soname,fullname],source)
 
 def SharedLibrary3Action(target,source,env):
-
     """
     Action to build a shared library and symbolic links.
 
@@ -69,17 +94,14 @@ def SharedLibrary3Action(target,source,env):
 
     SHLINKCOM is the action used by the SharedLibrary builder.
     """
-
     soname = os.path.basename(target[1].path)
 
     env.Append(SHLINKFLAGS=['-Wl,-soname=' + soname])
 
     # Execute the shared library action to build the full library
-    if env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source)):
+    if env.Execute(env.subst('$SHLINKCOM', target=target[2], source=source)):
         raise SCons.Errors.BuildError(node=target[2],
                 errstr="%s failed" % env.subst('$SHLINKCOM'))
-
-    # env.Execute(env.subst('$SHLINKCOM',target=target[2],source=source), env.subst('$SHLINKCOMSTR',target=target[2],source=source))
 
     # Now use the action of the SymLink builder to create
     # symbolic links from libxxx.so.X.Y to libxxx.so.X and libxxx.so
@@ -87,8 +109,7 @@ def SharedLibrary3Action(target,source,env):
     MakeSymLink([target[1]],[target[2]],env)
     return 0
 
-def SharedLibrary3Install(env,target,source,**kw):
-
+def SharedLibrary3Install(env, target, source, **kw):
     """
     Install source library to a library subdirectory of target.
     If env["ARCHLIBDIR"] is defined, the source will be installed
@@ -113,7 +134,6 @@ def SharedLibrary3Install(env,target,source,**kw):
         libxxx.so -> libxxx.so.X.Y
         libxxx.so.X -> libxxx.so.X.Y
     """
-
     # add passed keywords to environment
     env = env.Clone(**kw)
 
@@ -122,43 +142,32 @@ def SharedLibrary3Install(env,target,source,**kw):
     else:
         targetDir = env.Dir(target + '/lib')
 
-    # libname = source[0].path
     libname = str(source[0])
 
     if len(source) > 1:
         soname = str(source[1])
     else:
-        try:
-            soname = libname + '.' + env['SHLIBMAJORVERSION']
-        except KeyError:
-            print('Cannot find SHLIBMAJORVERSION env variable')
-            return None
+        soname = libname + '.${SHLIBMAJORVERSION}'
 
     if len(source) > 2:
         fullname = str(source[2])
     else:
-        try:
-            fullname = soname + '.' + env['SHLIBMINORVERSION']
-        except KeyError:
-            print('Cannot find SHLIBMINORVERSION env variable')
-            return None
-        # print("SharedLibrary3Install, fullname=" + fullname)
+        fullname = soname + '.${SHLIBMINORVERSION}'
 
-    nodes = []
-    tgt = env.Install(targetDir,fullname)
-    nodes.extend(tgt)
-
-    tgt = targetDir.File(os.path.basename(libname))
-    nodes.extend(env.SymLink(tgt,fullname))
-
-    tgt = targetDir.File(os.path.basename(soname))
-    nodes.extend(env.SymLink(tgt,fullname))
-    
+    # If --install-sandbox is in effect, then the library may be installed
+    # into a different directory than specified.  So use the directory of the
+    # returned target to get the location of the symlinks.  And use the string
+    # form of targetDir instead of node so the sandbox directory is applied.
+    libfull = env.Install(targetDir.abspath, fullname)[0]
+    tgt = libfull.dir.File(os.path.basename(libname))
+    liblink = env.SymLink(tgt, fullname)[0]
+    tgt = libfull.dir.File(os.path.basename(soname))
+    solink = env.SymLink(tgt, fullname)[0]
     # return list of targets which can then be used in an Alias
-    return nodes
+    return [libfull, liblink, solink]
 
-def generate(env):
-    """ 
+def generate(env: Environment):
+    """
     Builder and Installer for shared libraries and their associated symbolic links.
 
     Usage:
@@ -270,24 +279,18 @@ def generate(env):
     library suffix and the major and minor version numbers in the
     library file name.
     """
-
-    if "SHLIBMAJORVERSION" not in env and "REPO_TAG" in env:
-        rev = re.match("[Vv]([0-9]+)\.([0-9]+)",env["REPO_TAG"])
-        if rev:
-            env["SHLIBMAJORVERSION"] = rev.group(1)
-            env["SHLIBMINORVERSION"] = rev.group(2)
-
-
-    # Special builder for shared libraries.
-    # Some of these build parameters were stolen from the definition
-    # of the SharedLibrary builder in /usr/lib/scons/SCons/Tool/__init__.py
+    # Special builder for shared libraries.  Some of these build parameters
+    # were stolen from the definition of the SharedLibrary builder in
+    # /usr/lib/scons/SCons/Tool/__init__.py.  The version suffixes are added
+    # by the emitter rather than adding them here, so the emitter does not
+    # need to parse the versions from the library suffix.
     builder = Builder(
-            action=[SCons.Defaults.SharedCheck,SharedLibrary3Action],
+            action=[SCons.Defaults.SharedCheck, SharedLibrary3Action],
             emitter=SharedLibrary3Emitter,
-            prefix='$SHLIBPREFIX',
-            suffix='${SHLIBSUFFIX}.${SHLIBMAJORVERSION}.${SHLIBMINORVERSION}',
+            prefix='${SHLIBPREFIX}',
+            suffix='${SHLIBSUFFIX}',
             target_scanner=SCons.Scanner.Prog.ProgramScanner(),
-            src_suffix='$SHOBJSUFFIX',
+            src_suffix='${SHOBJSUFFIX}',
             src_builder='SharedObject'
             )
     env.Append(BUILDERS = {"SharedLibrary3": builder})
@@ -298,3 +301,18 @@ def generate(env):
 
 def exists(env):
     return 1
+
+
+def test_versions():
+    rev = _extract_shlibversions_from_tag("V3.2")
+    assert rev == (3, 2)
+    rev = _extract_shlibversions_from_tag("v1.99-alpha")
+    assert rev == (1, 99)
+    rev = _extract_shlibversions_from_tag("v1.alpha")
+    assert rev is None
+    rev = _extract_shlibversions_from_tag("v10.12.02")
+    assert rev == (10, 12)
+    rev = _extract_shlibversions_from_tag("v10.02")
+    assert rev == (10, 2)
+    rev = _extract_shlibversions_from_tag("xv10.02")
+    assert rev is None
