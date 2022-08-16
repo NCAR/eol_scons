@@ -2,10 +2,7 @@
 
 ## Updates
 
-eol_scons has been ported to SCons 3.0 and Python 3, but it should remain
-compatible with Python 2.7 and SCons 2, whatever versions are available on
-CentOS as of 7.4.
-
+See [CHANGELOG.md](CHANGELOG.md) for changes.
 ## Installing eol_scons
 
 By default, SCons searches in the following locations for python packages, where ./site_scons is in the same directory as the SConstruct file (see the documentation for the SCons --site-dir command line option):
@@ -104,4 +101,3 @@ In your SConstruct file, simply import eol_scons. The import will add eol_scons/
 import eol_scons
 env = Environment(tools=['default','boost_date_time'])
 ```
-
