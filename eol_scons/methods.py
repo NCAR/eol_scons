@@ -25,6 +25,35 @@ _global_targets = {}
     InstallLibrary() and related methods.
 """
 
+_enable_install_alias = True
+
+
+_install_alias_warning = """
+***
+eol_scons Install() override for the 'install' alias is being phased out.
+Call eol_scons.EnableInstallAlias(False), then add Alias() calls as needed.
+***
+""".strip()
+
+# At some point we may really want to remove the override, at which point we
+# can remove this line to start printing the warning.  In the meanwhile, maybe
+# it's enough that projects can disable the override with
+# EnableInstallAlias(False).
+_install_alias_warning = None
+
+
+def EnableInstallAlias(enabled):
+    """
+    If the install alias is enabled, then the Install() method in the
+    environment will be replaced with the _Install function in this module
+    which adds the target to the install alias.  If disabled, then the
+    Install() method will be the SCons standard Install.  This is a separate
+    mechanism from all the Install method overrides in the prefixoptions
+    tools, so this does not disable those overrides.
+    """
+    global _enable_install_alias
+    _enable_install_alias = enabled
+
 
 _print_progress = not GetOption("no_progress")
 
@@ -55,11 +84,19 @@ def _Test(self, sources, actions):
 def _ChdirActions(self, actions, cdir=None):
     return chdir.ChdirActions(self, actions, cdir)
 
-def _Install(self, ddir, source):
-    """Call the standard Install() method and also add the target to the
-    global 'install' alias."""
-    t = self._SConscript_Install(self.Dir(ddir), source)
-    DefaultEnvironment().Alias('install', t)
+def _Install(env, ddir, source):
+    """
+    Call the standard Install() method and also add the target to the global
+    'install' alias.  Make sure the destination is passed as a string and not
+    a node, otherwise the node is not created according to the
+    --install-sandbox option.
+    """
+    global _install_alias_warning
+    if _install_alias_warning:
+        print(_install_alias_warning)
+        _install_alias_warning = False
+    t = env._SConscript_Install(str(ddir), source)
+    env.Alias('install', t)
     return t
 
 def _AddLibraryTarget(env, base, target):
@@ -213,10 +250,10 @@ def _PrintProgress(env, msg):
 
 
 def _addMethods(env):
-    
-    if hasattr(env, "_SConscript_Install"):
+    if hasattr(env, "_eol_scons_methods_installed"):
         env.LogDebug("environment %s already has methods added" % (env))
         return
+    env._eol_scons_methods_installed = True
     env.AddMethod(_LogDebug, "LogDebug")
     env.LogDebug("add methods to environment %s, Install=%s, new _Install=%s" % 
                  (env, env.Install, _Install))
@@ -226,8 +263,10 @@ def _addMethods(env):
     env.AddMethod(_AppendLibrary, "AppendLibrary")
     env.AddMethod(_AppendSharedLibrary, "AppendSharedLibrary")
     env.AddMethod(_PassEnv, "PassEnv")
-    env._SConscript_Install = env.Install
-    env.AddMethod(_Install, "Install")
+    if _enable_install_alias:
+        env._SConscript_Install = env.Install
+        env.AddMethod(_Install, "Install")
+
     env.AddMethod(_ChdirActions, "ChdirActions")
     env.AddMethod(_Test, "Test")
     env.AddMethod(_FindPackagePath, "FindPackagePath")

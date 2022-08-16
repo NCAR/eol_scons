@@ -44,6 +44,7 @@ from eol_scons.debug import LookupDebug
 from eol_scons.variables import GlobalVariables
 from eol_scons.variables import PathToAbsolute
 from eol_scons.tool import DefineQtTools
+from eol_scons.methods import EnableInstallAlias
 from eol_scons.methods import PrintProgress
 
 # This would be needed if the eol_scons package were going to be loaded as
