@@ -13,8 +13,6 @@ the default environment is not recursive because this function is not
 called (via _update_variables) until global Variables have been added.
 """
 
-from __future__ import print_function
-
 import sys
 import traceback
 
@@ -25,6 +23,7 @@ from SCons.Script import DefaultEnvironment
 from SCons.Script import BoolVariable
 
 import eol_scons.debug
+from eol_scons.methods import PrintProgress
 
 _global_variables = None
 _cache_variables = None
@@ -46,21 +45,8 @@ def GlobalVariables(cfile=None, env=None):
             BoolVariable('eolsconscache',
                          'Enable tools.cache optimization.',
                          _enable_cache))
-        print("Config files: %s" % (_global_variables.files))
+        PrintProgress("Config files: %s" % (_global_variables.files))
     return _global_variables
-
-def GlobalOptions(cfile=None, env=None):
-    """
-    GlobalOptions() has been replaced by GlobalVariables(). Generate an error
-    if it's called.
-    """
-    # Print the stack up to the call to this function
-    stack = traceback.extract_stack()
-    print('\n'.join(traceback.format_list(stack[:-1])), file=sys.stderr)
-    # Raise a StopError
-    errmsg = str("eol_scons.GlobalOptions() is no longer supported; "
-                 "use eol_scons.GlobalVariables() instead")
-    raise SCons.Errors.StopError(errmsg)
 
 class VariableCache(SCons.Variables.Variables):
     """

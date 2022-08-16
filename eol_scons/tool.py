@@ -119,7 +119,7 @@ def _findToolFile(env, name):
                   (len(_tool_matches), toolcache))
 
     if _tool_matches is None:
-        print("Searching for tool_*.py files...")
+        env.PrintProgress("Searching for tool_*.py files...")
         # Get a list of all files named "tool_<tool>.py" under the
         # top directory.
         toolpattern = re.compile(r"^tool_.*\.py")
@@ -142,8 +142,8 @@ def _findToolFile(env, name):
             cachemsg = "cached in %s." % (toolcache)
         else:
             cachemsg = "caching is disabled."
-        print("Found %d tool files, %s" %
-              (len(_tool_matches), cachemsg))
+        env.PrintProgress("Found %d tool files, %s" %
+                          (len(_tool_matches), cachemsg))
 
     toolfilename = "tool_" + name + ".py"
     return [f for f in _tool_matches if toolfilename == os.path.basename(f)]

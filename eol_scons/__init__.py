@@ -33,8 +33,6 @@ private.  See the README file for the documentation for this module.
 from __future__ import print_function
 
 import os
-import sys
-import traceback
 
 import SCons.Tool
 import SCons.Defaults
@@ -43,10 +41,10 @@ import SCons.Defaults
 # namespace.
 from eol_scons.debug import Debug
 from eol_scons.debug import LookupDebug
-from eol_scons.variables import GlobalOptions   # replaced by GlobalVariables
 from eol_scons.variables import GlobalVariables
 from eol_scons.variables import PathToAbsolute
 from eol_scons.tool import DefineQtTools
+from eol_scons.methods import PrintProgress
 
 # This would be needed if the eol_scons package were going to be loaded as
 # a tool by installing it under a site_tools directory somewhere.  However,
@@ -59,8 +57,8 @@ from eol_scons.tool import DefineQtTools
 
 Debug("__init__ __file__=%s" % __file__)
 
-print("Loading eol_scons from %s..." %
-      (os.path.abspath(os.path.dirname(__file__))))
+PrintProgress("Loading eol_scons from %s..." %
+              (os.path.abspath(os.path.dirname(__file__))))
 
 def InstallToolsPath():
     "Add the eol_scons/tools dir to the tool path."
@@ -79,7 +77,6 @@ def RemoveDefaultHook():
     """
     if hooks_dir in SCons.Tool.DefaultToolpath:
         SCons.Tool.DefaultToolpath.remove(hooks_dir)
-
 
 _eolsconsdir = os.path.abspath(os.path.dirname(__file__))
 tools_dir = os.path.normpath(os.path.join(_eolsconsdir, "tools"))

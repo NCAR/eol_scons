@@ -5,9 +5,9 @@ from __future__ import print_function
 
 import os, re, glob
 
-import SCons.Util
 from SCons.Util import NodeList
 from SCons.Script import DefaultEnvironment
+from SCons.Script import GetOption
 
 import eol_scons.debug as esd
 import eol_scons.chdir as chdir
@@ -24,6 +24,13 @@ _global_targets = {}
     tool has been applied; see prefixoptions.py for an example using 
     InstallLibrary() and related methods.
 """
+
+
+_print_progress = not GetOption("no_progress")
+
+def PrintProgress(msg):
+    if _print_progress:
+        print(msg)
 
 
 def _PassEnv(env, regexp):
@@ -200,6 +207,11 @@ def _AppendDoxref(env, ref):
     env.LogDebug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])))
 
 
+def _PrintProgress(env, msg):
+    "Print the message unless the no_progress option (-Q) is in effect."
+    PrintProgress(msg)
+
+
 def _addMethods(env):
     
     if hasattr(env, "_SConscript_Install"):
@@ -220,6 +232,7 @@ def _addMethods(env):
     env.AddMethod(_Test, "Test")
     env.AddMethod(_FindPackagePath, "FindPackagePath")
     env.AddMethod(_AppendDoxref, "AppendDoxref")
+    env.AddMethod(_PrintProgress, "PrintProgress")
 
     # For backwards compatibility:
     env.AddMethod(_Create, "Create")
