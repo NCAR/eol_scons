@@ -200,7 +200,21 @@ def _GenerateHelpText(env):
         for target in dtargets:
             text += "  %s\n" % (str(target))
     else:
-        text += "\nDefault targets can be included with '-h --list-defaults'.\n"
+        text += "Default targets can be included with '-h --list-defaults'.\n"
+
+    try:
+        SCons.Script.AddOption("--list-installs", dest="listinstalls",
+                               action="store_true")
+    except Exception as ex:
+        env.LogDebug(str(ex))
+
+    if env.GetOption("listinstalls"):
+        text += "\nInstall targets:\n"
+        for target in env.FindInstalledFiles():
+            text += "  %s\n" % (str(target))
+    else:
+        text += "Install targets can be listed with '-h --list-installs'.\n"
+
     return text
 
 
