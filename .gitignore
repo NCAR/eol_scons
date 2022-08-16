@@ -8,3 +8,4 @@ eol_scons/tests/test_site_scons
 .project
 .pydevproject
 .pytest_cache
+eol_scons/doxy/html
