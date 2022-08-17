@@ -23,6 +23,10 @@ Changelog for eol_scons.
 - Remove runtime ld path (-R link option) in many places, partly to facilitate
   MacOS builds.
 - Print all targets in `FindInstalledFiles()` with `-h --list-installs`.
+- Some messages printed by eol_scons, especially the initial boilerplate about
+  loading configs, can now be suppressed with the SCons `-Q` (*no_progress*)
+  option.  SConscript files and tools can use the `PrintProgress()` method to
+  print messages which should be suppressed by `-Q`.
 
 ## [4.1] - 2021-01-25
 
