@@ -4,18 +4,26 @@ Changelog for eol_scons.
 
 ## [Unreleased]
 
-- Add `gitinfo` variable.  When set to `off`, the `gitinfo` tool will try to
-  load repo version info from a generated header instead of running `git`
-  tools.
+- eol_scons now requires Python 3.6.  SCons 4.0 requires Python 3.5, SCons
+  4.4 requires Python 3.6, so eol_scons is following suit.  The biggest
+  known issue with this is that on RHEL7 the default python and scons is
+  still python 2.7.  There is a scons package based on python3,
+  python36-scons, but it must be invoked as `scons-3`.  The RPM spec has
+  been updated to force byte compiling with python3 with an install
+  dependency on `scons-python3`.
+- Add `gitinfo` variable.  When set to `off`, the `gitinfo` tool will try
+  to load repo version info from a generated header instead of running
+  `git` tools.  This allows builds in source archives to use the repo
+  version info, like for RPM packages.
 - Add `gitdump` target.  For each directory where the `gitinfo` tool collects
   repo info, there is a target which prints the repo info.  The target must be
   named on the command-line, like `scons ./gitdump`.
-- The eol_scons override of the `Install()` method can be disabled by calling
-  `eol_scons.EnableInstallAlias(False)`.  It still defaults to enabled, but
-  someday could be deprecated.  This allows projects to choose different
-  install aliases, like _install_ and _install.root_ and _install.doc_.  The
-  `Install()` override now works better with the standard SCons option
-  `--install-sandbox`.
+- The eol_scons override of the `Install()` method can be disabled by
+  calling `eol_scons.EnableInstallAlias(False)`.  It still defaults to
+  enabled, but someday could be deprecated.  This allows projects to choose
+  different install aliases, like _install_ and _install.root_ and
+  _install.doc_.  There was also a change to allow the `Install()` override
+  to work with the standard SCons option `--install-sandbox`.
 - Consolidate the `buildmode` settings into the single tool rather than
   providing separate tools for `warnings`, `debug`, and so on.  This fixes a
   problem with SCons 4.4 where a python built-in module actually tries to

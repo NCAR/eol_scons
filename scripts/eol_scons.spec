@@ -1,4 +1,5 @@
 %define name eol_scons
+%define __python /usr/bin/python3
 
 Summary: EOL SCons tools
 Name: %{name}
@@ -11,12 +12,8 @@ Packager: Gordon Maclean <maclean@ucar.edu>
 Vendor: UCAR
 BuildArch: noarch
 
-%if 0%{?rhel} < 8
-Requires: scons
-%else
-Requires: python3-scons
-%endif
-
+Requires: scons-python3
+BuildRequires: python3-devel
 Source: %{name}-%{version}.tar.gz
 
 %description

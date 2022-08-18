@@ -3,6 +3,12 @@
 # Start up scons on different SConstruct files with different ways
 # of bootstrapping eol_scons, and verify that they work as expected.
 #
+# To test with different versions of scons, try this:
+#
+# (alias scons=scons-3 ; . runtests)
+#
+# The first run with -v can be used to verify the versions of scons and the
+# python interpreter that are running.
 
 # Setup our own isolated test site_scons directory.
 mkdir -p test_site_scons/site_tools
@@ -18,6 +24,7 @@ test_sconstruct() # sfile options
     sfile="$1"
     shift
     echo "=== Testing $sfile: scons -f $sfile $@"
+    scons -v
     if scons -f $sfile "$@" ; then
 	echo PASSED.
     else

@@ -32,6 +32,10 @@ private.  See the README file for the documentation for this module.
 """
 from __future__ import print_function
 
+from SCons.Script import EnsurePythonVersion
+
+EnsurePythonVersion(3, 6)
+
 import os
 
 import SCons.Tool
