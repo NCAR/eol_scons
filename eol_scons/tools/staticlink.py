@@ -27,7 +27,6 @@ and Linux.
 ...and I suppose it's more likely to work on Windows also, if that turns
 out to be necessary also.
 """
-from __future__ import print_function
 
 import SCons
 

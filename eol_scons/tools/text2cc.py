@@ -4,14 +4,10 @@ SConscript tool which adds a pseudo-builder to embed a text file in C++
 code.
 """
 
-from __future__ import print_function
 import re
 import sys
 
-try:
-    from StringIO import StringIO
-except:
-    from io import StringIO
+from io import StringIO
 
 def _escape(text):
     """

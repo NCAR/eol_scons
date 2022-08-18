@@ -1,6 +1,5 @@
 # -*- python -*-
 
-from __future__ import print_function
 import os
 import hashlib
 import SCons
@@ -11,10 +10,7 @@ from SCons.Script import Action
 import shutil
 from fnmatch import fnmatch
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+from io import StringIO
 
 import eol_scons
 _debug = eol_scons.LookupDebug('doxygen')

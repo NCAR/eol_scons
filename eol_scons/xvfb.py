@@ -1,5 +1,4 @@
 "Wrap the Xvfb process to provide a headless X server for scripts."
-from __future__ import print_function
 
 import os
 import subprocess as sp

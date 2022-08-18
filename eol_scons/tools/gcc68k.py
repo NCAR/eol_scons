@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 
 gccdir = '/opt/local/m68k-wrs-vxworks'

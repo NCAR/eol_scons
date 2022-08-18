@@ -3,7 +3,6 @@
 Customize an environment to use the GCC ARM cross-compiler tools for
 armhf: arm-linux-gnueabihf-*
 """
-from __future__ import print_function
 
 import os
 import eol_scons.utils

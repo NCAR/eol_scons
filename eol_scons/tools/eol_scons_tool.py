@@ -17,7 +17,6 @@ The tool is named eol_scons_tool to distinguish it from the eol_scons
 package.  Naturally if this tool were imported with the name eol_scons, it
 would not then be possible to import the eol_scons package.
 """
-from __future__ import print_function
 
 import eol_scons
 import eol_scons.tool

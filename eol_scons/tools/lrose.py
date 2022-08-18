@@ -1,6 +1,5 @@
 # -*- python -*-
 
-from __future__ import print_function
 import os, os.path
 import string
 import SCons

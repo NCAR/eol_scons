@@ -9,7 +9,6 @@ This tool adds header paths for the WinDriver API and adds the necessary
 API library.
 """
 
-from __future__ import print_function
 import os
 import re
 from eol_scons import parseconfig

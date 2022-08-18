@@ -54,7 +54,6 @@ common directory like $HOME/.datafilecache, something more obvious or
 conventional like $HOME/Data/cache, or at least allow the cache directory
 to be overridden with an environment variable.
 """
-from __future__ import print_function
 
 import subprocess as sp
 import os

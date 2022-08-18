@@ -12,7 +12,6 @@ A specific windriver library version must be identified via the
 WINDRIVERVERSION variable.
 """
 
-from __future__ import print_function
 
 import os
 import platform

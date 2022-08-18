@@ -71,7 +71,6 @@ TODO:
     Or we could build all the modules from one Makefile or Kbuild, but that would prevent scons from
     choosing what to build.
 """
-from __future__ import print_function
 
 import os
 import re

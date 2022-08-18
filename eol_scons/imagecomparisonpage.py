@@ -3,10 +3,7 @@
 
 "Module for the ImageComparisonPage class."
 
-try:
-    from StringIO import StringIO
-except:
-    from io import StringIO
+from io import StringIO
 
 class ImageComparisonPage(object):
 

@@ -57,7 +57,6 @@ being applied to an environment inside or outside the nidas source tree.
 However, the same methods and variables should be provided by the tool in
 both cases, so that the same SConscript can work either way.
 """
-from __future__ import print_function
 
 import sys
 import os

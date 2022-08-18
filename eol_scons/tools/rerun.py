@@ -28,7 +28,6 @@ keep running the exact same compile command on each iteration.
 Pass rerun=1 to enable command reruns.  If it causes problems, pass rerun=0
 to disable reruns and to remove any existing rerun command cache.
 """
-from __future__ import print_function
 
 import os
 import sys

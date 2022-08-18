@@ -3,7 +3,6 @@
 Customize an environment to use the GCC ARM cross-compiler tools for
 armel: arm-linux-gnueabi-*
 """
-from __future__ import print_function
 
 import os
 import eol_scons.utils

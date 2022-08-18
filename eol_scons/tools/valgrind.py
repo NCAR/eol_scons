@@ -52,7 +52,6 @@ The ValgrindLog() builder parses the output from valgrind and fails the
 build if there are excessive errors.  It can be used separately to test a
 valgrind log file rather than through the Valgrind() method.
 """
-from __future__ import print_function
 
 import os
 import re

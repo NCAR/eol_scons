@@ -4,7 +4,6 @@ Provide Subversion construction variables derived from 'svnversion' and
 'svn info', and provide a builder wrapper for generating a header file
 with definitions for those values.
 """
-from __future__ import print_function
 
 # This tool works by first creating a default, top-level header target
 # which contains the version settings and depends upon key svn
