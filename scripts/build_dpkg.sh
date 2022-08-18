@@ -12,7 +12,7 @@ usage() {
     -I: install packages to $repobase/codename-<codename>
     dest: destination if not installing with reprepro, default is $PWD
     For example to put packages on EOL Ubuntu bionic repository:
-    $0 -s -I bionic"
+    $0 -I bionic"
     exit 1
 }
 [ $# -lt 1 ] && usage
