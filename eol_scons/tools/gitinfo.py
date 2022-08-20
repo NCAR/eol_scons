@@ -159,14 +159,18 @@ def gitinfo_emitter_value(target, source, env):
            (str(target[0]), str(source[0]), str(env.Dir('.'))))
     workdir = _get_workdir(env, source)
     gitinfo = _load_gitinfo(env, workdir, target)
-    # If the git info command fails with an error, we don't
-    # update the target it if exists.  Have to mark the
-    # target as Precious so that scons doesn't delete it
-    # before the check for existence in the action.
-    # I suppose the correct thing to do if subversion fails
-    # and the file exists, is to return a source Value
-    # equal to the current contents of the target. Nah
+    # If the git info command fails with an error, don't update the target if
+    # it already exists.  That is perhaps misleading, since the file could
+    # have outdated information.  Perhaps the build should actually fail,
+    # especially now that source builds can set gitinfo=off to disable git
+    # calls and explicitly accept the existing files as correct.
+    #
+    # Mark the target as Precious so that scons doesn't delete it before the
+    # check for existence in the action.  Add an alias to generate version
+    # files for any project, regardless of how they are named, such as before
+    # assembling a source archive.
     env.Precious(target)
+    env.Alias('versionfiles', target)
     return target, [Value(gitinfo.generateHeader())]
 
 
