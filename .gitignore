@@ -4,8 +4,10 @@ README.html
 *~
 .scon*
 eol_scons/tests/test_site_scons
+tests/test_site_scons
 # Eclipse-generated files
 .project
 .pydevproject
 .pytest_cache
 eol_scons/doxy/html
+doxy/html

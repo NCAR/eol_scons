@@ -758,25 +758,11 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT = ../README
+INPUT = ../eol_scons/README
 INPUT += mainpage.dox
-INPUT += ../tools
-INPUT += ../examples/SConstruct ../examples/logx/tool_logx_example.py
-INPUT += ../examples/datastore/SConscript ../examples/aeros/SConscript
-INPUT += ../chdir.py
-INPUT += ../datafilecache.py
-INPUT += ../debug.py
-INPUT += ../gitinfo.py
-INPUT += ../postgres/testdb.py
-INPUT += ../imagecomparisonpage.py
-INPUT += ../__init__.py
-INPUT += ../library.py
-INPUT += ../methods.py
-INPUT += ../parseconfig.py
-INPUT += ../tool.py
-INPUT += ../utils.py
-INPUT += ../variables.py
-
+INPUT += ../eol_scons/examples/SConstruct ../eol_scons/examples/logx/tool_logx_example.py
+INPUT += ../eol_scons/examples/datastore/SConscript ../eol_scons/examples/aeros/SConscript
+INPUT += ../eol_scons
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
