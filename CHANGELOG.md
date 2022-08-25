@@ -4,6 +4,18 @@ Changelog for eol_scons.
 
 ## [Unreleased]
 
+- eol_scons should now be installed as a subdirectory of site_scons.  Prior to
+  this, the eol_scons repository was typically cloned into `~/.scons` and
+  named `site_scons`, or else it was added to a project as a git submodule
+  named `site_scons`.  This practice interferes with adding other SCons
+  extensions under the `site_scons` directory, and it is confusing that the
+  repository is cloned with a different name.  Now the `site_scons` directory
+  must be created first, either as part of the project or in `~/.scons`, then
+  the eol_scons repository can be cloned into that directory with the name
+  `eol_scons`.  The new `__init__.py` file in the top directory takes care of
+  adding the `eol_scons/eol_scons` directory to the path of the `eol_scons`
+  package.  Importing `eol_scons` using the old scheme prints a deprecation
+  message.
 - eol_scons now requires Python 3.6.  SCons 4.0 requires Python 3.5, SCons
   4.4 requires Python 3.6, so eol_scons is following suit.  The biggest
   known issue with this is that on RHEL7 the default python and scons is

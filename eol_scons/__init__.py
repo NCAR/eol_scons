@@ -31,6 +31,20 @@ particular, all the symbols starting with an underscore are meant to be
 private.  See the README file for the documentation for this module.
 """
 
+# We are trying to migrate away from checking out eol_scons as the site_scons
+# directory.  Instead eol_scons should be a subdirectory of site_scons.  So
+# warn when this file is not being executed from the __init__.py in the parent
+# directory.
+
+_execmsg = """
+*** Importing from site_scons/eol_scons has been deprecated.
+*** The repository should be a subdirectory of site_scons named eol_scons.
+"""
+
+if bool("__eol_scons_init_exec__" not in globals() and
+        __file__.endswith("site_scons/eol_scons/__init__.py")):
+    print(_execmsg)
+
 from SCons.Script import EnsurePythonVersion
 
 EnsurePythonVersion(3, 6)

@@ -56,7 +56,6 @@ files will be accessible without any change to the default include paths in
 the build configuration.  Keeping namespace and source module in sync also
 helps in navigating the source.
 
-
 @section implementation SCons Implementation
 
 This build framework is based on SCons (http://www.scons.org) and called
@@ -76,7 +75,6 @@ the SConscript file which builds the library or dependency.  Either way,
 the tools are genuine scons tools, so they can be applied to an Environment
 by the usual means.  In particular, they can be applied with the Tool()
 method or passed in the tools list when the Environment is constructed.
-
 
 @subsection installation Installation
 
@@ -113,12 +111,9 @@ used it for all your scons builds.  This is also useful for developing eol_scons
 and testing changes.
 
 @code
-mkdir -p $HOME/git
-cd $HOME/git
-git clone http://github.com/ncar/eol_scons
 mkdir -p $HOME/.scons/site_scons
 cd $HOME/.scons/site_scons
-ln -s $HOME/git/eol_scons/eol_scons .
+git clone http://github.com/ncar/eol_scons
 @endcode
 
 If you're using a scons version before 2.3, then you can install eol_scons
@@ -144,7 +139,6 @@ there is no point to installing the eol_scons package under one of the
 site_tools directories searched by SCons.  Instead, eol_scons is meant to
 be installed as a python package, as described above.  There is still a way
 to load eol_scons as if it were a tool, described in @ref activation.
-
 
 @subsection activation Activating eol_scons
 
@@ -222,7 +216,6 @@ package must still be on the python path.
 @code
 scons --site-dir=/usr/share/scons/site_scons/eol_scons
 @endcode
-
 
 @subsection externaltools External Tools
 
@@ -338,9 +331,9 @@ purpose as the python tool function defined in a `SConscript` or
 def generate(env):
     env.AppendLibrary ("logx")
     if env.GetGlobalTarget("liblogx"):
-	      env.AppendDoxref("logx")
+          env.AppendDoxref("logx")
     else:
-	      env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
+          env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
     env.Tool ('log4cpp')
 @endcode
 
@@ -633,8 +626,8 @@ For example, the spol package script adds an option SPOL_PREFIX:
 @code
 print "Adding SPOL_PREFIX to options."
 eol_scons.GlobalVariables().AddVariables (
-	PathVariable('SPOL_PREFIX', 'Installation prefix for SPOL software.',
-		   '/opt/spol'))
+    PathVariable('SPOL_PREFIX', 'Installation prefix for SPOL software.',
+           '/opt/spol'))
 @endcode
 
 The option is only added once, the first time the spol.py tool is loaded.
@@ -643,7 +636,7 @@ target environment to make sure the spol configuration options are setup in
 that environment.
 
 @code
-	eol_scons.GlobalVariables().Update(env)
+    eol_scons.GlobalVariables().Update(env)
 @endcode
 
 Finally, the end of the top-level SConstruct file should contain a call to
@@ -732,7 +725,6 @@ The Doxyfile builder uses these environment variables:
     PROJECT_VERSION     Version string for the project.  Defaults to 1.0
 @endcode
 
-
 The Doxygen builder uses these environment construction variables with the
 given defaults:
 
@@ -740,8 +732,7 @@ given defaults:
     env['DOXYGEN'] = 'doxygen'
     env['DOXYGEN_FLAGS'] = ''
     env['DOXYGEN_COM'] = '$DOXYGEN $DOXYGEN_FLAGS $SOURCE'
-@endcode    
-
+@endcode
 
 Here are two typical examples for using the doxygen builders.  The first
 sets the PROJECT_NAME by passing it in the DOXYFILE_DICT construction
@@ -757,7 +748,7 @@ headers = Split("""
 """)
 
 doxconfig = { "PROJECT_NAME" : "logx library" }
-    
+
 env.Apidocs(sources + headers, DOXYFILE_DICT=doxconfig)
 @endcode
 
@@ -783,7 +774,7 @@ PROJECT_NAME           = "DataSpace Library"
 
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
-EXPAND_AS_DEFINED = DATAMEMORYTYPETRAITS 
+EXPAND_AS_DEFINED = DATAMEMORYTYPETRAITS
 EXPAND_AS_DEFINED += ENTITY_OBJECT ENTITY_VISIT ENTITY_PART ENTITY_COLLECT
 EXPAND_AS_DEFINED += ENTITY_BASIC
 """
@@ -833,7 +824,7 @@ method.  If the module is internal, then it only needs to append its module
 name:
 
 @code
-	env.AppendDoxref("logx")
+    env.AppendDoxref("logx")
 @endcode
 
 If the package is external but has html documentation online, then the
@@ -859,14 +850,12 @@ be specified explicitly, typically in the SConstruct  file:
 In this example from aeros, there is a set of tag files stored in the
 source tree, and the TAGDIR variable points to that directory.
 
-
 @section optimization Speeding Up SCons (Go Fast Buttons)
 
 There are a few ways to speed up iterative scons builds using eol_scons.
 See these tools for ideas: ninja, rerun, and dump_trace.
 
 Also see: https://bitbucket.org/scons/scons/wiki/GoFastButton
-
 
 @section subsets Building Subsets of the Source Tree
 
