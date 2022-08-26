@@ -261,7 +261,7 @@ case "$op" in
     rpms)
         get_rpms "$specfile" "$releasenum"
         for rpmfile in $srpm $rpms ; do
-            echo "RPM: $rpmfile"
+            echo "$rpmfile"
         done
         ;;
 
