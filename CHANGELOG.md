@@ -4,6 +4,56 @@ Changelog for eol_scons.
 
 ## [Unreleased]
 
+### Added
+
+- The `eol_scons` source now has its own `SConstruct` for installing files to
+  a directory specified by the `PREFIX` variable.
+- Scripts can now be shared and executed through the `eol_scons` package.
+  Call `eol_scons.RunScripts()` to look for known script names on the command
+  line, and if found, execute the script with any succeeding arguments.  So
+  far the only script is `build_rpm`.  New scripts can be added easily, but they cannot require single-hyphen arguments, since those will be handled by scons.  Scripts can use words or double-hyphen options.  Example:
+
+  ```sh
+  $ scons -Q build_rpm scripts/eol_scons.spec rpms
+  /home/granger/rpmbuild_piglet/SRPMS/eol_scons-4.2~alpha2-1.fc35.src.rpm
+  /home/granger/rpmbuild_piglet/RPMS/noarch/eol_scons-4.2~alpha2-1.fc35.noarch.rpm
+  ```
+
+- Help option `-h --list-installs` prints all targets in `FindInstalledFiles()`.
+- Some messages printed by eol_scons, especially the initial boilerplate about
+  loading configs, can now be suppressed with the SCons `-Q` (*no_progress*)
+  option.  SConscript files and tools can call the `PrintProgress()` method to
+  print messages which should be suppressed by `-Q`.
+
+### Tool changes: gitinfo
+
+- Add `gitinfo` variable.  When set to `off`, the `gitinfo` tool will try
+  to load repo version info from a generated header instead of running
+  `git` tools.  This allows builds in source archives to use the repo
+  version info, like for RPM packages.
+- Add `gitdump` target.  For each directory where the `gitinfo` tool collects
+  repo info, there is a target which prints the repo info.  The target must be
+  named on the command-line, like `scons ./gitdump`.
+- All `gitinfo` targets are added to a `versionfiles` alias, so generic
+  scripts can generate all versioned output with `scons versionfiles`.  There
+  is also a no-op for the `versionfiles` alias, so `scons versionfiles` does
+  not cause an error on projects which do not use `gitinfo`.
+
+### Changed
+
+- The eol_scons override of the `Install()` method can be disabled by calling
+  `eol_scons.EnableInstallAlias(False)`.  It still defaults to enabled, but
+  someday could be deprecated.  This allows projects to choose different
+  install aliases, like *install* and *install.root* and *install.doc*.  There
+  was also a change to allow the `Install()` override to work with the
+  standard SCons option `--install-sandbox`.
+- Consolidate the `buildmode` settings into the single tool rather than
+  providing separate tools for `warnings`, `debug`, and so on.  This fixes a
+  problem with SCons 4.4 where a python built-in module actually tries to
+  import `warnings`.
+
+### Deprecated
+
 - eol_scons should now be installed as a subdirectory of site_scons.  Prior to
   this, the eol_scons repository was typically cloned into `~/.scons` and
   named `site_scons`, or else it was added to a project as a git submodule
@@ -16,37 +66,17 @@ Changelog for eol_scons.
   adding the `eol_scons/eol_scons` directory to the path of the `eol_scons`
   package.  Importing `eol_scons` using the old scheme prints a deprecation
   message.
-- eol_scons now requires Python 3.6.  SCons 4.0 requires Python 3.5, SCons
-  4.4 requires Python 3.6, so eol_scons is following suit.  The biggest
-  known issue with this is that on RHEL7 the default python and scons is
-  still python 2.7.  There is a scons package based on python3,
-  python36-scons, but it must be invoked as `scons-3`.  The RPM spec has
-  been updated to force byte compiling with python3 with an install
-  dependency on `scons-python3`.
-- Add `gitinfo` variable.  When set to `off`, the `gitinfo` tool will try
-  to load repo version info from a generated header instead of running
-  `git` tools.  This allows builds in source archives to use the repo
-  version info, like for RPM packages.
-- Add `gitdump` target.  For each directory where the `gitinfo` tool collects
-  repo info, there is a target which prints the repo info.  The target must be
-  named on the command-line, like `scons ./gitdump`.
-- The eol_scons override of the `Install()` method can be disabled by
-  calling `eol_scons.EnableInstallAlias(False)`.  It still defaults to
-  enabled, but someday could be deprecated.  This allows projects to choose
-  different install aliases, like _install_ and _install.root_ and
-  _install.doc_.  There was also a change to allow the `Install()` override
-  to work with the standard SCons option `--install-sandbox`.
-- Consolidate the `buildmode` settings into the single tool rather than
-  providing separate tools for `warnings`, `debug`, and so on.  This fixes a
-  problem with SCons 4.4 where a python built-in module actually tries to
-  import `warnings`.
+- eol_scons now requires Python 3.6.  SCons 4.0 requires Python 3.5, SCons 4.4
+  requires Python 3.6, so eol_scons is following suit.  The biggest known
+  issue with this is that on RHEL7 the default python and scons is still
+  python 2.7.  There is a scons package based on python3, `python36-scons`,
+  but it must be invoked as `scons-3`.  The RPM spec has been updated to force
+  byte compiling with python3 with an install dependency on `scons-python3`.
+
+### Removed
+
 - Remove runtime ld path (-R link option) in many places, partly to facilitate
   MacOS builds.
-- Print all targets in `FindInstalledFiles()` with `-h --list-installs`.
-- Some messages printed by eol_scons, especially the initial boilerplate about
-  loading configs, can now be suppressed with the SCons `-Q` (*no_progress*)
-  option.  SConscript files and tools can use the `PrintProgress()` method to
-  print messages which should be suppressed by `-Q`.
 
 ## [4.1] - 2021-01-25
 
