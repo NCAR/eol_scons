@@ -258,6 +258,13 @@ case "$op" in
         echo $tag
         ;;
 
+    rpms)
+        get_rpms "$specfile" "$releasenum"
+        for rpmfile in $srpm $rpms ; do
+            echo "RPM: $rpmfile"
+        done
+        ;;
+
     clone)
         get_pkgname_from_spec "$specfile"
         create_build_clone "$@"
