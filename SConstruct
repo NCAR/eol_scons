@@ -6,7 +6,9 @@ sys.path.append(Path('.').absolute().joinpath('eol_scons'))
 
 import eol_scons
 
-from SCons.Script import PathVariable, Environment
+eol_scons.RunScripts()
+
+from SCons.Script import PathVariable, Environment, Delete
 
 env = Environment(tools=['default'])
 
@@ -21,6 +23,10 @@ variables.Update(env)
 # thinking it is being imported in the deprecated layout, that is, as
 # site_scons/eol_scons/__init__.py.
 install = env.Install("$PREFIX/eol_scons", ["__init__.py", "eol_scons"])
+install += env.Install("$PREFIX/eol_scons/scripts", ["scripts/build_rpm.sh"])
 env.Alias('install', install)
+
+if env.GetOption('clean'):
+    env.Execute(Delete(["build", "rpms.txt"]))
 
 env.SetHelp()

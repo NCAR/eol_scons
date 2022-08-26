@@ -31,6 +31,10 @@ particular, all the symbols starting with an underscore are meant to be
 private.  See the README file for the documentation for this module.
 """
 
+from SCons.Script import EnsurePythonVersion
+
+EnsurePythonVersion(3, 6)
+
 # We are trying to migrate away from checking out eol_scons as the site_scons
 # directory.  Instead eol_scons should be a subdirectory of site_scons.  So
 # warn when this file is not being executed from the __init__.py in the parent
@@ -45,11 +49,9 @@ if bool("__eol_scons_init_exec__" not in globals() and
         __file__.endswith("site_scons/eol_scons/__init__.py")):
     print(_execmsg)
 
-from SCons.Script import EnsurePythonVersion
-
-EnsurePythonVersion(3, 6)
-
 import os
+import sys
+from pathlib import Path
 
 import SCons.Tool
 import SCons.Defaults
@@ -63,6 +65,30 @@ from eol_scons.variables import PathToAbsolute
 from eol_scons.tool import DefineQtTools
 from eol_scons.methods import EnableInstallAlias
 from eol_scons.methods import PrintProgress
+
+
+def _run_script(argname, name=None):
+    if name is None:
+        name = argname
+    script = Path(__file__).parent.joinpath("../scripts").joinpath(name)
+    script = script.resolve()
+    args = [script] + sys.argv[sys.argv.index(argname)+1:]
+    PrintProgress("Executing: %s" % (" ".join(map(str, args))))
+    os.execv(script, args)
+
+
+def RunScripts():
+    """
+    Use scons to provide a hook to scripts shared through eol_scons.  When a
+    known script name is on the scons command-line, exec that script with all
+    the succeeding arguments.  Note that the script cannot use single-hyphen
+    arguments, because scons will catch those and act on them.  However, any
+    double-hyphen arguments not recognized by scons will be ignored and passed
+    to the script.
+    """
+    if 'build_rpm' in sys.argv:
+        _run_script('build_rpm', 'build_rpm.sh')
+
 
 # This would be needed if the eol_scons package were going to be loaded as
 # a tool by installing it under a site_tools directory somewhere.  However,

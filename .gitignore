@@ -5,9 +5,12 @@ README.html
 .scon*
 eol_scons/tests/test_site_scons
 tests/test_site_scons
+eol_scons/doxy/html
+doxy/html
+# build_rpm.sh files
+rpms.txt
+build
 # Eclipse-generated files
 .project
 .pydevproject
 .pytest_cache
-eol_scons/doxy/html
-doxy/html

@@ -11,6 +11,7 @@ import os
 import re
 import SCons.Tool
 from SCons.Script.SConscript import global_exports
+from SCons.Script import COMMAND_LINE_TARGETS
 
 # At least SCons 3.0.1 (CentOS 8 python3-scons-3.0.1-8) has
 # SCons.Errors.EnvironmentError instead of SCons.Errors.SConsEnvironmentError.
@@ -347,6 +348,12 @@ def generate(env, **_kw):
     # Pass on certain environment variables, especially those needed
     # for automatic checkouts.
     env.PassEnv(r'CVS.*|SSH_.*|GIT_.*')
+
+    # Even if a project does not use the gitinfo tool, provide a no-op for the
+    # 'versionfiles' alias.  This is the equivalent of an empty rule for a
+    # standard make target.
+    if 'versionfiles' in COMMAND_LINE_TARGETS:
+        env.Alias('versionfiles')
 
     _apply_global_tools(env)
     return

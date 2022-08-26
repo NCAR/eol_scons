@@ -3,8 +3,8 @@
 
 Summary: EOL SCons tools
 Name: %{name}
-Version: %{version}
-Release: %{release}
+Version: 4.2~alpha2
+Release: 1%{?dist}
 License: GPL
 Group: System Environment/Daemons
 Url: http://www.eol.ucar.edu/
@@ -13,7 +13,7 @@ Vendor: UCAR
 BuildArch: noarch
 
 Requires: scons-python3
-BuildRequires: python3-devel
+BuildRequires: python3-devel scons-python3
 Source: %{name}-%{version}.tar.gz
 
 %description
@@ -26,8 +26,7 @@ EOL SCons tools
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT/usr/share/scons/site_scons/eol_scons
-cp -r . $RPM_BUILD_ROOT/usr/share/scons/site_scons/eol_scons
+scons --install-sandbox $RPM_BUILD_ROOT PREFIX=/usr/share/scons/site_scons install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -36,3 +35,6 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/scons/site_scons/eol_scons
 
 %changelog
+* Fri Aug 26 2022 Gary Granger <granger@ucar.edu> - 4.2~alpha2-1
+- build v4.2-alpha2
+
