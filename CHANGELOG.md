@@ -4,6 +4,10 @@ Changelog for eol_scons.
 
 ## [Unreleased]
 
+- Nothing yet.
+
+## [4.2] - 2022-08-26
+
 ### Added
 
 - The `eol_scons` source now has its own `SConstruct` for installing files to
@@ -11,7 +15,9 @@ Changelog for eol_scons.
 - Scripts can now be shared and executed through the `eol_scons` package.
   Call `eol_scons.RunScripts()` to look for known script names on the command
   line, and if found, execute the script with any succeeding arguments.  So
-  far the only script is `build_rpm`.  New scripts can be added easily, but they cannot require single-hyphen arguments, since those will be handled by scons.  Scripts can use words or double-hyphen options.  Example:
+  far the only script is `build_rpm`.  New scripts can be added easily, but
+  they cannot require single-hyphen arguments, since those will be handled by
+  scons.  Scripts can use words or double-hyphen options.  Example:
 
   ```sh
   $ scons -Q build_rpm scripts/eol_scons.spec rpms
@@ -100,7 +106,8 @@ Changelog for eol_scons.
 - first tagged release
 
 <!-- Versions -->
-[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.1...HEAD
+[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2...HEAD
+[4.2]: https://github.com/NCAR/eol_scons/compare/v4.1...v4.2
 [4.1]: https://github.com/NCAR/eol_scons/compare/v3.0...v4.1
 [3.0]: https://github.com/NCAR/eol_scons/compare/v2.9...v3.0
 [2.9]: https://github.com/NCAR/eol_scons/compare/v2.0...v2.9
