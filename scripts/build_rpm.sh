@@ -2,6 +2,7 @@
 
 script=$(basename $0)
 
+# --- global variables ---
 # specfile must be specified, then pkg name is extracted from it.
 specfile=
 pkgname=
@@ -12,6 +13,7 @@ version=
 arch=
 srpm=
 rpms=
+snapshot_specfile=
 
 # temporary directory to clone source and create archive.  we want it to be
 # local rather than in /tmp so git can optimize the clone with hard
@@ -39,6 +41,12 @@ get_version_and_tag_from_spec() # specfile
     version=`rpmspec --define "releasenum $releasenum" --srpm -q --queryformat "%{VERSION}\n" "$specfile"`
     tag="v${version}"
     tag=`echo "$tag" | sed -e 's/~/-/'`
+    # If this is a snapshot version with an embedded commit, extract the
+    # commit hash as the tag.
+    if echo "$tag" | grep -q snapshot ; then
+        tag=`echo "$tag" | sed -e 's/.*\.snapshot\.//'`
+        echo "Snapshot tag: $tag"
+    fi
 }
 
 
@@ -121,6 +129,7 @@ create_build_clone() # tag
     # Update version headers using the gitinfo alias.
     scons -C "$builddir/$pkgname" versionfiles
 }
+
 
 # get the full paths to the rpm files given the spec file and the release
 # number.  sets variables rpms, srpm, and arch
@@ -211,11 +220,66 @@ EOF
 }
 
 
+# Given a spec file, copy it and bump it to build the latest commit, whether
+# tagged or not.  Use a special encoding for the version based on git
+# describe.  It would have been nice if there was a spec tag for setting a VCS
+# commit identifier separately from the version, but I didn't find it.
+create_snapshot_specfile() # specfile [commit]
+{
+    specfile="$1"
+    commit="$2"
+    if [ -z "$commit" ]; then
+        commit=`git rev-parse --short=8 HEAD`
+    fi
+    # get just the most recent annotated tag on this branch
+    tag=`git describe --abbrev=0 "$commit"`
+    # Use full git describe to get a snapshot version.  The version cannot
+    # contain hyphens.
+    describe=`git describe --long --abbrev=8 "$commit"`
+    # convert v2.0-alpha2-3-g9d6ff521 to 2.0.alpha2.3.snapshot.9d6ff521
+    version=`echo "$describe" | sed -e 's/^v//' -e 's/-g/-snapshot-/'`
+    version=`echo "$version" | sed -e 's/-/./g'`
+    mkdir -p build
+    snapshot_specfile=build/`basename "${specfile}" .spec`-"${commit}.spec"
+    cp -fp "$specfile" "$snapshot_specfile"
+    rpmdev-bumpspec -c "build snapshot $describe based on $tag" \
+        -n "$version" "$snapshot_specfile"
+    echo "Created snapshot ${snapshot_specfile}, version ${version}."
+}
+
+
 usage()
 {
-    echo "Usage: ${script} {specfile} {op} [args]"
-    echo "ops: pkgname, releasenum, version, clone, build"
+    cat <<EOF
+Usage: ${script} {specfile} {op} [args]
+ops:
+  pkgname -
+    Print the package name in the spec file.
+  releasenum {version} -
+    Print next release number for given package version.
+  version -
+    Print the version tag extracted from the spec file.
+  clone -
+    Clone the source tree and checkout the version from the
+    spec file.
+  build -
+    Build RPMs for the given spec file.
+  snapshot_specfile -
+    Create a new specfile bumped to a snapshot version for the
+    current source repo.
+  snapshot -
+    Create the snapshot specfile and build RPMs with it.
+EOF
 }
+
+case "$1" in
+
+    -h|--help|help)
+        usage
+        exit 0
+        ;;
+
+esac
 
 specfile="$1"
 if [ -z "$specfile" ]; then
@@ -272,6 +336,21 @@ case "$op" in
 
     build)
         run_rpmbuild
+        ;;
+
+    snapshot_specfile)
+        create_snapshot_specfile "$specfile" "$@"
+        ;;
+
+    snapshot)
+        create_snapshot_specfile "$specfile" "$@"
+        specfile="$snapshot_specfile"
+        run_rpmbuild
+        ;;
+
+    help)
+        usage
+        exit 0
         ;;
 
     *)

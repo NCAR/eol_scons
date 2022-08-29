@@ -4,7 +4,25 @@ Changelog for eol_scons.
 
 ## [Unreleased]
 
-- Nothing yet.
+- `build_rpm.sh` can create snapshot packages from untagged source using the
+  commit hash as the version identifier.  It bumps a copy of the spec file to
+  a new version with the commit hash embedded, then the rest of the rpm build
+  works as before.  In particular the specific source version to be packaged
+  is extracted from the version in the spec file.  The spec changelog is
+  technically not quite correct because it only contains a single new entry
+  for the snapshot being created, it does not mention if there were any
+  snapshots prior to it.
+  
+  Example:
+
+  ```sh
+  scons build_rpm scripts/eol_scons.spec snapshot
+  ```
+
+  The primary purpose is to test packaging for the latest commit without
+  requiring a tag, but it could also allow projects to release rolling package
+  snapshots if desired, since the generated package versions should order
+  correctly.  The packages are still only built from clean source checkouts.
 
 ## [4.2] - 2022-08-26
 
