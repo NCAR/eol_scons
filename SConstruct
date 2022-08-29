@@ -29,4 +29,6 @@ env.Alias('install', install)
 if env.GetOption('clean'):
     env.Execute(Delete(["build", "rpms.txt"]))
 
+env.Test('tests/runtests', 'cd tests && ./runtests')
+
 env.SetHelp()
