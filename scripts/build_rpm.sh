@@ -102,7 +102,9 @@ get_releasenum() # version
 
 create_build_clone() # tag
 {
-    # Create a clean clone of the current repo in its own build directory.
+    # Create a clean clone of the current repo in its own build directory,
+    # including generating any version-dependent files.  The result is meant
+    # to be suitable for a source archive.
     tag="$1"
     echo "Cloning source for tag: ${tag}..."
     # we want to copy the origin url in the cloned repository so it shows
@@ -128,6 +130,9 @@ create_build_clone() # tag
     fi
     # Update version headers using the gitinfo alias.
     scons -C "$builddir/$pkgname" versionfiles
+    # Remove scons artifacts
+    (cd "$builddir/$pkgname"
+     rm -rf .sconsign.dblite .sconf_temp config.log)
 }
 
 
