@@ -4,6 +4,19 @@ Changelog for eol_scons.
 
 ## [Unreleased]
 
+- Nothing yet.
+
+## [4.2.1] - 2022-08-30
+
+### Fixed
+
+- In the `Install()` method which adds the automatic install alias, restore
+  the resolution of the destination as a directory node before passing the
+  destination along as string path.  This forces variables to be interpolated
+  when the builder is created, since some projects have relied on that.
+
+### Added
+
 - `build_rpm.sh` can create snapshot packages from untagged source using the
   commit hash as the version identifier.  It bumps a copy of the spec file to
   a new version with the commit hash embedded, then the rest of the rpm build
@@ -124,7 +137,8 @@ Changelog for eol_scons.
 - first tagged release
 
 <!-- Versions -->
-[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2...HEAD
+[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/NCAR/eol_scons/compare/v4.2...v4.2.1
 [4.2]: https://github.com/NCAR/eol_scons/compare/v4.1...v4.2
 [4.1]: https://github.com/NCAR/eol_scons/compare/v3.0...v4.1
 [3.0]: https://github.com/NCAR/eol_scons/compare/v2.9...v3.0

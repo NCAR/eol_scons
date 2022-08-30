@@ -3,7 +3,7 @@
 
 Summary: EOL SCons tools
 Name: %{name}
-Version: 4.2
+Version: 4.2.1
 Release: 1%{?dist}
 License: GPL
 Group: System Environment/Daemons
@@ -35,6 +35,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/scons/site_scons/eol_scons
 
 %changelog
+* Tue Aug 30 2022 Gary Granger <granger@ucar.edu> - 4.2.1-1
+- build v4.2.1
+
 * Sat Aug 27 2022 Gary Granger <granger@ucar.edu> - 4.2-1
 - build v4.2
 

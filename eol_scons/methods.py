@@ -87,14 +87,15 @@ def _Install(env, ddir, source):
     """
     Call the standard Install() method and also add the target to the global
     'install' alias.  Make sure the destination is passed as a string and not
-    a node, otherwise the node is not created according to the
-    --install-sandbox option.
+    a node, otherwise the destination is not adjusted by the --install-sandbox
+    option.  The node must still be resolved first, because some projects
+    (nidas) have relied on variable substitution happening here and not later.
     """
     global _install_alias_warning
     if _install_alias_warning:
         print(_install_alias_warning)
         _install_alias_warning = False
-    t = env._SConscript_Install(str(ddir), source)
+    t = env._SConscript_Install(str(env.Dir(ddir)), source)
     env.Alias('install', t)
     return t
 
