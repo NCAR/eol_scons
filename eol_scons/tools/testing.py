@@ -130,9 +130,10 @@ class _SpawnerLogger(object):
         pipe = subprocess.Popen(cmd, env=env,
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT,
+                                universal_newlines=True,
                                 bufsize=1, close_fds=True, shell=False)
         pipe.stdin.close()
-        output = pipe.stdout.readline().decode()
+        output = pipe.stdout.readline()
         flines = 0
         while output:
             if self.logfile:
@@ -146,7 +147,7 @@ class _SpawnerLogger(object):
                 flines = flines + 1
                 if flines % 50 == 0:
                     sys.stdout.write('.')
-            output = pipe.stdout.readline().decode()
+            output = pipe.stdout.readline()
         pipe.wait()
         if flines >= 50:
             sys.stdout.write("\n")
