@@ -29,7 +29,7 @@ lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'Mdv', 'titan',
              'dsserver', 'Radx', 'Ncxx', 'rapformats',
              'euclid', 'rapmath', 'physics',
              'didss', 'toolsa', 'dataport', 'tdrp',
-             'netcdf', 'hdf5', 'pthread', 'bz2', 'fftw3']
+             'netcdf', 'pthread']
 
 def _calculate_settings(env, settings):
     # Look for LROSE under $LROSE_INSTALL_DIR, /usr/local/lrose,
@@ -77,11 +77,11 @@ def _calculate_settings(env, settings):
 def generate(env):
     if not _settings:
         _calculate_settings(env, _settings)
-    env.Require(dep_tools)
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
     env.Append(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=[_settings['LIBDIR']])
     env.AppendUnique(LINKFLAGS = ['-Wl,-rpath,' + _settings['LIBDIR']])
+    env.Require(dep_tools)
 
 def exists(env):
     return True
