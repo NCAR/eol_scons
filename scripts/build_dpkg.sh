@@ -53,9 +53,10 @@ rsync --exclude=.git -a --no-perms --no-owner --chmod=g-w --no-owner DEBIAN $pkg
 
 sed -ri "s/^Version:.*/Version: $gitdesc/" $pkgdir/DEBIAN/control
 
-ddir=$pkgdir/usr/share/scons/site_scons
+ddir=$pkgdir/usr/share/scons/site_scons/eol_scons
 mkdir -p $ddir
 
+rsync __init__.py $ddir
 rsync --exclude=.git -a --no-perms --no-owner --chmod=g-w eol_scons $ddir
 
 # cd $ddir
