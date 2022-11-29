@@ -15,7 +15,8 @@ usage() {
     $0 -I bionic"
     exit 1
 }
-[ $# -lt 1 ] && usage
+
+dest=$PWD
 
 while [ $# -gt 0 ]; do
     case $1 in
@@ -28,6 +29,9 @@ while [ $# -gt 0 ]; do
         [ $# -lt 1 ] && usage
         shift
         repo=$repobase/codename-$1
+        ;;
+    -h)
+        usage
         ;;
     *)
         dest=$1
@@ -57,7 +61,9 @@ ddir=$pkgdir/usr/share/scons/site_scons/eol_scons
 mkdir -p $ddir
 
 rsync __init__.py $ddir
-rsync --exclude=.git -a --no-perms --no-owner --chmod=g-w eol_scons $ddir
+rsync --exclude=.git --exclude=.sconf_temp --exclude="*.pyc" \
+    --exclude=__pycache__ \
+    -a --no-perms --no-owner --chmod=g-w eol_scons $ddir
 
 # cd $ddir
 # python << EOD
