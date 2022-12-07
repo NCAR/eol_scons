@@ -136,6 +136,34 @@ create_build_clone() # tag
 }
 
 
+create_build_copy()
+{
+    # Like create_build_clone, but copy the current source instead of cloning
+    # it.  This is meant only for testing the packaging, it should not be used
+    # to create packages for release, since nothing verifies the source is
+    # clean.  This uses rsync to copy the directory tree where the files are
+    # hard links back to the source, so it's fast and saves space.  The
+    # subsequent clean in the build tree only removes the hard links and does
+    # not affect the source.
+    echo "Copying source with hard links..."
+    if test -d .git ; then
+        (set -x; rm -rf "$builddir"
+        mkdir -p "$builddir"
+        rsync -av --link-dest="$PWD" --exclude build ./ "$builddir/$pkgname")
+    else
+        echo "This needs to be run from the top of the repository."
+        exit 1
+    fi
+    # Clean the build source
+    (cd "$builddir/$pkgname" && scons -c .)
+    # Update version headers using the gitinfo alias.
+    scons -C "$builddir/$pkgname" versionfiles
+    # Remove scons artifacts
+    (cd "$builddir/$pkgname"
+     rm -rf .sconsign.dblite .sconf_temp config.log)
+}
+
+
 # get the full paths to the rpm files given the spec file and the release
 # number.  sets variables rpms, srpm, and arch
 get_rpms() # specfile releasenum
@@ -183,14 +211,22 @@ clean_rpms() # rpms
 }
 
 
-run_rpmbuild()
+# run the whole sequence to build an rpm: clone the source, archive it, and
+# pass it to rpmbuild.  If copy specified, create a test package from a copy
+# of the current source, instead of from a clean tag or commit.
+run_rpmbuild() # [copy]
 {
+    archive="$1"
     get_pkgname_from_spec "$specfile"
 
     # get the version to package from the spec file
     get_version_and_tag_from_spec "$specfile"
 
-    create_build_clone "$tag"
+    if [ "$archive" == "copy" ]; then
+        create_build_copy
+    else
+        create_build_clone "$tag"
+    fi
 
     get_releasenum "$version"
 
@@ -274,6 +310,9 @@ ops:
     current source repo.
   snapshot -
     Create the snapshot specfile and build RPMs with it.
+  test -
+    Like snapshot, but build from a copy of the source rather
+    than a clean commit.
 EOF
 }
 
@@ -341,6 +380,12 @@ case "$op" in
 
     build)
         run_rpmbuild
+        ;;
+
+    test)
+        create_snapshot_specfile "$specfile" "$@"
+        specfile="$snapshot_specfile"
+        run_rpmbuild copy
         ;;
 
     snapshot_specfile)
