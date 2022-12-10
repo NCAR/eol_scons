@@ -1,14 +1,12 @@
-%define name eol_scons
 %define __python /usr/bin/python3
 
-Summary: EOL SCons tools
-Name: %{name}
+Name: eol_scons
 Version: 4.2.1
-Release: 1%{?dist}
+Release: %{releasenum}%{?dist}
+Summary: EOL SCons tools
 License: GPL
 Group: System Environment/Daemons
-Url: http://www.eol.ucar.edu/
-Packager: Gordon Maclean <maclean@ucar.edu>
+URL: https://github.com/NCAR/eol_scons
 Vendor: UCAR
 BuildArch: noarch
 
@@ -17,19 +15,16 @@ BuildRequires: python3-devel scons-python3
 Source: %{name}-%{version}.tar.gz
 
 %description
-EOL SCons tools
+Tools and extensions to SCons to build NCAR/EOL software.
 
 %prep
-%setup -n eol_scons
+%setup
 
 %build
 
 %install
 rm -rf $RPM_BUILD_ROOT
-scons --install-sandbox $RPM_BUILD_ROOT PREFIX=/usr/share/scons/site_scons install
-
-%clean
-rm -rf $RPM_BUILD_ROOT
+scons --install-sandbox %{buildroot} PREFIX=/usr/share/scons/site_scons install
 
 %files
 /usr/share/scons/site_scons/eol_scons
