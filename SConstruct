@@ -27,7 +27,9 @@ install += env.Install("$PREFIX/eol_scons/scripts", ["scripts/build_rpm.sh"])
 env.Alias('install', install)
 
 if env.GetOption('clean'):
-    env.Execute(Delete(["build", "rpms.txt"]))
+    env.Execute(Delete(["build", "rpms.txt", "tests/.sconf_temp",
+                        "tests/config.log", "tests/.sconsign.dblite",
+                        "tests/test_site_scons", "doxy/html"]))
 
 env.Test('tests/runtests', 'cd tests && ./runtests')
 
