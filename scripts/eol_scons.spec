@@ -1,7 +1,7 @@
 %define __python /usr/bin/python3
 
 Name: eol_scons
-Version: 4.2.1
+Version: 4.2.2
 Release: %{releasenum}%{?dist}
 Summary: EOL SCons tools
 License: GPL
@@ -30,6 +30,9 @@ scons --install-sandbox %{buildroot} PREFIX=/usr/share/scons/site_scons install
 /usr/share/scons/site_scons/eol_scons
 
 %changelog
+* Sat Dec 10 2022 Gary Granger <granger@ucar.edu> - 4.2.2-1
+- build v4.2.2
+
 * Tue Aug 30 2022 Gary Granger <granger@ucar.edu> - 4.2.1-1
 - build v4.2.1
 

@@ -1,10 +1,15 @@
-# Changelog
+# Changelog for eol_scons
 
-Changelog for eol_scons.
+## [4.2.2] - 2022-12-10
 
-## [Unreleased]
-
-- Nothing yet.
+- `build_rpm.sh` removes scons artifacts left over from a source copy or from
+  the _versionfiles_ target.
+- Debian packaging cleans compiled python and now installs the python package
+  into the new location `site_scons/eol_scons/eol_scons`.
+- `build_rpm.sh` now has a _test_ method to stage the source archive from a
+  hard linked copy of the source repo instead of a clone.  The source archive
+  directory now has the conventional name `{name}-{version}`, so `%setup`
+  macros no longer need the `-n` option.
 
 ## [4.2.1] - 2022-08-30
 
@@ -137,7 +142,8 @@ Changelog for eol_scons.
 - first tagged release
 
 <!-- Versions -->
-[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2.1...HEAD
+[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2.2...HEAD
+[4.2.2]: https://github.com/NCAR/eol_scons/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/NCAR/eol_scons/compare/v4.2...v4.2.1
 [4.2]: https://github.com/NCAR/eol_scons/compare/v4.1...v4.2
 [4.1]: https://github.com/NCAR/eol_scons/compare/v3.0...v4.1
