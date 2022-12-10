@@ -10,15 +10,19 @@ pkgname=
 releasenum=1
 tag=
 version=
+# standard name for package source archives is pkgname-version
+tarname=
 arch=
-srpm=
-rpms=
+# rpms is the array of rpm filenames which will be created.  the first rpm is
+# always the source rpm.
+declare -a rpms
+rpms=()
 snapshot_specfile=
 
 # temporary directory to clone source and create archive.  we want it to be
 # local rather than in /tmp so git can optimize the clone with hard
 # links.
-builddir=build/build_rpm.$$
+builddir=build
 
 set -o pipefail
 
@@ -30,7 +34,7 @@ sourcedir=$(rpm --define "_topdir $topdir" --eval %_sourcedir)
 get_pkgname_from_spec() # specfile
 {
     specfile="$1"
-    pkgname=`rpmspec --define "releasenum $releasenum" --srpm -q --queryformat "%{NAME}\n" "$specfile"`
+    pkgname=`rpmspec --define "releasenum $releasenum" --srpm -q --queryformat "%{name}\n" "$specfile"`
 }
 
 
@@ -38,7 +42,7 @@ get_pkgname_from_spec() # specfile
 get_version_and_tag_from_spec() # specfile
 {
     specfile="$1"
-    version=`rpmspec --define "releasenum $releasenum" --srpm -q --queryformat "%{VERSION}\n" "$specfile"`
+    version=`rpmspec --define "releasenum $releasenum" --srpm -q --queryformat "%{version}\n" "$specfile"`
     tag="v${version}"
     tag=`echo "$tag" | sed -e 's/~/-/'`
     # If this is a snapshot version with an embedded commit, extract the
@@ -63,6 +67,13 @@ get_version_and_tag_from_git()
     fi
     tag="$REPO_TAG"
     version=${tag/#v}
+}
+
+
+# set tarname from pkgname and version
+set_tarname()
+{
+    tarname="${pkgname}${version:+-$version}"
 }
 
 
@@ -100,8 +111,24 @@ get_releasenum() # version
 }
 
 
+setup_tar_source() # source-directory
+{
+    # Clean the build source.  This is only useful for copies, but it doesn't
+    # hurt in clones.  A 'git clean -x -d -f' might be thorough and effective,
+    # but that would remove any files in a copy which were needed but not yet
+    # added to git, so be a little more conservative than that.
+    (cd "$builddir/$tarname" && scons -c .)
+    # Update version headers using the gitinfo alias.
+    scons -C "$builddir/$tarname" versionfiles
+    # Remove scons artifacts
+    (cd "$builddir/$tarname"
+     rm -rf .sconsign.dblite .sconf_temp config.log)
+}
+
+
 create_build_clone() # tag
 {
+    set_tarname
     # Create a clean clone of the current repo in its own build directory,
     # including generating any version-dependent files.  The result is meant
     # to be suitable for a source archive.
@@ -112,27 +139,23 @@ create_build_clone() # tag
     url=`git config --local --get remote.origin.url`
     git="git -c advice.detachedHead=false"
     if test -d .git ; then
-        (set -x; rm -rf "$builddir"
-        mkdir -p "$builddir"
-        $git clone . "$builddir/$pkgname"
-        cd "$builddir/$pkgname" && git remote set-url origin "$url")
+        (set -x; rm -rf "$builddir/$tarname"
+        mkdir -p "$builddir/$tarname"
+        $git clone . "$builddir/$tarname"
+        cd "$builddir/$tarname" && git remote set-url origin "$url")
     else
         echo "This needs to be run from the top of the repository."
         exit 1
     fi
     if [ -n "$tag" ]; then
         (set -x;
-         cd "$builddir/$pkgname";
+         cd "$builddir/$tarname";
          $git checkout "$tag")
         if [ $? != 0 ]; then
             exit 1
         fi
     fi
-    # Update version headers using the gitinfo alias.
-    scons -C "$builddir/$pkgname" versionfiles
-    # Remove scons artifacts
-    (cd "$builddir/$pkgname"
-     rm -rf .sconsign.dblite .sconf_temp config.log)
+    setup_tar_source "$builddir/$tarname"
 }
 
 
@@ -145,22 +168,17 @@ create_build_copy()
     # hard links back to the source, so it's fast and saves space.  The
     # subsequent clean in the build tree only removes the hard links and does
     # not affect the source.
+    set_tarname
     echo "Copying source with hard links..."
     if test -d .git ; then
-        (set -x; rm -rf "$builddir"
-        mkdir -p "$builddir"
-        rsync -av --link-dest="$PWD" --exclude build ./ "$builddir/$pkgname")
+        (set -x; rm -rf "$builddir/$tarname"
+        mkdir -p "$builddir/$tarname"
+        rsync -av --link-dest="$PWD" --exclude build ./ "$builddir/$tarname")
     else
         echo "This needs to be run from the top of the repository."
         exit 1
     fi
-    # Clean the build source
-    (cd "$builddir/$pkgname" && scons -c .)
-    # Update version headers using the gitinfo alias.
-    scons -C "$builddir/$pkgname" versionfiles
-    # Remove scons artifacts
-    (cd "$builddir/$pkgname"
-     rm -rf .sconsign.dblite .sconf_temp config.log)
+    setup_tar_source "$builddir/$tarname"
 }
 
 
@@ -170,22 +188,35 @@ get_rpms() # specfile releasenum
 {
     local specfile="$1"
     local releasenum="$2"
-    rpms=""
+    rpms=()
     if [ -z "$specfile" -o -z "$releasenum" ]; then
         echo "get_rpms {specfile} {releasenum}"
         exit 1
     fi
-    # get the arch the spec file will build
-    arch=`rpmspec --define "releasenum $releasenum" -q --srpm --queryformat="%{ARCH}\n" $specfile`
+    # Get the arch the spec file will build. Technically this command queries
+    # for the single srpm but returns a format which is the default for arch
+    # for the packages in this spec.  It might also work to just use the
+    # `arch` command, but I'm not sure if that's always equivalent.
+    arch=`rpmspec --define "releasenum $releasenum" -q --srpm --queryformat="%{arch}\n" $specfile`
 
-    srpm=`rpmspec --define "releasenum $releasenum" --srpm -q "${specfile}"`.src.rpm
-    # not sure why rpmspec returns the srpm with the arch, even though srpm
-    # actually built by rpmbuild does not have it.
-    srpm="${srpm/.${arch}}"
+    # The package names from rpmspec -q are inconsistent (ie sometimes wrong)
+    # across OS releases, so specify the package name format explicitly.
+    qfsrpm="%{name}-%{version}-%{release}.src.rpm"
+    qfrpm="%{name}-%{version}-%{release}.%{arch}.rpm"
+
+    srpm=`rpmspec --define "releasenum $releasenum" --srpm -q --queryformat="${qfsrpm}\n" "${specfile}"`
     # SRPM ends up in topdir/SRPMS/$srpmfile
     # RPMs end up in topdir/RPMS/<arch>/$rpmfile
     srpm="$topdir/SRPMS/$srpm"
-    rpms=`rpmspec --define "releasenum $releasenum" -q "${specfile}" | while read rpmf; do echo "$topdir/RPMS/$arch/${rpmf}.rpm" ; done`
+    # This puts all the built rpms except for src in the same architecture
+    # subdirectory, even if some packages are noarch.  I don't think this has
+    # made a difference in practice.  This could be fixed by making the arch
+    # directory part of the package name in the query format.
+    rpms=(`echo "$srpm" ; \
+           rpmspec --define "releasenum $releasenum" -q --queryformat="${qfrpm}\n" "${specfile}" | \
+           while read rpmf; do \
+               echo "$topdir/RPMS/$arch/${rpmf}" ; \
+           done`)
 }
 
 
@@ -205,7 +236,8 @@ get_eolreponame()
 clean_rpms() # rpms
 {
     echo "Removing expected RPMS:"
-    for rpmfile in ${rpms}; do
+    for rpmfile in "$@" END; do
+        [ "$rpmfile" == END ] && break
         (set -x ; rm -f "$rpmfile")
     done
 }
@@ -232,15 +264,18 @@ run_rpmbuild() # [copy]
 
     get_rpms "$specfile" "$releasenum"
 
-    clean_rpms "$rpms"
+    clean_rpms "${rpms[@]}"
 
     # now we can build the source archive and the package...
     cat <<EOF
 Building ${pkgname} version ${version}, release ${releasenum}, arch: ${arch}.
 EOF
 
-    (cd "$builddir" && tar czf $sourcedir/${pkgname}-${version}.tar.gz \
-        --exclude .svn --exclude .git $pkgname) || exit $?
+    (cd "$builddir" && tar czf $sourcedir/${tarname}.tar.gz \
+        --exclude .svn --exclude .git --exclude config.log \
+        --exclude .sconf_temp --exclude .sconsign.dblite \
+        --exclude __pycache__ --exclude "*.pyc" \
+        $tarname) || exit $?
 
     rpmbuild -v -ba \
         --define "_topdir $topdir"  \
@@ -249,7 +284,7 @@ EOF
         $specfile || exit $?
 
     cat /dev/null > rpms.txt
-    for rpmfile in $srpm $rpms ; do
+    for rpmfile in "${rpms[@]}" ; do
         if [ -f "$rpmfile" ]; then
             echo "RPM: $rpmfile"
             echo "$rpmfile" >> rpms.txt
@@ -368,7 +403,7 @@ case "$op" in
 
     rpms)
         get_rpms "$specfile" "$releasenum"
-        for rpmfile in $srpm $rpms ; do
+        for rpmfile in ${rpms[@]} ; do
             echo "$rpmfile"
         done
         ;;
