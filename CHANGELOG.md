@@ -1,5 +1,9 @@
 # Changelog for eol_scons
 
+## [4.2.3] - 2022-12-15
+
+- Keep `build_rpm.sh` working with spec files which use `%setup -n <pkgname>`.
+
 ## [4.2.2] - 2022-12-10
 
 - `build_rpm.sh` removes scons artifacts left over from a source copy or from
@@ -142,7 +146,8 @@
 - first tagged release
 
 <!-- Versions -->
-[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2.2...HEAD
+[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2.3...HEAD
+[4.2.3]: https://github.com/NCAR/eol_scons/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/NCAR/eol_scons/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/NCAR/eol_scons/compare/v4.2...v4.2.1
 [4.2]: https://github.com/NCAR/eol_scons/compare/v4.1...v4.2
