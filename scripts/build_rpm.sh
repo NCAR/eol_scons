@@ -12,6 +12,9 @@ tag=
 version=
 # standard name for package source archives is pkgname-version
 tarname=
+# source directory might be named pkgname-version, following convention,
+# or just pkgname.
+sourcename=
 arch=
 # rpms is the array of rpm filenames which will be created.  the first rpm is
 # always the source rpm.
@@ -73,7 +76,17 @@ get_version_and_tag_from_git()
 # set tarname from pkgname and version
 set_tarname()
 {
+    # the rpm convention is for source archives to contain a directory
+    # named <pkgname>-<version>, so use that name by default.
+    # If the spec file uses 'setup -n <pkgname>', then the source
+    # directory needs to be named just <pkgname>
     tarname="${pkgname}${version:+-$version}"
+    sourcename="$tarname"
+    if egrep -q "^%setup -n $pkgname\$" "$specfile"; then
+        sourcename="$pkgname"
+        echo "Using explicit source directory name ($sourcename) and not"
+        echo "conventional name with version ($tarname)"
+    fi
 }
 
 
@@ -113,15 +126,16 @@ get_releasenum() # version
 
 setup_tar_source() # source-directory
 {
+    src="$1"
     # Clean the build source.  This is only useful for copies, but it doesn't
     # hurt in clones.  A 'git clean -x -d -f' might be thorough and effective,
     # but that would remove any files in a copy which were needed but not yet
     # added to git, so be a little more conservative than that.
-    (cd "$builddir/$tarname" && scons -c .)
+    (cd "$src" && scons -c .)
     # Update version headers using the gitinfo alias.
-    scons -C "$builddir/$tarname" versionfiles
+    scons -C "$src" versionfiles
     # Remove scons artifacts
-    (cd "$builddir/$tarname"
+    (cd "$src"
      rm -rf .sconsign.dblite .sconf_temp config.log)
 }
 
@@ -139,23 +153,23 @@ create_build_clone() # tag
     url=`git config --local --get remote.origin.url`
     git="git -c advice.detachedHead=false"
     if test -d .git ; then
-        (set -x; rm -rf "$builddir/$tarname"
-        mkdir -p "$builddir/$tarname"
-        $git clone . "$builddir/$tarname"
-        cd "$builddir/$tarname" && git remote set-url origin "$url")
+        (set -x; rm -rf "$builddir/$sourcename"
+        mkdir -p "$builddir/$sourcename"
+        $git clone . "$builddir/$sourcename"
+        cd "$builddir/$sourcename" && git remote set-url origin "$url")
     else
         echo "This needs to be run from the top of the repository."
         exit 1
     fi
     if [ -n "$tag" ]; then
         (set -x;
-         cd "$builddir/$tarname";
+         cd "$builddir/$sourcename";
          $git checkout "$tag")
         if [ $? != 0 ]; then
             exit 1
         fi
     fi
-    setup_tar_source "$builddir/$tarname"
+    setup_tar_source "$builddir/$sourcename"
 }
 
 
@@ -171,14 +185,14 @@ create_build_copy()
     set_tarname
     echo "Copying source with hard links..."
     if test -d .git ; then
-        (set -x; rm -rf "$builddir/$tarname"
-        mkdir -p "$builddir/$tarname"
-        rsync -av --link-dest="$PWD" --exclude build ./ "$builddir/$tarname")
+        (set -x; rm -rf "$builddir/$sourcename"
+        mkdir -p "$builddir/$sourcename"
+        rsync -av --link-dest="$PWD" --exclude build ./ "$builddir/$sourcename")
     else
         echo "This needs to be run from the top of the repository."
         exit 1
     fi
-    setup_tar_source "$builddir/$tarname"
+    setup_tar_source "$builddir/$sourcename"
 }
 
 
@@ -246,7 +260,7 @@ clean_rpms() # rpms
 # run the whole sequence to build an rpm: clone the source, archive it, and
 # pass it to rpmbuild.  If copy specified, create a test package from a copy
 # of the current source, instead of from a clean tag or commit.
-run_rpmbuild() # [copy]
+run_rpmbuild() # [test]
 {
     archive="$1"
     get_pkgname_from_spec "$specfile"
@@ -254,7 +268,7 @@ run_rpmbuild() # [copy]
     # get the version to package from the spec file
     get_version_and_tag_from_spec "$specfile"
 
-    if [ "$archive" == "copy" ]; then
+    if [ "$archive" == "test" ]; then
         create_build_copy
     else
         create_build_clone "$tag"
@@ -275,7 +289,7 @@ EOF
         --exclude .svn --exclude .git --exclude config.log \
         --exclude .sconf_temp --exclude .sconsign.dblite \
         --exclude __pycache__ --exclude "*.pyc" \
-        $tarname) || exit $?
+        $sourcename) || exit $?
 
     rpmbuild -v -ba \
         --define "_topdir $topdir"  \
@@ -299,11 +313,19 @@ EOF
 # Given a spec file, copy it and bump it to build the latest commit, whether
 # tagged or not.  Use a special encoding for the version based on git
 # describe.  It would have been nice if there was a spec tag for setting a VCS
-# commit identifier separately from the version, but I didn't find it.
+# commit identifier separately from the version, but I didn't find it.  The
+# commit argument is either a specific tag or commit hash, or else it is the
+# string 'test' to indicate this will be a test package built from a copy.
 create_snapshot_specfile() # specfile [commit]
 {
     specfile="$1"
     commit="$2"
+    mode="snapshot"
+    if [ "$commit" == "test" ]; then
+        mode="test"
+        commit=""
+    fi
+    echo "Creating spec file in mode: $mode"
     if [ -z "$commit" ]; then
         commit=`git rev-parse --short=8 HEAD`
     fi
@@ -313,10 +335,10 @@ create_snapshot_specfile() # specfile [commit]
     # contain hyphens.
     describe=`git describe --long --abbrev=8 "$commit"`
     # convert v2.0-alpha2-3-g9d6ff521 to 2.0.alpha2.3.snapshot.9d6ff521
-    version=`echo "$describe" | sed -e 's/^v//' -e 's/-g/-snapshot-/'`
+    version=`echo "$describe" | sed -e 's/^v//' -e "s/-g/-${mode}-/"`
     version=`echo "$version" | sed -e 's/-/./g'`
     mkdir -p build
-    snapshot_specfile=build/`basename "${specfile}" .spec`-"${commit}.spec"
+    snapshot_specfile=build/`basename "${specfile}" .spec`-"${version}.spec"
     cp -fp "$specfile" "$snapshot_specfile"
     rpmdev-bumpspec -c "build snapshot $describe based on $tag" \
         -n "$version" "$snapshot_specfile"
@@ -418,9 +440,9 @@ case "$op" in
         ;;
 
     test)
-        create_snapshot_specfile "$specfile" "$@"
+        create_snapshot_specfile "$specfile" test
         specfile="$snapshot_specfile"
-        run_rpmbuild copy
+        run_rpmbuild test
         ;;
 
     snapshot_specfile)
