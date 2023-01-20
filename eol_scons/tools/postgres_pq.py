@@ -1,27 +1,14 @@
-import os
-import sys
+# GNU Scientific Library.
 
-_options = None
+import eol_scons.parseconfig as pc
 
 def generate(env):
-    global _options
-    if not _options:
-        _options = env.GlobalVariables()
-        _options.Add('POSTGRES_DIR',
-"""Set the POSTGRES installation directory.
-If set, the pq library and headers will be expected in POSTGRES_DIR/lib and
-POSTGRES_DIR/include.  Otherwise the default is to use the system location.
-""", None)
-    _options.Update(env)
-    if env.get('POSTGRES_DIR'):
-        env.AppendUnique(LIBPATH = "$POSTGRES_DIR/lib")
-        env.AppendUnique(CPPPATH = "$POSTGRES_DIR/include")
-    if os.path.isdir("/usr/include/postgresql"):
-        env.AppendUnique(CPPPATH = "/usr/include/postgresql")
-    env.Append(LIBS=['pq',])
-    # if sys.platform != 'win32':
-    #     env.Append(LIBS=['ssl',])
-    #     env.Append(LIBS=['crypto',])
+    if sys.platform == 'darwin':
+        pc.ParseConfig(env, 'pkg-config --libs libpq')
+    else:
+        pc.ParseConfig(env, 'pkg-config --cflags --libs libpq')
+
+
 
 def exists(env):
     return True

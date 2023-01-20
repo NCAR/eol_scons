@@ -1,15 +1,10 @@
+# GNU Scientific Library.
 
-import os
-import string
+import eol_scons.parseconfig as pc
 
 def generate(env):
-    env.Tool('doxygen')
-    env.Append(LIBS=["log4cpp", "pthread"])
-    # If you need to find log4cpp headers and libs in a non-standard
-    # location, then make sure the prefixoptions tool is loaded and
-    # OPT_PREFIX set accordingly.
-    env.AppendUnique(CPPDEFINES=["LOG4CPP_FIX_ERROR_COLLISION", ])
-    env.AppendDoxref("$LOG4CPP_DOXREF")
+    pc.ParseConfig(env, 'pkg-config --cflags --libs log4cpp')
+
 
 def exists(env):
     return True
