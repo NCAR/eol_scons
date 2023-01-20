@@ -1,4 +1,4 @@
-# GNU Scientific Library.
+# Log4cpp
 
 import eol_scons.parseconfig as pc
 
