@@ -50,8 +50,10 @@ _settings = {}
 # Empty builder proxy for CanFestival installations that do not have a working
 # objdictgen (i.e., those without Python 2)
 def _warn_no_objdictgen_build(source):
-    print("WARNING: the CanFestival installation does not have a working",
-          "objdictgen to create .c and .h files from ", source)
+    print("=========")
+    print("WARNING: The CanFestival installation does not have a working")
+    print("objdictgen to create .c and .h files from", source)
+    print("=========")
 
 def _calculate_settings(env, settings):
     # Just check under "/usr/local" (for now), since that's the default install
