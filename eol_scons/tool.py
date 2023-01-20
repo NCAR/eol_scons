@@ -440,6 +440,7 @@ _qtmodules = [
     ('QtConcurrent',),
     ('QtWidgets', 'QtCore'),
     ('QtPrintSupport', 'QtCore'),
+    ('QtUiPlugin',),
     ('QtWebKitWidgets',),
     ('QtWebEngine',),
     ('QtWebView', 'QtWebEngineWidgets'),
