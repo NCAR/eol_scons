@@ -13,10 +13,10 @@
 # myobj.od.
 #
 
-
 import os, os.path
 import string
 import SCons
+import subprocess
 
 _canfestival_source_file = """
 #include <canfestival.h>
@@ -47,6 +47,12 @@ def _od_emitter(target, source, env):
 
 _settings = {}
 
+# Empty builder proxy for CanFestival installations that do not have a working
+# objdictgen (i.e., those without Python 2)
+def _warn_no_objdictgen_build(source):
+    print("WARNING: the CanFestival installation does not have a working",
+          "objdictgen to create .c and .h files from ", source)
+
 def _calculate_settings(env, settings):
     # Just check under "/usr/local" (for now), since that's the default install
     # location for CanFestival.
@@ -76,14 +82,19 @@ def _calculate_settings(env, settings):
     binpath = os.path.join(prefix, 'bin')
 
     #
-    # Builder to use objdictgen to generate <foo>.c and <foo>.h from <foo>.od
+    # Create a Builder to use objdictgen to generate <x>.c and <x>.h from <x>.od
+    #
+    # On systems where objdictgen always exits with an error (i.e., those
+    # without Python 2), we use an internal build function that just prints a
+    # warning.
     #
     objdictgen_path = os.path.join(binpath, 'objdictgen')
-    settings['ODBUILDER'] = SCons.Builder.Builder(
-            action = objdictgen_path + " $SOURCES $TARGET",
-            suffix = '.c',
-            src_suffix = '.od',
-            emitter = _od_emitter)
+    if subprocess.run([objdictgen_path, '-h']).returncode == 0:
+        settings['ODBUILDER'] = SCons.Builder.Builder(
+                action = objdictgen_path + " $SOURCES $TARGET",
+                suffix = '.c',
+                src_suffix = '.od',
+                emitter = _od_emitter)
 
     # Now test linking
     libs = ['canfestival_unix', 'canfestival', 'pthread', 'dl', 'rt']
@@ -109,8 +120,13 @@ def generate(env):
     env.AppendUnique(CPPPATH = _settings['CPPPATH'])
     env.Append(LIBS = _settings['LIBS'])
     env.AppendUnique(LIBPATH = _settings['LIBPATH'])
-    # <foo>.od -> <foo>.c and <foo>.h builder
-    env.Append(BUILDERS = {'canfestivalObjdictImpl' : _settings['ODBUILDER']})
+
+    # If the CanFestival installation supports it, add the X.od -> X.c and X.h builder.
+    if 'ODBUILDER' in _settings:
+        env.Append(BUILDERS = {'canfestivalObjdictImpl' : _settings['ODBUILDER']})
+    else:
+        env.canfestivalObjdictImpl = _warn_no_objdictgen_build
+
     # Add -DCANFESTIVAL_LIBDIR='"<libdir>"' so that code can use the macro when
     # building paths for dynamically loading CanFestival driver libraries.
     env.Append(CPPDEFINES=('CANFESTIVAL_LIBDIR=\'"' + _settings['LIBPATH'] + '"\''))
