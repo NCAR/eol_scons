@@ -602,10 +602,9 @@ def enable_module_linux(env, module, debug=False):
         # (this happens on CentOS 5 systems...), try
         # 'pkg-config --variable=prefix QtCore' and append '/include'.
         hdir = pc.RunConfig(
-            env, 'pkg-config --silence-errors --variable=headerdir Qt5')
+            env, 'pkg-config --silence-errors --variable=includedir Qt5Core')
         if hdir == '':
-            prefix = pc.RunConfig(env,
-                                  'pkg-config --variable=prefix Qt5Core')
+            prefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt5Core')
             if (prefix == ''):
                 print('Unable to build Qt header dir for adding module ' +
                       module)
