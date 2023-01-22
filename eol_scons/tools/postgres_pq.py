@@ -8,10 +8,17 @@ def generate(env):
     if sys.platform == 'darwin':
         pc.ParseConfig(env, 'pkg-config --libs libpq')
     else:
-        pc.ParseConfig(env, 'pkg-config --cflags --libs libpq')
+        if pc.CheckConfig(env, 'pkg-config --exists libpq'):
+            pc.ParseConfig(env, 'pkg-config --cflags --libs libpq')
+        else:
+            env.AppendUnique(LIBS=['pq'])
 
 
 
 def exists(env):
     return True
 
+    if pc.CheckConfig(env, 'pkg-config --exists log4cpp'):
+        pc.ParseConfig(env, 'pkg-config --cflags --libs log4cpp')
+    else:
+        env.AppendUnique(LIBS=['log4cpp'])
