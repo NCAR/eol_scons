@@ -3,6 +3,8 @@ import eol_scons.parseconfig as pc
 
 def generate(env):
 
+    env.AppendUnique(DEPLOY_SHARED_LIBS=['xmlrpcpp'])
+
     # For cases where we want to override the system installation with a
     # local build for debugging, the source directory can be specified with
     # the XMLRPCPP_SOURCE_PATH environment variable.
