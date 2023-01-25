@@ -28,6 +28,7 @@ def generate(env):
         env.AppendUnique(FRAMEWORKS=['CoreFoundation'])
         env.AppendUnique(FRAMEWORKS=['CoreGraphics'])
 
+    env.AppendUnique(DEPLOY_SHARED_LIBS=['Coin'])
 
     env.SetDefault(COIN_DOXREF='${COIN_DOXDIR}/coin.tag:${COIN_DOXDIR}')
     env.AppendDoxref('$COIN_DOXREF')

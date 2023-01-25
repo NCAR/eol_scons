@@ -3,6 +3,7 @@
 import sys
 
 def generate(env):
+    env.AppendUnique(DEPLOY_SHARED_LIBS=['Quarter'])
     env.AppendUnique(LIBS=['Quarter'])
     env.Require('coin')
     env.Require(['qtgui', 'qtcore', 'qtwidgets', 'qtopengl', 'qwt'])
