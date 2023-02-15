@@ -139,7 +139,7 @@ def Kmake(env,target,source):
     if len(symvers) > 0:
         symopt = ' KBUILD_EXTRA_SYMBOLS="' + ' '.join(symvers) + '"'
 
-    return env.Execute('cd ' + srcdir + '; ' + env['KMAKE'] + symopt)
+    return env.Execute(env['KMAKE'] + f' -C {srcdir} ' + symopt)
 
 def kemitter(target, source, env):
     return ([target, 'Module.symvers'], source)
