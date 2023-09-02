@@ -1,7 +1,11 @@
 # Changelog for eol_scons
 
-## [unreleased]
+## [4.2.4] - 2023-09-02
 
+- canfestival support for API-only when python2 not available
+- `QtUiPlugin` now a recognized Qt5 tool.
+- Fixes for Qt and other tools on Ubuntu.
+- Changes in library discovery on Darwin.
 - Use `PrintProgress` for kmake messages so they can be suppressed with -Q.
 
 ## [4.2.3] - 2022-12-15
