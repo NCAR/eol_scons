@@ -1,5 +1,9 @@
 # Changelog for eol_scons
 
+## [unreleased]
+
+- Use `PrintProgress` for kmake messages so they can be suppressed with -Q.
+
 ## [4.2.3] - 2022-12-15
 
 - Keep `build_rpm.sh` working with spec files which use `%setup -n <pkgname>`.

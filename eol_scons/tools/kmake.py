@@ -73,29 +73,29 @@ TODO:
 """
 
 import os
-import re
 import fnmatch
-import subprocess
-import string
 import SCons.Errors
 import SCons
 
-from subprocess import Popen,PIPE
+from subprocess import Popen, PIPE
 
 _default_kerneldir = None
 
 # Set to 1 to enable debugging output
 _debug = 0
 
+
 # Debugging print
 def pdebug(msg):
-    if _debug: print(msg)
+    if _debug:
+        print(msg)
 
-def Kmake(env,target,source):
+
+def Kmake(env, target, source):
 
     if 'KERNELDIR' not in env:
-        print("KERNELDIR not specified, %s will not be built" %
-              (target[0].abspath))
+        env.PrintProgress("KERNELDIR not specified, %s will not be built" %
+                          (target[0].abspath))
         return None
 
     # KERNELDIR is an overloaded scons variable.  It is a user-specified
@@ -113,11 +113,12 @@ def Kmake(env,target,source):
 
     if env['KERNELDIR'] == '*':
         env['KERNELDIR'] = '$KERNELDIR_FOUND'
-        print("replaced KERNELDIR=* with KERNELDIR=%s" % (env['KERNELDIR']))
+        env.PrintProgress("replaced KERNELDIR=* with KERNELDIR=%s" %
+                          (env['KERNELDIR']))
 
     if not os.path.exists(env.subst(env['KERNELDIR'])):
         msg = ('Error: KERNELDIR=' + env.subst(env['KERNELDIR']) +
-                ' not found.')
+               ' not found.')
         print(msg)
         raise SCons.Errors.StopError(msg)
 
@@ -141,8 +142,10 @@ def Kmake(env,target,source):
 
     return env.Execute(env['KMAKE'] + f' -C {srcdir} ' + symopt)
 
+
 def kemitter(target, source, env):
     return ([target, 'Module.symvers'], source)
+
 
 def _get_output(cmd):
     "Get command output or stderr if it fails"
@@ -158,6 +161,7 @@ def _get_output(cmd):
         raise RuntimeError(" ".join(cmd) + ": " + eout)
     return sout
 
+
 def _GetOSId():
     "Read /etc/os-release to find value of ID"
     try:
@@ -167,11 +171,11 @@ def _GetOSId():
         raise SCons.Errors.StopError(msg)
     return out
 
-def _GetKernelDir():
+
+def _GetKernelDir(env):
     """
     Return the default kernel directory on this system.
     """
-
     # Settings of KERNELDIR:
     # EL5, i686, PAE: (merlot)
     #   uname -r: 2.6.18-164.9.1.el5PAE
@@ -229,54 +233,58 @@ def _GetKernelDir():
 
     kdir = ''
 
-    if osid == "ubuntu"  or osid == "debian":
+    if osid == "ubuntu" or osid == "debian":
         srcdir = "/usr/src"
         dmatch = "linux-headers-*"
         dirs = [d for d in os.listdir(srcdir)
-            if os.path.isdir(os.path.join(srcdir,d)) and
-                fnmatch.fnmatch(d,dmatch) and
-                os.path.isfile(os.path.join(srcdir,d,autoconf))]
+                if os.path.isdir(os.path.join(srcdir, d)) and
+                fnmatch.fnmatch(d, dmatch) and
+                os.path.isfile(os.path.join(srcdir, d, autoconf))]
         pdebug("KERNELDIRs matching %s: %s" %
-            (os.path.join(srcdir,dmatch),",".join(dirs)))
+               (os.path.join(srcdir, dmatch), ",".join(dirs)))
 
         if len(dirs) > 0:
-            kdir = os.path.join(srcdir,dirs[0])
+            kdir = os.path.join(srcdir, dirs[0])
         if len(dirs) > 1:
-            print("Warning: %d KERNELDIRs found: %s"
-                % (len(dirs), ", ".join(dirs)))
-            print("Arbitrarily choosing the first one: %s" % (kdir))
+            env.PrintProgress("Warning: %d KERNELDIRs found: %s" %
+                              (len(dirs), ", ".join(dirs)))
+            env.PrintProgress("Arbitrarily choosing the first one: %s" %
+                              (kdir))
 
     else:       # if not ubuntu or debian assume RedHat:  centos, fedora
         srcdir = "/usr/src/kernels"
         dirs = [d for d in os.listdir(srcdir)
-            if os.path.isdir(os.path.join(srcdir,d)) and
-                os.path.isfile(os.path.join(srcdir,d,autoconf))]
-        pdebug("KERNELDIRs in %s: %s" % (srcdir,",".join(dirs)))
+                if os.path.isdir(os.path.join(srcdir, d)) and
+                os.path.isfile(os.path.join(srcdir, d, autoconf))]
+        pdebug("KERNELDIRs in %s: %s" % (srcdir, ",".join(dirs)))
 
         if len(dirs) > 1:
-            print("Warning: %d KERNELDIRs found: %s"
-                % (len(dirs), ", ".join(dirs)))
+            env.PrintProgress("Warning: %d KERNELDIRs found: %s" %
+                              (len(dirs), ", ".join(dirs)))
             # On RedHat, assume we're not in a container and use "uname -r" to
             # match the KERNELDIR
-            krel = _get_output(['uname','-r'])
+            krel = _get_output(['uname', '-r'])
             pdebug("Looking for match with $(uname -r): %s" % krel)
-            udirs = [d for d in dirs if fnmatch.fnmatch(d,krel + '*')]
+            udirs = [d for d in dirs if fnmatch.fnmatch(d, krel + '*')]
             if len(udirs) > 0:
                 dirs = udirs
         if len(dirs) > 0:
-            kdir = os.path.join(srcdir,dirs[0])
+            kdir = os.path.join(srcdir, dirs[0])
         if len(dirs) > 1:
-            print("Warning: %d KERNELDIRs found: %s"
-                % (len(dirs), ", ".join(dirs)))
-            print("Arbitrarily choosing the first one: %s" % (kdir))
+            env.PrintProgress("Warning: %d KERNELDIRs found: %s" %
+                              (len(dirs), ", ".join(dirs)))
+            env.PrintProgress("Arbitrarily choosing the first one: %s" %
+                              (kdir))
 
     _default_kerneldir = kdir
     return kdir
 
+
 def generate(env, **kw):
 
-    # Get KERNELDIR from kw dictionary argument that is passed 
-    # with the following syntax:
+    # Get KERNELDIR from kw dictionary argument that is passed with the
+    # following syntax:
+
     #   env.Clone(tools=[('kmake',{'KERNELDIR': '/my/kernel/dir'})])
 
     # If KERNELDIR is not defined or is '*', then an attempt will be
@@ -294,14 +302,14 @@ def generate(env, **kw):
     if 'KERNELDIR' in kw:
         env['KERNELDIR'] = kw.get('KERNELDIR')
 
-    kdir = _GetKernelDir()
-    env.Replace(KERNELDIR_FOUND = kdir)
-    print("setting KERNELDIR_FOUND=%s" % (kdir))
+    kdir = env.GetKernelDir()
+    env.Replace(KERNELDIR_FOUND=kdir)
+    env.PrintProgress("setting KERNELDIR_FOUND=%s" % (kdir))
 
     if 'KERNELDIR' not in env or env['KERNELDIR'] == '*':
-        env.Replace(KERNELDIR = kdir)
+        env.Replace(KERNELDIR=kdir)
 
-    print('kmake: KERNELDIR=' + env['KERNELDIR'])
+    env.PrintProgress('kmake: KERNELDIR=' + env['KERNELDIR'])
 
     if 'KCFLAGS' not in env:
         env['KCFLAGS'] = '-I' + env.Dir("#").get_abspath()
@@ -312,7 +320,8 @@ def generate(env, **kw):
     k = env.Builder(action=Kmake,
                     emitter=kemitter,
                     source_scanner=SCons.Tool.SourceFileScanner)
-    env.Append(BUILDERS = {'Kmake':k})
+    env.Append(BUILDERS={'Kmake': k})
+
 
 def exists(env):
     # In scons v2.1.0, and probably all versions before that, this method is
