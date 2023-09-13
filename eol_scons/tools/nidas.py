@@ -141,7 +141,7 @@ def _NidasProgram(env, target=None, source=None, libs=None):
     if libs is None:
         libs = _NidasLibs(env)
     node = env.Program(target=target, source=source,
-                       LIBS=env['LIBS'] + libs)
+                       LIBS=env.get('LIBS', []) + libs)
     inode = env.Install('$PREFIX/bin', node)
     env.Clean('install', inode)
     env.NidasAddApp(node)
