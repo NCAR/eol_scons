@@ -23,18 +23,18 @@ from SCons.Script import ListVariable
 
 import eol_scons
 
+
 def generate(env):
     env.SetDefault(BUILDMODE_DEFAULT='debug,warnings,optimize')
     options = env.GlobalVariables()
     if 'buildmode' not in options.keys():
-        modes = ['debug', 'warnings', 'optimize', 'profile', 'cppcheck']
+        modes = ['debug', 'warnings', 'optimize', 'profile', 'cppcheck',
+                 'errors']
         options.AddVariables(
             ListVariable('buildmode', """\
-Select basic building modes such as debugging and optimization.
-By default, all three of debugging, warnings, and optimization are enabled
-if the compiler supports it.  The modes can be selected and combined using
-a comma-separated list.  The default for this project is '%s'.""" %
-                         (env['BUILDMODE_DEFAULT']),
+Select build modes, such as to enable debug, warnings, and optimization.
+The errors mode uses -Werror to fail on warnings.
+Default for this project: %s.""" % (env['BUILDMODE_DEFAULT']),
                          "${BUILDMODE_DEFAULT}", modes))
     options.Update(env)
     buildmodes = env.subst("${buildmode}").split(" ")
@@ -52,10 +52,17 @@ a comma-separated list.  The default for this project is '%s'.""" %
                 env.Warnings()
             elif mode == 'profile':
                 env.Profile()
+            elif mode == 'errors':
+                # someday this could be customized according to the compiler
+                # in the corresponding compiler tool (eg gcc.py), but for now
+                # just assume it will only be used with compilers which
+                # support the gcc flag.
+                env.AppendUnique(CCFLAGS=['-Werror'])
             else:
                 env.Tool(mode)
         except:
             print("No '%s' buildmode settings for this platform." % (mode))
+
 
 def exists(env):
     return True
