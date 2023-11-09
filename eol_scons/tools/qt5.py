@@ -493,23 +493,32 @@ E.g.:
     env[myKey] = True
 
 
+# Once one configure check determines if Qt is available, then very likely all
+# of them will.
+HasQt = None
+
+
 def _checkQtCore(env):
+    # The Configure() check here is not modifying the Environment passed in,
+    # it is only confirming that compiling against Qt5Core succeeds.
+    global HasQt
+    if HasQt is not None:
+        return HasQt
     env.LogDebug("running Configure check for QtCore...")
-    if 'QT5_CORE_CHECK' in env:
-        return env['QT5_CORE_CHECK']
     # LIBS is reset here to avoid trying to link any libraries already
     # added to this environment, but that clears the Qt5Core library that
     # should have been added already (such as by pkg-config), so that's the
     # library explicitly provided to the check method.
-    conf = env.Clone(LIBS=[]).Configure()
+    conf = env.Clone().Configure()
+    conf.env['LIBS'] = list()
     hasqt = conf.CheckLibWithHeader('Qt5Core', 'QtCore/Qt', 'c++')
     conf.Finish()
     if not hasqt:
         Debug('QtCore/Qt header file not found. '
               'Do "scons --config=force" to redo the check. '
               'See config.log for more information', env)
-    env['QT5_CORE_CHECK'] = hasqt
-    return hasqt
+    HasQt = hasqt
+    return HasQt
 
 
 no_pkgconfig_warned = []
