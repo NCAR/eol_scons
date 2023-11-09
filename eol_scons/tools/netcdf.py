@@ -54,7 +54,7 @@ def _calculate_settings(env, settings):
         # Assume libdir is same pattern as include directory.  See
         # code three lines down for corner cases that may crop up.
         libdir = headerdir.replace('include', 'lib')
-        settings['LIBPATH'] = [ libdir ]
+        settings['LIBPATH'] = [libdir]
 
 # Unused corner case.
 #    if headerdir and headerdir.startswith("/usr/include/netcdf-3"):
@@ -76,14 +76,14 @@ def _calculate_settings(env, settings):
         return
 
     clone = env.Clone()
-    clone.Replace(LIBS=libs)
     clone.AppendUnique(CPPPATH=settings['CPPPATH'])
     clone.AppendUnique(LIBPATH=settings['LIBPATH'])
     conf = clone.Configure(custom_tests={"CheckNetCDF": CheckNetCDF})
+    conf.env.Replace(LIBS=list(libs))
     if not conf.CheckNetCDF():
         # First attempt without HDF5 failed, so try with HDF5
         libs.append(['hdf5_hl', 'hdf5', 'bz2'])
-        clone.Replace(LIBS=libs)
+        conf.env.Replace(LIBS=list(libs))
         if not conf.CheckNetCDF():
             msg = "Failed to link to netcdf both with and without"
             msg += " explicit HDF libraries.  Check config.log."
