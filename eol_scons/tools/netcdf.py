@@ -103,23 +103,19 @@ def _calculate_settings(env, settings):
 
 
 def generate(env):
-    # Using pkg-config may be all that is needed, but we'll continue
-    # instead of returning, in case some folks depend on the
-    # searches in _calculate_settings.  A cleaner solution may be
-    # to get rid of the searches and require a user with a
-    # custom netcdf build to provide their own netcdf.pc and define
-    # PKG_CONFIG_PATH in ENV.
+    # By now using pkg-config _should_ be all that is needed.  If it succeeds,
+    # then the modifications made to the environment are presumed to be enough
+    # to build against netcdf.  If it fails, then the searches in
+    # _calculate_settings will still be tried.
 
     if pc.ParseConfig(env,
                       'pkg-config --silence-errors --cflags --libs netcdf'):
-        pass
+        return
 
-    # The netcdf tool can avail itself of the settings in the
-    # prefixoptions tool, but only if that tool has been required
-    # elsewhere first.  This tool does not require it automatically in
-    # case that would introduce a default /opt/local that interferes
-    # with building a project.
-    # env.Require('prefixoptions')
+    # The netcdf tool can avail itself of the settings in the prefixoptions
+    # tool, but only if that tool has been required elsewhere first.  This
+    # tool does not require it automatically in case that would introduce a
+    # default /opt/local that interferes with building a project.
 
     if not _settings:
         _calculate_settings(env, _settings)
