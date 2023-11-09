@@ -30,6 +30,7 @@ import eol_scons.debug as esd
 _tool_matches = None
 _global_tools = {}
 
+
 def _setup_global_tools(env):
     """
     Make sure the global tools list exists for this Environment.  Generate
@@ -149,11 +150,13 @@ def _findToolFile(env, name):
     toolfilename = "tool_" + name + ".py"
     return [f for f in _tool_matches if toolfilename == os.path.basename(f)]
 
+
 # Keep a stack of tools as they are loaded, since loading a tool may trigger
 # other tools to be loaded, and we need to catch cyclic dependencies where a
 # tool file is being loaded but does not define it's tool function before it
 # is loaded again.
 _tool_stack = []
+
 
 def _loadToolFile(env, name):
     """
@@ -209,6 +212,7 @@ def _loadToolFile(env, name):
 # loaded only once, and since those tools are not loaded with keywords,
 # they are still cached in the tool dictionary as before.
 _tool_dict = {}
+
 
 def _Tool(env, tool, toolpath=None, **kw):
     env.LogDebug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)))
@@ -389,6 +393,7 @@ def export_qt_module_tool(modules):
     actual tool everywhere, since not all source directories need Qt.
     """
     module = modules[0]
+
     def qtmtool(env):
         env.LogDebug('in tool function for module %s' % (module))
         # If QT_VERSION has been specifically requested, then make sure the
@@ -407,6 +412,7 @@ def export_qt_module_tool(modules):
     kw = {}
     kw[module.lower()] = qtmtool
     SCons.Script.Export(**kw)
+
 
 # This list of course is not all of the Qt modules, only the ones that
 # typically have been used so far.  Add others as needed.  If a module is
