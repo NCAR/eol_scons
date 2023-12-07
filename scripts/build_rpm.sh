@@ -33,6 +33,19 @@ topdir=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
 sourcedir=$(rpm --define "_topdir $topdir" --eval %_sourcedir)
 [ -d $sourcedir ] || mkdir -p $sourcedir
 
+# This script runs from the directory of the SConstruct file, so it runs the
+# same whether run manually or called through SCons.
+
+gitroot=`git rev-parse --show-toplevel || exit 1`
+sconsroot=`realpath --relative-to="$gitroot" .`
+
+if [ ! -d "$gitroot/.git" ]; then
+    echo "Git root not found."
+    exit 1
+elif [ ! -f "$gitroot/$sconsroot/SConstruct" ]; then
+    echo "SConstruct directory not found."
+    exit 1
+fi
 
 get_pkgname_from_spec() # specfile
 {
@@ -126,17 +139,16 @@ get_releasenum() # version
 
 setup_tar_source() # source-directory
 {
-    src="$1"
+    src="$1/$sconsroot"
     # Clean the build source.  This is only useful for copies, but it doesn't
     # hurt in clones.  A 'git clean -x -d -f' might be thorough and effective,
     # but that would remove any files in a copy which were needed but not yet
     # added to git, so be a little more conservative than that.
-    (cd "$src" && scons -c .)
+    scons -C "$src" -c .
     # Update version headers using the gitinfo alias.
     scons -C "$src" versionfiles
     # Remove scons artifacts
-    (cd "$src"
-     rm -rf .sconsign.dblite .sconf_temp config.log)
+    (set -x; cd "$src"; rm -rf .sconsign.dblite .sconf_temp config.log)
 }
 
 
@@ -152,15 +164,10 @@ create_build_clone() # tag
     # up same as in the source repository.
     url=`git config --local --get remote.origin.url`
     git="git -c advice.detachedHead=false"
-    if test -d .git ; then
-        (set -x; rm -rf "$builddir/$sourcename"
-        mkdir -p "$builddir/$sourcename"
-        $git clone . "$builddir/$sourcename"
-        cd "$builddir/$sourcename" && git remote set-url origin "$url")
-    else
-        echo "This needs to be run from the top of the repository."
-        exit 1
-    fi
+    (set -x; rm -rf "$builddir/$sourcename"
+    mkdir -p "$builddir/$sourcename"
+    $git clone "$gitroot" "$builddir/$sourcename"
+    cd "$builddir/$sourcename" && git remote set-url origin "$url")
     if [ -n "$tag" ]; then
         (set -x;
          cd "$builddir/$sourcename";
@@ -184,14 +191,9 @@ create_build_copy()
     # not affect the source.
     set_tarname
     echo "Copying source with hard links..."
-    if test -d .git ; then
-        (set -x; rm -rf "$builddir/$sourcename"
-        mkdir -p "$builddir/$sourcename"
-        rsync -av --link-dest="$PWD" --exclude build ./ "$builddir/$sourcename")
-    else
-        echo "This needs to be run from the top of the repository."
-        exit 1
-    fi
+    (set -x; rm -rf "$builddir/$sourcename"
+    mkdir -p "$builddir/$sourcename"
+    rsync -av --link-dest="$PWD" --exclude build "$gitroot/" "$builddir/$sourcename")
     setup_tar_source "$builddir/$sourcename"
 }
 
@@ -285,6 +287,7 @@ run_rpmbuild() # [test]
 Building ${pkgname} version ${version}, release ${releasenum}, arch: ${arch}.
 EOF
 
+    set -x
     (cd "$builddir" && tar czf $sourcedir/${tarname}.tar.gz \
         --exclude .svn --exclude .git --exclude config.log \
         --exclude .sconf_temp --exclude .sconsign.dblite \
@@ -296,6 +299,7 @@ EOF
         --define "releasenum $releasenum" \
         --define "debug_package %{nil}" \
         $specfile || exit $?
+    set +x
 
     cat /dev/null > rpms.txt
     for rpmfile in "${rpms[@]}" ; do
@@ -433,6 +437,14 @@ case "$op" in
     clone)
         get_pkgname_from_spec "$specfile"
         create_build_clone "$@"
+        ;;
+
+    debug)
+        # show some debug info
+        echo "gitroot: $gitroot"
+        echo "topdir: $topdir"
+        echo "sourcedir: $sourcedir"
+        echo "sconsroot: $sconsroot"
         ;;
 
     build)
