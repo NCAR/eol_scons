@@ -1,5 +1,17 @@
 # Changelog for eol_scons
 
+## [Unreleased] - Unreleased changes
+
+## [4.2.5] - 2023-12-13
+
+- `git clean` copied source directories before archiving them
+- fix `build_rpm.sh` to work when `SConstruct` is not in the top directory
+- add _errors_ to `buildmode` to add `-Werror` flag
+- skip netcdf configure checks if pkg-config succeeds
+- cache Qt5 check rather than repeating it over and over
+- remove support for xerces-c 2.7
+- fix key error in nidas tool when LIBS not set
+
 ## [4.2.4] - 2023-09-02
 
 - canfestival support for API-only when python2 not available
@@ -154,7 +166,9 @@
 - first tagged release
 
 <!-- Versions -->
-[unreleased]: https://github.com/NCAR/eol_scons/compare/v4.2.3...HEAD
+[unreleased]: https://github.com/NCAR/eol_scons
+[4.2.5]: https://github.com/NCAR/eol_scons/releases/tag/v4.2.5
+[4.2.4]: https://github.com/NCAR/eol_scons/releases/tag/v4.2.4
 [4.2.3]: https://github.com/NCAR/eol_scons/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/NCAR/eol_scons/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/NCAR/eol_scons/compare/v4.2...v4.2.1
