@@ -140,11 +140,15 @@ get_releasenum() # version
 setup_tar_source() # source-directory
 {
     src="$1/$sconsroot"
-    # Clean the build source.  This is only useful for copies, but it doesn't
-    # hurt in clones.  A 'git clean -x -d -f' might be thorough and effective,
-    # but that would remove any files in a copy which were needed but not yet
-    # added to git, so be a little more conservative than that.
-    scons -C "$src" -c .
+    # Clean the build source.  This is mostly useful for copies but doesn't
+    # hurt in clones.  The git clean is thorough and effective, and really
+    # it's necessary because there can be so much space taken up by files
+    # which are not part of the source and which are not cleaned by scons.
+    # However, it does remove any files in a copy which might be needed but
+    # were not yet added to git.  This works because there is a .git directory
+    # either copied or cloned from the source directory.
+    (cd "$1" && git clean -x -d -f)
+    # scons -C "$src" -c .
     # Update version headers using the gitinfo alias.
     scons -C "$src" versionfiles
     # Remove scons artifacts
@@ -193,7 +197,7 @@ create_build_copy()
     echo "Copying source with hard links..."
     (set -x; rm -rf "$builddir/$sourcename"
     mkdir -p "$builddir/$sourcename"
-    rsync -av --link-dest="$PWD" --exclude build "$gitroot/" "$builddir/$sourcename")
+    rsync -av --link-dest="$PWD" --exclude build* "$gitroot/" "$builddir/$sourcename")
     setup_tar_source "$builddir/$sourcename"
 }
 
