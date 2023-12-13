@@ -354,6 +354,58 @@ create_snapshot_specfile() # specfile [commit]
 }
 
 
+# Use rpmdev-bumpspec to add an entry to the spec changelog, but fix the
+# change in the release number.
+bumpspec()
+{
+    version="$1"
+    if [ -z "$version" ]; then
+        echo "usage: bumpspec {version-number}"
+        exit 1
+    fi
+    tag="v$version"
+    comment="build $tag"
+    # Look for and cache the current Release setting, something like:
+    # Release: %{releasenum}%{?dist}
+    release=`grep -E '^Release:.*' "$specfile"`
+    sed -e "s/^Release:.*/Release: 1%{?dist}/" -i "$specfile"
+    # sed -e "s/^Version:.*/Version: $version/" -i "$specfile"
+    # Maybe this should only be preserved if it contains the releasenum
+    # macro...
+    (set -x; rpmdev-bumpspec -n "$version" -c "$comment" "$specfile")
+    echo "Restoring Release setting:"
+    sed -e "s/^Release:.*/$release/" -i "$specfile"
+    grep -E '^Release:.*' "$specfile"
+}
+
+
+# There are two distinct aspects to creating a release: tagging the source to
+# create a source release, then updating the packaging to build that source
+# release.
+release()
+{
+    version="$1"
+    if [ -z "$version" ]; then
+        cat <<EOF
+usage: release {version-number}
+
+Tag the source with the given version number, then bump the spec file to
+build a release of that version.
+EOF
+        exit 1
+    fi
+    # should maybe check for changes in the current repo...
+    tag="v$version"
+    set -x
+    if ! git tag -a -m "tag $version" $tag ; then
+        exit 1
+    fi
+    bumpspec "$version"
+    set +x
+    echo "Commit and pushed the changed spec file and the tag."
+}
+
+
 usage()
 {
     cat <<EOF
@@ -375,6 +427,10 @@ ops:
     current source repo.
   snapshot -
     Create the snapshot specfile and build RPMs with it.
+  bumpspec {version} -
+    Set a new release in the spec file for the given version.
+  release {version} -
+    Tag the current repo and bump the spec file to release it.
   test -
     Like snapshot, but build from a copy of the source rather
     than a clean commit.
@@ -469,6 +525,14 @@ case "$op" in
         create_snapshot_specfile "$specfile" "$@"
         specfile="$snapshot_specfile"
         run_rpmbuild
+        ;;
+
+    bumpspec)
+        bumpspec "$@"
+        ;;
+
+    release)
+        release "$@"
         ;;
 
     help)
