@@ -1,0 +1,24 @@
+#! /bin/sh
+
+updatetoc()
+{
+    # This one works on the README file in the current directory.
+    # Create the sed script to replace the toc lines.
+    (cat <<EOF
+{
+/@section toc/,/@section/c \\
+@section toc Table of Contents\\
+\\
+EOF
+    grep -E '@section' README | \
+    grep -E -v 'Table of Contents' | \
+        awk '{ print "@li @ref " $2 "\\"; }'
+    cat <<EOF
+\\
+@section overview Overview
+}
+EOF
+    ) | sed -i -f - README
+}
+
+updatetoc
