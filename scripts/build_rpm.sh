@@ -364,6 +364,7 @@ bumpspec()
         exit 1
     fi
     tag="v$version"
+    echo "Bumping spec file to build version $version, tag $tag..."
     comment="build $tag"
     # Look for and cache the current Release setting, something like:
     # Release: %{releasenum}%{?dist}
@@ -381,7 +382,10 @@ bumpspec()
 
 # There are two distinct aspects to creating a release: tagging the source to
 # create a source release, then updating the packaging to build that source
-# release.
+# release.  It makes sense to first create the source release before packaging
+# it, but then that source release can't "package itself", which seems like a
+# desirable thing.  So once the source is ready to release, bump the package
+# spec first, commit it, and tag that version.
 release()
 {
     version="$1"
@@ -396,13 +400,15 @@ EOF
     fi
     # should maybe check for changes in the current repo...
     tag="v$version"
+    bumpspec "$version"
+    echo "Committing the change and tagging..."
     set -x
+    git commit -m"create release for $tag" -- "$specfile"
     if ! git tag -a -m "tag $version" $tag ; then
         exit 1
     fi
-    bumpspec "$version"
     set +x
-    echo "Commit and pushed the changed spec file and the tag."
+    echo "Push the tag and create the release on github."
 }
 
 
