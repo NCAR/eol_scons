@@ -15,7 +15,6 @@
 @li @ref doxygen
 @li @ref optimization
 @li @ref subsets
-@li @ref comparison
 
 @section overview Overview
 
@@ -58,7 +57,7 @@ helps in navigating the source.
 
 @section implementation SCons Implementation
 
-This build framework is based on SCons (http://www.scons.org) and called
+This build framework is based on SCons (https://www.scons.org) and called
 eol_scons.  It is mostly a python package called eol_scons and a set of
 scons tools which extends the standard SCons tools.  Every component within
 the source tree as well as external components have a particular tool which
@@ -931,66 +930,5 @@ scons -f SConscript --site-dir ../site_scons
 With a few tweaks to the SConscript file, it is possible for many of the
 shared packages to use the same SConscript file to build both within a
 source tree and standalone.
-
-@section comparison Comparison Between SCons and Autoconf
-
-Here's my input into the build tool comparison mix--more of an abstract
-overview than a feature comparison.  I'll admit there are aspects to both
-make tools and scons that I don't like, but I think scons is more on the
-right track.  Together with shell scripting, `make` can be made to handle
-very complex multi-directory builds and dependencies, however it's
-limitation is that Makefiles must describe all of the dependencies, rules,
-and relations statically.  Dynamic checking and hierarchical builds require
-recursive makes (or gnu make).  All of the tools on top of make like
-autoconf, automake, and Imake were built to allow more dynamic generation
-of dependencies, rule templates, and hierarchical (modular) builds while
-sticking to the portable Makefile format, the make program, and Bourne
-shell scripting for actually running the build commands.  This works well
-to a point but requires the incorporation and close cooperation of several
-tools (m4, cpp, sh, make, and various sh scripts), all of which must be
-carefully crafted to be portable between operating systems, especially
-Windows.
-
-So the advantage of scons is that all of the same functionality can be
-self-contained in a single, portable scripting language--python. The build
-dependencies are not described in yet another static syntax, but instead
-they are assembled through calls to a standard and mostly intuitive API
-built within python.  The assembly of the dependencies and build rules on
-any particular build invocation can be very dynamic and runtime
-configurable.  No preformatting of Makefiles or preconfiguration of the
-build environment is required.  I think this makes scons slower by pushing
-all of that processing back to each and every build run, but it is also
-what allows scons to be more thorough and dynamic.  Ant got the portability
-idea right by encapsulating build rules and their specification with XML
-and Java, but I think it went wrong by adding yet another static dependency
-format in the use of XML.  I think Ant would have been better to follow the
-scons model of using Java for both build phases: first describe the rules
-and dependencies for a build environment using portable Java scripting like
-beanscript, then run the build engine on that environment using Java.  The
-idea is the same: use a portable but powerful runtime like Java or python
-to provide both dynamic dependencies and rule execution.  Describe the
-dependencies and write the rules in the same language.
-
-On the other hand, the self-containment of scons lends to some of its
-current drawbacks, from my perspective.  For example, automatic dependency
-scanning is built-in but primitive.  It scans source files for include
-dependencies using regular expression matching, so it fails to catch
-dependencies which only exist with certain preprocessor
-definitions. However, that could be become more accurate as scons develops.
-Also, scons is very strict about thoroughly describing and checking all
-dependencies and only executing build actions when dependencies are
-outdated.  This makes it harder to use scons to run auxiliary build actions
-which do not have such clear cut notions of dependencies, such as
-generating documentation (doxygen), cleaning, and installing.  Scons does
-scale well to managing the dependencies of a large multi-directory project
-like the raddx tree, but only in dependency complexity and not in
-performance.  I'm still trying to get it to scale back down to building
-small subsets of the source tree separately and quickly, which was always
-easy and fast with hierarchical makefiles.
-
-For both autoconf and scons I've ended up grafting some of my own desired
-extensions on top of them to support more modular build environments.  One
-way or another I'll be able to get scons to do what I want.  So as for me,
-I don't see any reason to go back to autoconf or Makefiles.
 
 **/
