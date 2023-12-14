@@ -1,4 +1,4 @@
-# eol_scons
+# README eol_scons
 
 ## Updates
 
@@ -31,13 +31,12 @@ documentation for the SCons --site-dir command line option):
   * ./site_scons
 
 Therefore if eol_scons is not in one of the above places, you must use the
---site-dir command line option.
+`--site-dir` command line option.
 
 Another option is to create an eol_scons Python package and install it in the
-usual locations. Support for this should be provided soon. Note that SCons
-ignores the PYTHONPATH environment variable.
+usual locations. Note that SCons ignores the PYTHONPATH environment variable.
 
-### eol_scons RPM for RedHat Linux systems
+### RPM for RedHat Linux systems
 
 To install eol_scons to /usr/share/scons/site_scons, you can install the RPM
 from the EOL yum repository.
@@ -60,32 +59,32 @@ Install RPM:
 sudo yum install eol_scons
 ```
 
-### Install eol_scons to $HOME/.scons/site_scons
+To install eol_scons from source to the same location as the package, use this
+command:
+
+```shell
+scons PREFIX=/usr/share/scons/site_scons install
+```
+
+### Install to $HOME/.scons/site_scons
 
 In the past the eol_scons repository had to be cloned as the `site_scons`
-subdirectory, but that has recently been corrected.  Now `eol_scons` can be
-cloned as itself under the `site_scons` directory, so that other SCons can
+subdirectory, but that has since been corrected.  Now `eol_scons` can be
+cloned as itself under the `site_scons` directory, so that other SCons
 extensions can be installed under `site_scons` also.
 
 ```shell
 mkdir -p $HOME/.scons/site_scons
 cd $HOME/.scons/site_scons
-git clone http://github.com/ncar/eol_scons
+git clone https://github.com/ncar/eol_scons
 ```
 
-Or if you have setup an ssh key on github, and will want to push back your
-changes to github:
+### Install to site_scons
 
-```shell
-git clone git@github.com:ncar/eol_scons.git eol_scons
-```
-
-### Install eol_scons to ./site_scons
-
-Create the `./site_scons` subdirectory in the directory containing SConstruct,
+Create the `./site_scons` subdirectory in the directory containing `SConstruct`,
 then clone `eol_scons` into it same as above.
 
-### Access eol_scons as a git submodule
+### Access as a git submodule
 
 In a git repository, in the same directory as your SConstruct, where vX.Y is
 the tagged branch of eol_scons you want to use, or leave off the '-b vX.Y' if
@@ -129,5 +128,21 @@ created with the `default` tool will automatically get the standard
 ("global tools") are applied to every `Environment`, without requiring the
 tools be loaded explicitly everywhere.
 
+## Documentation
+
 See [this README](eol_scons/README) for an overview of how it works, though
-that documentation is not always updated.
+that documentation is not necessarily up to date.
+
+There is an attempt at generating HTML documentation from the python modules
+and README files using `doxygen`.  Run `doxygen` with the `docs` alias:
+
+```shell
+scons docs
+```
+
+The output is in `doxy/html/index.html`.
+
+Someday the README guide should be updated and converted to markdown.  Also,
+some useful extensions to basic features especially need to be documented,
+like how to add brief help for variables, and how to use help to list alias
+and install targets.

@@ -14,9 +14,16 @@ env = Environment(tools=['default'])
 
 variables = eol_scons.GlobalVariables()
 variables.AddVariables(PathVariable('PREFIX', 'installation path',
-                       '/usr/share/scons/site_scons',
-                       PathVariable.PathAccept))
+                                    '/usr/share/scons/site_scons',
+                                    PathVariable.PathAccept))
 variables.Update(env)
+
+# Someday this would be a good place to set the PROJECT_NUMBER in the Doxyfile
+# to the current version...
+docsources = ['doxy/Doxyfile', 'doxy/mainpage.dox', 'eol_scons/README']
+docs = env.Command(env.Dir('doxy/html'), docsources, 'cd doxy && doxygen')
+env.AlwaysBuild(docs)
+env.Alias('docs', docs)
 
 # For now, install the package in the same layout as in the repository, so the
 # top-level __init__.py can keep the main package eol_scons/__init__.py from

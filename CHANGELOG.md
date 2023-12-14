@@ -1,4 +1,4 @@
-# Changelog for eol_scons
+# CHANGELOG
 
 ## [Unreleased] - Unreleased changes
 

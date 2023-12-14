@@ -760,9 +760,13 @@ WARN_LOGFILE           =
 
 INPUT = ../eol_scons/README
 INPUT += mainpage.dox
-INPUT += ../eol_scons/examples/SConstruct ../eol_scons/examples/logx/tool_logx_example.py
-INPUT += ../eol_scons/examples/datastore/SConscript ../eol_scons/examples/aeros/SConscript
+INPUT += ../examples/SConstruct ../examples/logx/tool_logx_example.py
+INPUT += ../examples/datastore/SConscript ../examples/aeros/SConscript
 INPUT += ../eol_scons
+INPUT += ../eol_scons/tools
+INPUT += ../README.md ../CHANGELOG.md
+
+PYTHON_DOCSTRING = NO
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -782,7 +786,7 @@ INPUT_ENCODING         = UTF-8
 # *.md, *.mm, *.dox, *.py, *.f90, *.f, *.for, *.tcl, *.vhd, *.vhdl, *.ucf,
 # *.qsf, *.as and *.js.
 
-FILE_PATTERNS          =
+FILE_PATTERNS          = *.py
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.

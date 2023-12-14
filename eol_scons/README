@@ -218,11 +218,10 @@ scons --site-dir=/usr/share/scons/site_scons/eol_scons
 
 @subsection externaltools External Tools
 
-Below is an example of a very simple tool from eol_site_scons for building
-against the fftw library.  The `fftw` tool is a tool file in the
-`eol_scons/tools` directory under the top directory of the project
-source tree.  It's a shared tool file because it's always an external
-dependency.
+Below is an example of a very simple tool from eol_scons for building against
+the fftw library.  The `fftw` tool is a tool file in the `eol_scons/tools`
+directory under the top directory of the project source tree.  It's a shared
+tool file because it's always an external dependency.
 
 @code
 def generate(env):
@@ -249,10 +248,10 @@ defined in `site_scons/site_tools`.  This is as simple as `def`-ing and
 This can happen in a SConscript file, in which case the tool will be defined
 as soon as the SConscript file is loaded.  However, the preferred method is to
 create a file named `tool_{toolname}.py` in the directory containing the
-tool's components.  The `eol_site_scons` package will try to find and load such a 
-tool definition from within the local heirarchy when a tool is requested, 
-so there's no need to explicitly load a specific `SConscript` file before 
-requesting the tool.  Here's an example tool definition from the ELDORA tree, 
+tool's components.  The `eol_scons` package will try to find and load such a
+tool definition from within the local heirarchy when a tool is requested, so
+there's no need to explicitly load a specific `SConscript` file before
+requesting the tool.  Here's an example tool definition from the ELDORA tree,
 where a tool named `ddslib` is defined in file `ddslib/tool_ddslib.py`:
 
 @code
@@ -356,7 +355,6 @@ library should be linked from within the source tree or from some external
 installation, and then modify the environment accordingly.  The source
 module which depends upon the logx library need not change either way.
 
-
 @section eolsconspackage The eol_scons Package
 
 The eol_scons package extends the standard SCons framework for EOL
@@ -385,8 +383,8 @@ of the tools there are for configuring and building against third-party software
 packages.
 
 Lastly, this module itself provides an interface for configuring and
-controlling the eol_site_scons framework outside of the Environment methods.
-The following sections cover the public functions.
+controlling the eol_scons framework outside of the Environment methods.  The
+following sections cover the public functions.
 
 @subsection examples Examples
 
@@ -414,7 +412,7 @@ arguments) take effect.  All other Variables() constructors will return the
 singleton instance, and any constructor parameters will be ignored.  So if
 a particular source tree wants to set its own config file name, it can
 specify that path in a Variables() constructor in the top-level SConstruct,
-so that instance is created before the default created by eol_site_scons:
+so that instance is created before the default created by eol_scons:
 
 SConstruct:
 @code
@@ -493,7 +491,7 @@ Environment class to customize the way tools are loaded.  First of all, the
 eol_scons Tool() method loads a tool only once.  In contrast, the standard
 SCons method reloads a tool through the python 'imp' module every time a
 tool name is referenced, and this seems excessive and unnecessary, and at
-this point some of the eol_site_scons tools may rely on being loaded only
+this point some of the eol_scons tools may rely on being loaded only
 once.
 
 Loading a tool is different than applying it to an 'Environment'.  Loading
@@ -505,7 +503,7 @@ used where it can be loaded multiple times.  There are also guards against
 initializing more than once within the tool function, since the tool can be
 applied multiple times to the same or different 'Environments'.
 
-At one point eol_site_scons tried to apply tools only once.  Standard SCons
+At one point eol_scons tried to apply tools only once.  Standard SCons
 keeps track of which tools have been loaded in an environment in the TOOLS
 construction variable, but it always applies a tool even if it's been
 applied already.  The TOOLS variable is a dictionary of Tool instances
@@ -518,7 +516,7 @@ construction environment.  For example, dependencies may need to have their
 libraries listed last, after the last component which requires them, but
 this won't happen if the required tool is required twice but only applied
 the first time.  More experience might determine if it makes more sense to
-only apply tools once, but for now eol_site_scons follows the prior
+only apply tools once, but for now eol_scons follows the prior
 practice of applying tools multiple times, which is consistent with the
 standard SCons behavior.
 
@@ -570,7 +568,7 @@ directory.
 
 @section configuration Configuration
 
-The eol_site_scons framework contains a tool called 'prefixoptions'.  It
+The eol_scons framework contains a tool called 'prefixoptions'.  It
 used to be part of the environment by default, but now it is a separate
 tool.  However, the tool is still loaded by default unless the
 GlobalTools() list is modified first.  The tool adds build options called
@@ -651,210 +649,12 @@ Help(options.GenerateHelpText(env))
 
 @section doxygen SCons Doxygen
 
-There are two separate doxygen builders: one for a Doxyfile and one for
-running Doxygen.  Using separate builders facilitates multiple kinds of
-Doxygen output from the same source, such as public API documentation for
-users of a library and documentation of the private interfaces for library
-developers.  The default configuration limits the documentation to the
-public API.
+See the documentation in the doxygen.py tool.
 
-The Apidocs() method is added to an environment instance when the doxygen
-tool is applied.  It simplifies use of the doxygen builder.  Given a list
-of sources, the builder generates both the Doxyfile and doxygen targets.
-The doxygen output is put in a subdirectory of the directory named by the
-APIDOCSDIR construction variable, "#apidocs" by default.
+@section optimization Speeding Up SCons
 
-There is no alias for doxygen.  Instead, name the top-level documentation
-directory as the target to update all of the documentation underneath it:
-
-@code
-cd aeros/source
-scons apidocs
-@endcode
-
-The Doxyfile builder generates a Doxyfile using the sources as the INPUT,
-and it accepts several parameters to customize the configuration.  The
-builder expects one target, the name of the doxygen config file to
-generate.  The generated config file sets directory parameters relative to
-the target directory, so it expects Doxygen to run in the same directory as
-the config file.  The documentation output will be written under that same
-directory.
-
-The Doxyfile builder uses these environment variables:
-
-@code
-    DOXYFILE_FILE
-
-    The name of a doxygen config file that will be used as the basis for
-    the generated configuration.  This file is copied into the destination
-    and then appended according to the DOXYFILE_TEXT and DOXYFILE_DICT
-    settings.
-
-    DOXYFILE_TEXT
-
-    This should hold verbatim Doxyfile configuration text which will be
-    appended to the generated Doxyfile, thus overriding any of the default
-    configuration settings.
-                        
-    DOXYFILE_DICT
-
-    A dictionary of Doxygen configuration parameters which will be
-    translated to Doxyfile form and included in the Doxyfile, after the
-    DOXYFILE_TEXT settings.  Parameters which specify files or directory
-    paths should be given relative to the source directory, then this
-    target adjusts them according to the target location of the generated
-    Doxyfile.
-
-    The order of precedence is DOXYFILE_DICT, DOXYFILE_TEXT, and
-    DOXYFILE_FILE.  In other words, parameter settings in DOXYFILE_DICT and
-    then DOXYFILE_TEXT override all others.  A few parameters will always
-    be enforced by the builder over the DOXYFILE_FILE by appending them
-    after the file, such as OUTPUT_DIRECTORY, GENERATE_TAGFILE, and
-    TAGFILES.  This way the template Doxyfile generated by doxygen can
-    still be used as a basis, but the builder can still control where the
-    output gets placed.  If any of the builder settings really need to be
-    overridden, such as to put output in unusual places, then those
-    settings can be placed in DOXYFILE_TEXT or DOXYFILE_DICT.
-
-    Here are examples of some of the Doxyfile configuration parameters
-    which typically need to be set for each documentation target.  Unless
-    set explicitly, they are given defaults in the Doxyfile.
-    
-    PROJECT_NAME        Title of project, defaults to the source directory.
-    PROJECT_VERSION     Version string for the project.  Defaults to 1.0
-@endcode
-
-The Doxygen builder uses these environment construction variables with the
-given defaults:
-
-@code
-    env['DOXYGEN'] = 'doxygen'
-    env['DOXYGEN_FLAGS'] = ''
-    env['DOXYGEN_COM'] = '$DOXYGEN $DOXYGEN_FLAGS $SOURCE'
-@endcode
-
-Here are two typical examples for using the doxygen builders.  The first
-sets the PROJECT_NAME by passing it in the DOXYFILE_DICT construction
-variable.
-
-@code
-sources = Split("""
- Logging.cc LogLayout.cc LogAppender.cc system_error.cc
-""")
-headers = Split("""
- CaptureStream.h EventSource.h Logging.h Checks.h
- system_error.h
-""")
-
-doxconfig = { "PROJECT_NAME" : "logx library" }
-
-env.Apidocs(sources + headers, DOXYFILE_DICT=doxconfig)
-@endcode
-
-This example passes Doxyfile configuration text directly using the
-DOXYFILE_TEXT construction variable.  The source files to be scanned by
-doxygen are passed to the builder as the 'source' parameter.  Each source
-file is added to the INPUT parameter in the generated Doxyfile.  This may
-seem more cumbersome than using Doxygen's recursive directory and file
-pattern features.  However, strict control on the source files has several
-benefits.  For one, it makes the dependency's explicit so that SCons can
-reliably recreate documentation when source files change.  Also, new source
-files which might still be under development will not be accidentally
-included in the public API documentation.  Likewise, source files for
-internal utilities and private interfaces will not be part of the
-documentation unless explicitly included.  The Doxygen builders allow
-multiple variations for documentation, from internal details to the public
-API, and its likely that those variations work from different sets of
-source files.
-
-@code
-doxyfiletext = """
-PROJECT_NAME           = "DataSpace Library"
-
-MACRO_EXPANSION        = YES
-EXPAND_ONLY_PREDEF     = YES
-EXPAND_AS_DEFINED = DATAMEMORYTYPETRAITS
-EXPAND_AS_DEFINED += ENTITY_OBJECT ENTITY_VISIT ENTITY_PART ENTITY_COLLECT
-EXPAND_AS_DEFINED += ENTITY_BASIC
-"""
-
-env.Apidocs(sources+headers, DOXYFILE_TEXT=doxyfiletext)
-@endcode
-
-As a final example, here is how the doxygen builders are used to generate
-the top-level documentation:
-
-@code
-doxyconf = """
-OUTPUT_DIRECTORY       = apidocs
-HTML_OUTPUT            = .
-RECURSIVE              = NO
-SOURCE_BROWSER         = NO
-ALPHABETICAL_INDEX     = NO
-GENERATE_LATEX         = NO
-GENERATE_RTF           = NO
-GENERATE_MAN           = NO
-GENERATE_XML           = NO
-GENERATE_AUTOGEN_DEF   = NO
-ENABLE_PREPROCESSING   = NO
-CLASS_DIAGRAMS         = NO
-HAVE_DOT               = NO
-GENERATE_HTML          = YES
-"""
-
-df = env.Doxyfile (target="apidocs/Doxyfile",
-                   source=["mainpage.dox","REQUIREMENTS","config/README"],
-                   DOXYFILE_TEXT = doxyconf)
-dx = env.Doxygen (target="apidocs/index.html", source=[df])
-@endcode
-
-The targets are a little different in this case, since the html output (and
-thus the index.html file) is being placed directly into the apidocs
-directory rather than into a subdirectory.  Therefore the two builders are
-setup explicitly rather than with Pkg_Environment.Apidocs().
-
-The SCons doxygen support is defined in the tool file
-site_scons/site_tools/doxygen.py.
-
-The Doxyfile builder also takes care of cross-references between modules
-and between external packages.  The tool for a package can append a doxygen
-reference to the DOXREF construction variable using the AppendDoxref()
-method.  If the module is internal, then it only needs to append its module
-name:
-
-@code
-    env.AppendDoxref("logx")
-@endcode
-
-If the package is external but has html documentation online, then the
-reference should include the root of the html documentation:
-
-@code
-    env.AppendDoxref("log4cpp:%s/doc/log4cpp-%s/api" % (prefix, version))
-@endcode
-
-When the Doxyfile builder parses this reference, it will automatically run
-the 'doxytag' program to generate a tag file from the external
-documentation.
-
-If instead the HTML documentation is online somewhere and a tag file for
-it has already been generated, then the reference to that documentation can
-be specified explicitly, typically in the SConstruct  file:
-
-@code
-    env.SetDoxref('QWT_DOXREF','$TAGDIR/qwt-5.tag',
-              'http://qwt.sourceforge.net')
-@endcode
-
-In this example from aeros, there is a set of tag files stored in the
-source tree, and the TAGDIR variable points to that directory.
-
-@section optimization Speeding Up SCons (Go Fast Buttons)
-
-There are a few ways to speed up iterative scons builds using eol_scons.
-See these tools for ideas: ninja, rerun, and dump_trace.
-
-Also see: https://bitbucket.org/scons/scons/wiki/GoFastButton
+There are a few ways to speed up iterative scons builds using eol_scons.  See
+these tools for ideas: @ref ninja.py, @ref rerun.py, and @ref dump_trace.py.
 
 @section subsets Building Subsets of the Source Tree
 
@@ -865,11 +665,9 @@ proceeds down from the current subdirectory.  Instead, scons builds always
 start from the top.  So to speed up iterative compiles with scons, here are
 a few ways to build only subsets of the source tree.
 
-The most obvious way is to eliminate subdirectories from the source tree.
-scons issues a warning for every SConscript file it cannot find, but it
-continues anyway.  The SConstruct file can actually check for the existence
-of each SConscript subdirectory and skips the ones that do not exist, just
-to avoid the warning message.
+The most obvious way is to eliminate subdirectories from the source tree.  The
+SConstruct file can actually check for the existence of each SConscript
+subdirectory and skip the ones that do not exist.
 
 Some EOL SConstruct files support a SUBDIRS option.  The SUBDIRS option
 contains the specific list of subdirectories whose SConscript files should
@@ -915,7 +713,7 @@ SUBDIRS: The list of subdirectories from which to load SConscript files.
   lidar
 @endcode
 
-With eol_site_scons, individual SConscript files do not need to import a
+With eol_scons, individual SConscript files do not need to import a
 root environment from which to create their own environment.  Instead they
 use normal SConscript conventions, except the underlying environment
 instance is modified by the 'default' tool.  So it is possible to build
