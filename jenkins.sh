@@ -18,7 +18,7 @@ export TOPDIR=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
 DEBIAN_REPOSITORY="${DEBIAN_REPOSITORY:-/net/ftp/pub/archive/software/debian}"
 YUM_REPOSITORY="${YUM_REPOSITORY:-/net/www/docs/software/rpms}"
 export DEBIAN_REPOSITORY YUM_REPOSITORY
-export GPGKEY="NCAR EOL Software <eol-prog@eol.ucar.edu>"
+export GPGKEY="NCAR EOL Software <eol-prog2@eol.ucar.edu>"
 
 echo WORKSPACE=$WORKSPACE
 echo TOPDIR=$TOPDIR
@@ -41,7 +41,7 @@ build_rpms()
 
 sign_rpms()
 {
-    (set -x; exec rpm --addsign --define="%_gpg_name ${GPGKEY}" `cat rpms.txt`)
+    (set -x; exec rpm --addsign --define="%_gpg_name ${GPGKEY}" --define='_gpg_digest_algo sha256' `cat rpms.txt`)
 }
 
 
