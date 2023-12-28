@@ -106,7 +106,7 @@ class TestEOLScons(unittest.TestCase):
         # Use xercesc tool without prefixoptions set
         eol_scons.tool._global_tools.clear()
         eol_scons.global_variables = None
-        env = Environment(tools=['default','xercesc'])
+        env = Environment(tools=['default', 'xercesc'])
         print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
               (env.get('XERCESC_PREFIX', '<none>'),
                env.get('OPT_PREFIX', '<none>')))

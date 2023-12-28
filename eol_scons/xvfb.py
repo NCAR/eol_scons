@@ -75,14 +75,3 @@ class Xvfb(object):
             os.environ['DISPLAY'] = self.saved_display
         else:
             del os.environ['DISPLAY']
-
-
-
-def test_xvfb_stop():
-    import time
-    xvfb = Xvfb()
-    xvfb.start()
-    pid = xvfb.proc.pid
-    time.sleep(2)
-    xvfb.stop()
-    

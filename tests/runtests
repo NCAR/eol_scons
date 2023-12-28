@@ -26,10 +26,10 @@ test_sconstruct() # sfile options
     echo "=== Testing $sfile: scons -f $sfile $@"
     scons -v
     if scons -f $sfile "$@" ; then
-	echo PASSED.
+        echo PASSED.
     else
-	echo '*** FAILED ***'
-	exit 1
+        echo '*** FAILED ***'
+        exit 1
     fi
 }
 
@@ -38,3 +38,4 @@ test_sconstruct SConsNoDefault --site-dir=test_site_scons
 test_sconstruct SConsToolOnly --site-dir=test_site_scons
 test_sconstruct SConsSiteTool --site-dir=test_site_scons
 
+pytest test_*.py

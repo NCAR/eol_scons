@@ -58,6 +58,7 @@ to be overridden with an environment variable.
 import subprocess as sp
 import os
 
+
 class DataFileCache(object):
     """
     Lookup and search for data files on the local filesystem without
@@ -71,6 +72,10 @@ class DataFileCache(object):
             self._cachepaths = [cachepath]
         self._cached_paths = {}
         self._enable_download = True
+        # full rsync command last run
+        self.rsync_command = None
+        # echo rsync command instead of executing it
+        self.echo = False
 
     def getCachePath(self):
         "Return the current cache path list."
@@ -181,11 +186,13 @@ class DataFileCache(object):
 
     def _rsync(self, filepath, destpath):
         args = ['rsync', '-tv', filepath, destpath]
-        print(" ".join(args))
-        retcode = sp.call(args, shell=False)
-        if retcode == 0 and os.path.isfile(destpath):
-            return destpath
-        print("*** rsync failed to download: %s" % (filepath))
+        self.rsync_command = " ".join(args)
+        print(self.rsync_command)
+        if not self.echo:
+            retcode = sp.call(args, shell=False)
+            if retcode == 0 and os.path.isfile(destpath):
+                return destpath
+            print("*** rsync failed to download: %s" % (filepath))
         return None
 
     def _link(self, filepath, destpath):
@@ -261,56 +268,3 @@ class DataFileCache(object):
                       (filepath, path))
             self._cached_paths[filepath] = path
         return path
-
-
-# To run the tests with py.test:
-#
-# env PYTHONPATH=/usr/lib/scons py.test datafilecache.py
-
-def test_datafilecache(tmpdir):
-    dfcache = DataFileCache(str(tmpdir))
-    assert(dfcache.getCachePath() == [str(tmpdir)])
-    assert(dfcache.localDownloadPath() == str(tmpdir))
-
-    dfcache.setPrefix('rafdata:/scr/raf_data')
-    target = 'DEEPWAVE/DEEPWAVErf01.kml'
-    hippopath = dfcache.getFile(target)
-    xpath = str(tmpdir.join(target))
-    assert(hippopath == xpath)
-    assert(not os.path.exists(xpath))
-    assert(dfcache.getFile(target) == xpath)
-
-    dfcache.enableDownload(False)
-    assert(not dfcache.download(target))
-    assert(not os.path.exists(xpath))
-
-    dfcache.enableDownload(True)
-    assert(dfcache.download(target))
-    assert(os.path.exists(xpath))
-
-    dfcache.enableDownload(False)
-    assert(dfcache.download(target))
-
-    dfcache = DataFileCache(str(tmpdir))
-    dfcache.setPrefix('rafdata:/scr/raf_data')
-    dfcache.insertCachePath("/tmp")
-    assert(dfcache.getFile(target) == xpath)
-    
-    
-def test_cachepaths():
-    dfcache = DataFileCache()
-    dfcache.appendCachePath("/abc")
-    assert(dfcache.localDownloadPath() == "/abc")
-    assert(not os.path.exists("/abc"))
-    dfcache.appendCachePath("/xyz")
-    assert(dfcache.localDownloadPath() == "/xyz")
-    assert(not os.path.exists("/xyz"))
-    dfcache.insertCachePath("/tmp")
-    assert(dfcache.localDownloadPath() == "/tmp")
-
-    assert(dfcache.getFile("anyfile") == "/tmp/anyfile")
-
-    dfcache.setDataCachePath("~")
-    assert(dfcache.localDownloadPath() == os.getenv('HOME'))
-
-
