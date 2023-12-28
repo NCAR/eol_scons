@@ -19,6 +19,10 @@ class Xvfb(object):
 
     def start(self):
         dpipe = os.pipe()
+        # The Xvfb subprocess has to be able to inherit the pipe fd to write
+        # the display number to it.  Python 3.4 changed to making all file
+        # descriptors non-inheritable by default.
+        os.set_inheritable(dpipe[1], True)
         cmd = ['Xvfb', '-displayfd', str(dpipe[1])]
         # The -displayfd option causes Xvfb to look for an available
         # display number, but it writes error messages apparently when
@@ -47,7 +51,7 @@ class Xvfb(object):
         while '\n' not in displaybuf:
             (readable, writable, xable) = select.select(rfds, [], [], 1)
             if dpipe[0] in rfds:
-                displaybuf = displaybuf + os.read(dpipe[0], 1)
+                displaybuf = displaybuf + chr(os.read(dpipe[0], 1)[0])
             xcode = self.proc.poll()
             if xcode is not None:
                 print("*** Xvfb exited with return code %d ***" % (xcode))
