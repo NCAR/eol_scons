@@ -12,12 +12,6 @@ import unittest
 
 from SCons.Script import Environment, Exit, SConscript
 
-# I don't know what this was supposed to test, but it now interferes
-# with the rest of the tests because loading the eol_scons tool explicitly
-# disables the 'default' hook which the rest of the test requires.
-#
-# env0 = Environment(tools = ['eol_scons_tool', 'default' ])
-
 tooldir = eol_scons.tools_dir
 
 v = eol_scons.GlobalVariables(os.getcwd() + '/dummy-config.py')
@@ -34,7 +28,6 @@ ignore_tools = ['gcc', 'msvc',
                 'armbecross',
                 'windriver',
                 'vxworks',
-                'eol_scons_tool'
                 ]
 for it in ignore_tools:
     toolnames.remove(it)

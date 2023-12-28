@@ -29,7 +29,8 @@ env.Alias('docs', docs)
 # top-level __init__.py can keep the main package eol_scons/__init__.py from
 # thinking it is being imported in the deprecated layout, that is, as
 # site_scons/eol_scons/__init__.py.
-install = env.Install("$PREFIX/eol_scons", ["__init__.py", "eol_scons"])
+install = env.Install("$PREFIX/eol_scons", ["__init__.py", "eol_scons",
+                                            "site_tools"])
 install += env.Install("$PREFIX/eol_scons/scripts", ["scripts/build_rpm.sh"])
 env.Alias('install', install)
 

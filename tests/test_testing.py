@@ -1,5 +1,3 @@
-
-import subprocess as sp
 from pathlib import Path
 import logging
 
@@ -38,11 +36,7 @@ if not conftest.called_from_test:
 def sconscript_task():
     Path('junk.log').unlink(True)
     Path('xtest.log').unlink(True)
-    cmd = ['scons', '--site-dir=test_site_scons', '-f', _this_file, '.']
-    logger.info("%s", " ".join(cmd))
-    task = sp.run(cmd, capture_output=True, universal_newlines=True)
-    print(task.stdout)
-    return task
+    return conftest.run_scons(_this_file)
 
 
 def test_filter(sconscript_task):

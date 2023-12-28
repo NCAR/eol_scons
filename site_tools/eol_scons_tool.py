@@ -26,13 +26,14 @@ import eol_scons.tool
 # default tool.
 eol_scons.RemoveDefaultHook()
 
+
 def exists(env):
     return 1
+
 
 def generate(env, **kw):
     """
     Apply the eol_scons extensions to the given environment.
     """
     print("eol_scons tool generate()")
-    eol_scons.tool.generate(env,**kw)
-
+    eol_scons.tool.generate(env, **kw)
