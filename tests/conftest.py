@@ -4,8 +4,8 @@ import subprocess as sp
 
 
 thisdir = Path(__file__).parent
-sitepath = thisdir.joinpath('..').resolve()
-toolpath = sitepath.joinpath('eol_scons/tools').resolve()
+sitepath = thisdir.joinpath('test_site_scons').resolve()
+toolpath = sitepath.joinpath('eol_scons/eol_scons/tools').resolve()
 sys.path.append(str(toolpath))
 
 
@@ -17,11 +17,8 @@ def pytest_configure(config):
     called_from_test = True
 
 
-def run_scons(sconsfile, sitedir=None):
-    if sitedir is None:
-        sitedir = sitepath
-    sitedir = "test_site_scons"
-    cmd = ['scons', f'--site-dir={sitedir}', '-f', sconsfile, '.']
+def run_scons(sconsfile):
+    cmd = ['scons', f'--site-dir={sitepath}', '-f', sconsfile, '.']
     print("%s", " ".join(cmd))
     # whatever test runs this will fail with an exception if the sconscript
     # fails

@@ -11,9 +11,10 @@
 # python interpreter that are running.
 
 # Setup our own isolated test site_scons directory.
-mkdir -p test_site_scons/site_tools
-ln -sf ../.. test_site_scons/eol_scons
-ln -sf ../../../site_tools/eol_scons_tool.py test_site_scons/site_tools
+rm -rf test_site_scons
+mkdir -p test_site_scons/eol_scons
+ln -sf ../../../eol_scons ../../../__init__.py test_site_scons/eol_scons
+ln -sf  ../../site_tools test_site_scons
 
 sitedir=test_site_scons
 
@@ -33,4 +34,4 @@ test_sconstruct() # sfile options
 
 test_sconstruct SConstruct
 
-pytest test_*.py
+pytest
