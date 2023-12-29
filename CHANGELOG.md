@@ -2,6 +2,12 @@
 
 ## [Unreleased] - Unreleased changes
 
+- testing.py tool: simplify SpawnerLogger and LogAction and make their
+  arguments more consistent, but the changes are not backwards compatible and
+  could change the console output
+- refactor testing to use less shell script and more pytest
+- eol_scons_tool.py is now in its own site_tools directory
+
 ## [4.2.5] - 2023-12-13
 
 - `git clean` copied source directories before archiving them
