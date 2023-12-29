@@ -8,9 +8,8 @@ import os
 import eol_scons
 import SCons
 import glob
-import unittest
 
-from SCons.Script import Environment, Exit, SConscript
+from SCons.Script import Environment, SConscript
 
 tooldir = eol_scons.tools_dir
 
@@ -52,134 +51,140 @@ for k, v in eol_scons.tool._global_tools.items():
     print("%s = %s" % (k, str(v)))
 
 
-class TestEOLScons(unittest.TestCase):
+def test_1_default_global_tools():
+    gtools = envtools
+    print("env.GlobalTools() = %s" % (gtools))
+    assert 'prefixoptions' in gtools
+    assert len(gtools) == 1
 
-    def test_1_default_global_tools(self):
-        gtools = envtools
-        print("env.GlobalTools() = %s" % (gtools))
-        self.assertTrue('prefixoptions' in gtools)
-        self.assertEqual(len(gtools), 1)
 
-    def test_2_extend_root_tools(self):
-        gtools = env2tools
-        print("env2.GlobalTools() = %s" % (gtools))
-        self.assertTrue('prefixoptions' in gtools)
-        self.assertTrue('tnt' in gtools)
-        self.assertEqual(len(gtools), 2)
+def test_2_extend_root_tools():
+    gtools = env2tools
+    print("env2.GlobalTools() = %s" % (gtools))
+    assert 'prefixoptions' in gtools
+    assert 'tnt' in gtools
+    assert len(gtools) == 2
 
-    def test_3_subdir_global_tools(self):
-        print("subenv GLOBAL_TOOLS = %s" % (subtools))
-        self.assertTrue('netcdf' in subtools)
-        self.assertEqual(len(subtools), 1)
-        # Make sure the parent tools were also applied.
-        tools = subenv['TOOLS']
-        self.assertTrue('netcdf' in tools)
-        self.assertTrue('prefixoptions' in tools)
-        self.assertTrue('tnt' in tools)
-        # Make sure a root environment does not have a global tool
-        # from a subdirectory, and the root global tools have
-        # not changed.
-        gtools = env3tools
-        self.assertTrue('netcdf' not in gtools)
-        self.assertTrue('prefixoptions' in gtools)
-        self.assertTrue('tnt' in gtools)
-        self.assertEqual(len(gtools), 2)
 
-    def test_4_subdir_subdir_global_tools(self):
-        subtools = sub2.GlobalTools()
-        self.assertTrue(subtools == [])
-        self.assertEqual(len(subtools), 0)
-        # Make sure the parent tools were also applied.
-        tools = subenv['TOOLS']
-        self.assertTrue('netcdf' in tools)
-        self.assertTrue('prefixoptions' in tools)
-        self.assertTrue('tnt' in tools)
+def test_3_subdir_global_tools():
+    print("subenv GLOBAL_TOOLS = %s" % (subtools))
+    assert 'netcdf' in subtools
+    assert len(subtools) == 1
+    # Make sure the parent tools were also applied.
+    tools = subenv['TOOLS']
+    assert 'netcdf' in tools
+    assert 'prefixoptions' in tools
+    assert 'tnt' in tools
+    # Make sure a root environment does not have a global tool
+    # from a subdirectory, and the root global tools have
+    # not changed.
+    gtools = env3tools
+    assert 'netcdf' not in gtools
+    assert 'prefixoptions' in gtools
+    assert 'tnt' in gtools
+    assert len(gtools) == 2
 
-    def test_5_xercesc(self):
-        # Use xercesc tool without prefixoptions set
-        eol_scons.tool._global_tools.clear()
-        eol_scons.global_variables = None
-        env = Environment(tools=['default', 'xercesc'])
-        print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
-              (env.get('XERCESC_PREFIX', '<none>'),
-               env.get('OPT_PREFIX', '<none>')))
-        # self.assertTrue(not env.has_key('XERCESC_PREFIX'))
-        self.assertTrue('xerces-c' in env['LIBS'])
-        # Now create an environment using opt_prefix, and make sure xercesc
-        # uses it.  I do not think it works to pass OPT_PREFIX in the
-        # environment constructor, perhaps because the OPT_PREFIX Variable
-        # overwrites it.  Instead use DEFAULT_OPT_PREFIX to set the value.
-        env = Environment(tools=['default', 'prefixoptions'],
-                          DEFAULT_OPT_PREFIX='/usr/local')
-        self.assertTrue('/usr/local/lib' in env['LIBLASTPATH'])
-        self.assertTrue('/usr/local/include' in env['CPPLASTPATH'])
-        env.Require('xercesc')
-        print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
-              (env.get('XERCESC_PREFIX', '<none>'),
-               env.get('OPT_PREFIX', '<none>')))
-        self.assertTrue(env['XERCESC_PREFIX'] == '/usr/local')
-        self.assertTrue('xerces-c' in env['LIBS'])
 
-    def test_6_filter_ldflags(self):
-        from eol_scons.parseconfig import _filter_ldflags
-        pairs = [('-L/usr/lib', ''),
-                 ('-L/usr/lib64', ''),
-                 ('-L/opt/local/lib -L/usr/lib', '-L/opt/local/lib'),
-                 ('-L/usr/lib -L/opt/local/lib', '-L/opt/local/lib'),
-                 ('-L/usr/lib-extra', '-L/usr/lib-extra'),
-                 ('-L/usr/lib64-extra', '-L/usr/lib64-extra')]
-        for p in pairs:
-            self.assertEqual(_filter_ldflags(p[0]), p[1])
+def test_4_subdir_subdir_global_tools():
+    subtools = sub2.GlobalTools()
+    assert subtools == []
+    assert len(subtools) == 0
+    # Make sure the parent tools were also applied.
+    tools = subenv['TOOLS']
+    assert 'netcdf' in tools
+    assert 'prefixoptions' in tools
+    assert 'tnt' in tools
 
-    def test_7_load_all_tools(self):
-        # Test each tool individually, so we can catch SCons.Errors.StopError
-        # from the tools which abort if their component is not found.
-        tut = dict([(name, None) for name in toolnames])
-        tut['readyflow'] = SCons.Errors.StopError
-        tut['cppunit'] = SCons.Errors.StopError
-        if env.Detect('cppunit-config'):
-            tut['cppunit'] = None
-        tut['lrose'] = SCons.Errors.StopError
-        tut['apar'] = SCons.Errors.StopError
-        tut['canfestival'] = SCons.Errors.StopError
-        tut['osxqtapp'] = SCons.Errors.StopError
-        tut['xmlrpc_server_abyss++'] = SCons.Errors.StopError
-        tut['boost_python'] = (lambda result: result is None or
-                               isinstance(result, SCons.Errors.StopError))
-        # No point testing these directly since they conflict.  Tools which
-        # do require qt modules will be tested with QT_VERSION=5.
-        del tut['qt4']
-        # del tut['qt5']
-        for toolname, error in tut.items():
-            result = None
-            try:
-                print("Loading tool %s..." % (toolname))
-                x = Environment(tools=['default'] + [toolname], QT_VERSION=5)
-                self.assertTrue(x['QT_VERSION'] == 5)
-            except Exception as ex:
-                result = ex
-                # If no error expected but got one, raise it again to get a
-                # stack trace for finding syntax errors.
-                if error is None:
-                    raise ex
+
+def test_5_xercesc():
+    # Use xercesc tool without prefixoptions set
+    eol_scons.tool._global_tools.clear()
+    eol_scons.global_variables = None
+    env = Environment(tools=['default', 'xercesc'])
+    print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
+          (env.get('XERCESC_PREFIX', '<none>'),
+           env.get('OPT_PREFIX', '<none>')))
+    assert 'xerces-c' in env['LIBS']
+    # Now create an environment using opt_prefix, and make sure xercesc
+    # uses it.  I do not think it works to pass OPT_PREFIX in the
+    # environment constructor, perhaps because the OPT_PREFIX Variable
+    # overwrites it.  Instead use DEFAULT_OPT_PREFIX to set the value.
+    env = Environment(tools=['default', 'prefixoptions'],
+                      DEFAULT_OPT_PREFIX='/usr/local')
+    assert '/usr/local/lib' in env['LIBLASTPATH']
+    assert '/usr/local/include' in env['CPPLASTPATH']
+    env.Require('xercesc')
+    print("XERCESC_PREFIX=%s, OPT_PREFIX=%s" %
+          (env.get('XERCESC_PREFIX', '<none>'),
+           env.get('OPT_PREFIX', '<none>')))
+    assert env['XERCESC_PREFIX'] == '/usr/local'
+    assert 'xerces-c' in env['LIBS']
+
+
+def test_6_filter_ldflags():
+    from eol_scons.parseconfig import _filter_ldflags
+    pairs = [('-L/usr/lib', ''),
+             ('-L/usr/lib64', ''),
+             ('-L/opt/local/lib -L/usr/lib', '-L/opt/local/lib'),
+             ('-L/usr/lib -L/opt/local/lib', '-L/opt/local/lib'),
+             ('-L/usr/lib-extra', '-L/usr/lib-extra'),
+             ('-L/usr/lib64-extra', '-L/usr/lib64-extra')]
+    for p in pairs:
+        assert _filter_ldflags(p[0]) == p[1]
+
+
+def test_7_load_all_tools():
+    # Test each tool individually, so we can catch SCons.Errors.StopError
+    # from the tools which abort if their component is not found.
+    tut = dict([(name, None) for name in toolnames])
+    tut['readyflow'] = SCons.Errors.StopError
+    tut['cppunit'] = SCons.Errors.StopError
+    if env.Detect('cppunit-config'):
+        tut['cppunit'] = None
+    tut['lrose'] = SCons.Errors.StopError
+    tut['apar'] = SCons.Errors.StopError
+    tut['canfestival'] = SCons.Errors.StopError
+    tut['osxqtapp'] = SCons.Errors.StopError
+    tut['xmlrpc_server_abyss++'] = SCons.Errors.StopError
+    tut['boost_python'] = (lambda result: result is None or
+                           isinstance(result, SCons.Errors.StopError))
+    # No point testing these directly since they conflict.  Tools which
+    # do require qt modules will be tested with QT_VERSION=5.
+    del tut['qt4']
+    # del tut['qt5']
+    for toolname, error in tut.items():
+        result = None
+        try:
+            print("Loading tool %s..." % (toolname))
+            x = Environment(tools=['default'] + [toolname], QT_VERSION=5)
+            assert x['QT_VERSION'] == 5
+        except Exception as ex:
+            result = ex
+            # If no error expected but got one, raise it again to get a
+            # stack trace for finding syntax errors.
             if error is None:
-                self.assertTrue(result is None)
-            elif error == SCons.Errors.StopError:
-                print(" got result type %s and expected %s" %
-                      (type(result), error))
-                self.assertIsInstance(result, error)
-            else:
-                # tool uses a function to test the result
-                print(" got result %s, testing if valid..." % (str(result)))
-                self.assertTrue(error(result))
+                raise ex
+        if error is None:
+            assert result is None
+        elif error == SCons.Errors.StopError:
+            print(" got result type %s and expected %s" %
+                  (type(result), error))
+            assert isinstance(result, error)
+        else:
+            # tool uses a function to test the result
+            print(" got result %s, testing if valid..." % (str(result)))
+            assert error(result)
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestEOLScons)
-
-results = unittest.TextTestRunner(verbosity=2).run(suite)
-Exit(len(results.errors))
-
-# boost.generate(env)
-# env.Append(LIBS = [ "logx", "boost_date_time" ])
-# print boost.boost_libflags(env)
-# print env.subst(env["_LIBFLAGS"])
+# I tried to find a way to run the test functions with pytest while also
+# running scons to setup all the environments for the tests, but I failed.  So
+# this just replicates the previous unittest implementation except using the
+# plain assert behavior and none of the actual pytest features.  The file
+# still needs to be run with scons directly.  Maybe the SConstruct could print
+# the information which the test functions need to test, and these tests could
+# be broken out into their own modules with simpler SConstruct excerpts, like
+# in the other test modules.
+for name in dir():
+    if name.startswith('test_'):
+        print(f"Running test function {name}...")
+        locals()[name]()
