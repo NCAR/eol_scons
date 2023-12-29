@@ -32,13 +32,13 @@ import SCons
 
 _syspaths = ['/usr/lib64', '/usr/lib']
 
+
 def _insert_static_flags(env):
     """
     Grab the LIBFLAGS list and insert static flags around the specified
     libraries.
     """
     libs = env.subst("$save_for_static_LIBFLAGS").split()
-    # print("LIBFLAGS before insertion: %s" % (" ".join(libs)))
     modlibs = []
     for libopt in libs:
         found = [libname for libname in env.get('STATIC_LIBRARY_NAMES', [])
@@ -47,7 +47,6 @@ def _insert_static_flags(env):
             modlibs.extend(['-Wl,-Bstatic', libopt, '-Wl,-Bdynamic'])
         else:
             modlibs.append(libopt)
-    # print("LIBFLAGS after insertion: %s" % (" ".join(modlibs)))
     return modlibs
 
 
@@ -62,12 +61,11 @@ def _replace_static_libraries(env):
     path to the static archive library.
     """
     libs = env.subst("$save_for_static_LIBFLAGS").split()
-    # print("LIBFLAGS before insertion: %s" % (" ".join(libs)))
     modlibs = []
-    libprefix = env.get("LIBPREFIX") # eg 'lib'
-    libsuffix = env.get("LIBSUFFIX") # eg '.a'
-    liblinkprefix = env.get("LIBLINKPREFIX") # eg '-l'
-    liblinksuffix = env.get("LIBLINKSUFFIX") # eg ''
+    libprefix = env.get("LIBPREFIX")  # eg 'lib'
+    libsuffix = env.get("LIBSUFFIX")  # eg '.a'
+    liblinkprefix = env.get("LIBLINKPREFIX")  # eg '-l'
+    liblinksuffix = env.get("LIBLINKSUFFIX")  # eg ''
 
     searchpaths = env.get('LIBPATH')[:]
     # This is a kludge but a sort of failsafe, since the primary motivation
@@ -81,8 +79,6 @@ def _replace_static_libraries(env):
     searchpaths.extend(_syspaths)
 
     staticlibnames = env.get('STATIC_LIBRARY_NAMES', [])
-    # print("Checking for libraries to replace with static linking: %s" %
-    #   (", ".join(staticlibnames)))
     for libopt in libs:
         found = [libname for libname in staticlibnames if libname in libopt]
 
@@ -110,17 +106,14 @@ def _replace_static_libraries(env):
 
 
 def _append_library(env, libname):
-    print("Requiring static linking for %s." % (libname))
+    env.PrintProgress("Requiring static linking for %s." % (libname))
     env.AppendUnique(STATIC_LIBRARY_NAMES=[libname])
-    # print("STATIC_LIBRARY_NAMES=%s" % (",".join(env['STATIC_LIBRARY_NAMES'])))
 
 
 def generate(env):
     if 'save_for_static_LIBFLAGS' in env:
         return
-    # print("Adding StaticLink to this environment.")
     env['save_for_static_LIBFLAGS'] = env['_LIBFLAGS']
-    # env['_LIBFLAGS'] = "${_insert_static_flags(__env__)}"
     env['_LIBFLAGS'] = "${_replace_static_libraries(__env__)}"
     env['_insert_static_flags'] = _insert_static_flags
     env['_replace_static_libraries'] = _replace_static_libraries
