@@ -4,7 +4,9 @@
 
 - testing.py tool: simplify SpawnerLogger and LogAction and make their
   arguments more consistent, but the changes are not backwards compatible and
-  could change the console output
+  could change the console output.  SpawnerLogger is now in its own module,
+  eol_scons.spawner, and will accumulate all output when multiple actions are
+  spawned by it.
 - refactor testing to use less shell script and more pytest
 - eol_scons_tool.py is now in its own site_tools directory
 
