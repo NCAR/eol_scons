@@ -1,6 +1,9 @@
 """
 SCons tool to run test programs and to log or filter the output.
 
+The output logging and filtering is handled by
+eol_scons.spawner.SpawnerLogger.
+
 All test pseudo-builder methods take a name for the test (the alias) and
 the list of actions to execute to run that test, typically a shell command.
 The default test alias is 'xtest', relative to the Environment's directory.
@@ -59,10 +62,7 @@ so the testing tool must always be required first:
 env = Environment(tools=['default', 'testing', 'gtest'])
 """
 
-import subprocess
-import sys
 import os
-import re
 import difflib
 
 import SCons
@@ -71,146 +71,26 @@ from SCons.Action import Action
 from SCons.Action import ListAction
 from SCons.Script import Builder
 
-_echo_only = False
-
-_rxpatterns = [r'^\d+ checks\.',
-               r'^\d+ failures\.',
-               r'^Running \d+ test cases\.\.\.',
-               r'^.+\(N\): .* passed',
-               r'^.+\(N\): .* FAIL',
-               r'^\*\*\* No errors detected',
-               r'^Leaving test case.*',
-               r'^Entering test case.*',
-               r'^\*\*\* Skipping test.*'
-               ]
-
-
-class _SpawnerLogger:
-    """
-    Spawn a subprocess and allow output to be logged and filtered.  Instances
-    can be assigned to the SCons SPAWN environment variable to affect output
-    from all build subprocesses, or they can be limited to specific actions
-    using the LogAction class.
-    """
-
-    def __init__(self, logpath=None, rxpatterns=None):
-        """
-        Create a spawner which will write all output to @p logpath and only
-        write output lines to stdout which match one of @p rxpatterns.  If @p
-        logpath is None, then no log file will be written.  If @p rxpatterns
-        is None, then a default is used.   Pass rxpatterns=[] to suppress all
-        output and rxpatterns=[r'.*'] to write all output.
-        """
-        self.logpath = logpath
-        self.logfile = None
-        self._rxpass = None
-        self.setPassingPatterns(rxpatterns)
-
-    def _pass_filter(self, line):
-        for rx in self._rxpass:
-            if rx.search(line):
-                return True
-        return False
-
-    def setPassingPatterns(self, rxpatterns=None):
-        """
-        Set line patterns which pass through the output filter.  If rxpatterns
-        is None, set a default list of patterns.
-        """
-        if rxpatterns is None:
-            rxpatterns = _rxpatterns
-        self._rxpass = [re.compile(rx) for rx in rxpatterns]
-
-    def open(self):
-        "Open the log file if not already open and log path is specified."
-        if not self.logpath or self.logfile:
-            return
-        self.logfile = open(self.logpath, "w")
-        print("Writing test log '%s', filtering stdout and stderr." %
-              (self.logpath))
-
-    def close(self):
-        if self.logfile:
-            print("Closing test log '%s'." % (self.logpath))
-            self.logfile.close()
-            self.logfile = None
-            self.logpath = None
-
-    def spawn(self, sh, escape, cmd, args, env):
-        """
-        Spawn the process and pipe the output.  The output is written to the
-        log file, if any, and any lines which pass the filter are written to
-        stdout.  If the log file has not been opened yet, then it is opened
-        here and closed when the process completes.  This allows a single
-        process to write to the log file.  Otherwise, the log file should be
-        opened first, with open(), then spawn() can be called to write the
-        output of each process to the same log file, then close the log file
-        with close().
-        """
-        opened_here = False
-        if self.logpath and not self.logfile:
-            self.open(self.logpath)
-            opened_here = True
-        try:
-            return self._spawn(sh, escape, cmd, args, env)
-        finally:
-            if opened_here:
-                self.close()
-
-    def _spawn(self, sh, escape, cmd, args, env):
-        cmd = [sh, '-c', ' '.join(args)]
-        if _echo_only:
-            cmd = [sh, '-c', 'echo "*** Skipping test: %s"' % (" ".join(args))]
-        pipe = subprocess.Popen(cmd, env=env,
-                                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT,
-                                universal_newlines=True,
-                                bufsize=1, close_fds=True, shell=False)
-        pipe.stdin.close()
-        output = pipe.stdout.readline()
-        flines = 0
-        while output:
-            if self.logfile:
-                self.logfile.write(output)
-            if self._pass_filter(output):
-                if flines >= 50:
-                    sys.stdout.write("\n")
-                sys.stdout.write(output)
-                flines = 0
-            else:
-                flines = flines + 1
-                if flines % 50 == 0:
-                    sys.stdout.write('.')
-            output = pipe.stdout.readline()
-        pipe.wait()
-        if flines >= 50:
-            sys.stdout.write("\n")
-        return pipe.returncode
-
-    def __call__(self, sh, escape, cmd, args, env):
-        return self.spawn(sh, escape, cmd, args, env)
+from eol_scons.spawner import SpawnerLogger
 
 
 class LogAction(ListAction):
 
     def __init__(self, actionlist, logpath=None, patterns=None):
         ListAction.__init__(self, actionlist)
-        self.logpath = logpath
-        self.patterns = patterns
+        self.spawner = SpawnerLogger(logpath, patterns)
 
     def __call__(self, target, source, env, **kw):
-        # Replace the SPAWN variable with our own instance of _SpawnerLogger.
-        spawner = _SpawnerLogger(self.logpath, self.patterns)
+        # Replace the SPAWN variable with our own instance of SpawnerLogger.
         spawnsave = env['SPAWN']
-        env['SPAWN'] = spawner
+        env['SPAWN'] = self.spawner
         # multiple processes may be spawned by the list action, and the output
-        # of each should be written to the same log file.
+        # of each will be appended to the same log file because they are being
+        # spawned by the same SpawnerLogger instance.
         try:
-            spawner.open()
             status = ListAction.__call__(self, target, source, env, **kw)
         finally:
             env['SPAWN'] = spawnsave
-            spawner.close()
         return status
 
 

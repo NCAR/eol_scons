@@ -6,6 +6,7 @@ from SCons.Script import Environment
 
 import pytest
 import conftest
+from eol_scons.spawner import SpawnerLogger
 
 
 # manufacturer our own __file__since that is not available when read as a
@@ -44,12 +45,20 @@ if not conftest.called_from_test:
                          "logx.log", [])
     target = env.Command('logx.out', [], logx)
 
+    # make sure SpawnerLogger can be used on its own as an environment
+    # variable override.
+    saver = env.Command("saver", [],
+                        ["@echo Save this output.",
+                         "@echo Save this output line 2."],
+                        SPAWN=SpawnerLogger("saver.log"))
+
 
 @pytest.fixture(scope="module")
 def sconscript_task():
     Path('junk.log').unlink(True)
     Path('junk2.log').unlink(True)
     Path('xtest.log').unlink(True)
+    Path('saver.log').unlink(True)
     return conftest.run_scons(_this_file)
 
 
@@ -84,3 +93,13 @@ def test_multi_log(sconscript_task):
     text = log.read_text()
     assert 'logx line 1' in text
     assert 'logx line 2' in text
+
+
+def test_spawn_override(sconscript_task):
+    task = sconscript_task
+    log = Path('saver.log')
+    assert log.exists
+    assert 'Save this output' not in task.stdout
+    text = log.read_text()
+    assert 'Save this output.' in text
+    assert 'Save this output line 2.' in text
