@@ -39,6 +39,10 @@ if env.GetOption('clean'):
                         "tests/config.log", "tests/.sconsign.dblite",
                         "tests/test_site_scons", "doxy/html"]))
 
-env.Test('tests/runtests', 'cd tests && ./runtests')
+# for the test script, look for scons and pytest executables in the same place
+# as the python executable running this SConstruct.
+testenv = env.Clone()
+testenv.PrependENVPath('PATH', str(Path(sys.executable).parent.resolve()))
+testenv.Test('tests/runtests', 'cd tests && ./runtests')
 
 env.SetHelp()

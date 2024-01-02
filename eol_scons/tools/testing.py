@@ -103,13 +103,14 @@ def _test_builder(env, alias, sources, actions, logfile=None):
         alias = 'xtest'
     targets = [env.File(alias)]
 
-    # Use the Action() factory to create the action instance, which may
-    # itself be a ListAction, then wrap the action/s in a LogAction
-    # instance.  If the logfile is disabled, then there are no filter
-    # patterns either.
+    # Use the Action() factory to create the action instance, which may itself
+    # be a ListAction, then wrap the action/s in a LogAction instance.  If the
+    # logfile is disabled, then all output is passed through the filter.
+    patterns = [r'.*']
     if logfile:
         targets.append(logfile)
-    logaction = LogAction([Action(actions)], logfile)
+        patterns = None
+    logaction = LogAction([Action(actions)], logfile, patterns)
 
     xtest = env.Command(targets, sources, logaction)
 
