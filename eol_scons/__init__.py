@@ -101,17 +101,21 @@ def RunScripts():
 
 Debug("__init__ __file__=%s" % __file__)
 
+# Give the top of the eol_scons package directory as the location.
 PrintProgress("Loading eol_scons from %s..." %
-              (os.path.abspath(os.path.dirname(__file__))))
+              (Path(__file__).parent.parent.resolve()))
+
 
 def InstallToolsPath():
     "Add the eol_scons/tools dir to the tool path."
     Debug("Using site_tools: %s" % (tools_dir))
     SCons.Tool.DefaultToolpath.insert(0, tools_dir)
-     
+
+
 def InstallDefaultHook():
     "Add the hooks dir to the tool path to override the default tool."
     SCons.Tool.DefaultToolpath.insert(0, hooks_dir)
+
 
 def RemoveDefaultHook():
     """
@@ -121,6 +125,7 @@ def RemoveDefaultHook():
     """
     if hooks_dir in SCons.Tool.DefaultToolpath:
         SCons.Tool.DefaultToolpath.remove(hooks_dir)
+
 
 _eolsconsdir = os.path.abspath(os.path.dirname(__file__))
 tools_dir = os.path.normpath(os.path.join(_eolsconsdir, "tools"))

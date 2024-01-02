@@ -9,6 +9,7 @@ import sys
 
 from io import StringIO
 
+
 def _escape(text):
     """
     Escape double quotes and newlines, preserving whatever line endings are
@@ -74,39 +75,22 @@ def _get_builder():
         _embedded_builder = Builder(action=etaction,
                                     emitter=_embedded_text_emitter)
         _have_embedded_builder = True
-        
+
     return _embedded_builder
+
 
 def _EmbedTextCC(env, target, source, variable):
     return env.EmbeddedTextCC(target, source, TEXT_DATA_VARIABLE_NAME = variable)
+
 
 def generate(env):
     env['BUILDERS']['EmbeddedTextCC'] = _get_builder()
     env.SetDefault(TEXT_DATA_VARIABLE_NAME="EMBEDDED_TEXT_DATA")
     env.AddMethod(_EmbedTextCC, "EmbedTextCC")
 
+
 def exists(env):
     return True
-
-
-_example = """\
-first "line"
-second "line"
-"""
-
-_code = '/***** DO NOT EDIT *****/\n'
-_code += 'const char* EXAMPLE = \n'
-_code += '"first \\"line\\"\\n"\n"second \\"line\\"\\n"\n"";\n'
-
-def test_text2cc():
-    assert(_escape('hello world') == '"hello world"')
-    assert(_escape('hello world\n') == '"hello world\\n"\n""')
-    assert(_escape('hello world\r\n') == '"hello world\\r\\n"\n""')
-    assert(_escape('hello\r\nworld\r\n') == '"hello\\r\\n"\n"world\\r\\n"\n""')
-
-    code = text2cc(_example, "EXAMPLE")
-    print(code)
-    assert(code == _code)
 
 
 if __name__ == "__main__":

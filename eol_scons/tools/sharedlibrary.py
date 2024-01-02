@@ -1,4 +1,3 @@
-
 """
 Methods for creating and installing versioned shared libraries and the
 associated symbolic links.  The SCons built-in builders SharedLibrary() and
@@ -21,8 +20,8 @@ def _extract_shlibversions_from_tag(tag: str) -> Tuple[int, int] or None:
     major version, NNN is the minor version, PPP is a patchlevel, and xxx can
     be some other string, like a pre-release.  The fields can be one or more
     digits.  This tool only supports two shared library version numbers, a
-    major and a minor.  Return the versions as a tuple of int (major, minor), or None
-    if the tag could not be parsed.
+    major and a minor.  Return the versions as a tuple of int (major, minor),
+    or None if the tag could not be parsed.
     """
     rx = re.match(r"[Vv]([0-9]+)\.([0-9]+)([-.].*)?", tag)
     if rx:
@@ -40,7 +39,7 @@ def GetArchLibDir(env):
 
     sconf = env.Clone(LIBS=[]).Configure()
     libdir = 'lib'
-    if sconf.CheckTypeSize('void *',expect=8,language='C'):
+    if sconf.CheckTypeSize('void *', expect=8, language='C'):
         libdir = 'lib64'
     env['ARCHLIBDIR'] = libdir
     sconf.Finish()
@@ -68,8 +67,9 @@ def SharedLibrary3Emitter(target, source, env: Environment):
             env["SHLIBMAJORVERSION"] = rev[0]
             env["SHLIBMINORVERSION"] = rev[1]
             env.LogDebug("Set SHLIBMAJORVERSION=%s and SHLIBMINORVERSION=%s "
-                         "from REPO_TAG=%s" % (env.get('SHLIBMAJORVERSION'),
-                         env.get('SHLIBMINORVERSION'), env.get('REPO_TAG')))
+                         "from REPO_TAG=%s" %
+                         (env.get('SHLIBMAJORVERSION'),
+                          env.get('SHLIBMINORVERSION'), env.get('REPO_TAG')))
         else:
             print("*** could not parse SHLIB versions from REPO_TAG=%s ***" %
                   (env.get('REPO_TAG')))
@@ -81,9 +81,10 @@ def SharedLibrary3Emitter(target, source, env: Environment):
     fullname = env.subst(soname + ".${SHLIBMINORVERSION}")
     env.LogDebug("emitting libname=%s, soname=%s, fullname=%s" %
                  (libname, soname, fullname))
-    return ([libname,soname,fullname],source)
+    return ([libname, soname, fullname], source)
 
-def SharedLibrary3Action(target,source,env):
+
+def SharedLibrary3Action(target, source, env):
     """
     Action to build a shared library and symbolic links.
 
@@ -100,14 +101,15 @@ def SharedLibrary3Action(target,source,env):
 
     # Execute the shared library action to build the full library
     if env.Execute(env.subst('$SHLINKCOM', target=target[2], source=source)):
-        raise SCons.Errors.BuildError(node=target[2],
-                errstr="%s failed" % env.subst('$SHLINKCOM'))
+        errstr = "%s failed" % env.subst('$SHLINKCOM')
+        raise SCons.Errors.BuildError(node=target[2], errstr=errstr)
 
     # Now use the action of the SymLink builder to create
     # symbolic links from libxxx.so.X.Y to libxxx.so.X and libxxx.so
-    MakeSymLink([target[0]],[target[2]],env)
-    MakeSymLink([target[1]],[target[2]],env)
+    MakeSymLink([target[0]], [target[2]], env)
+    MakeSymLink([target[1]], [target[2]], env)
     return 0
+
 
 def SharedLibrary3Install(env, target, source, **kw):
     """
@@ -166,9 +168,10 @@ def SharedLibrary3Install(env, target, source, **kw):
     # return list of targets which can then be used in an Alias
     return [libfull, liblink, solink]
 
+
 def generate(env: Environment):
     """
-    Builder and Installer for shared libraries and their associated symbolic links.
+    Builder and Installer for shared libraries and their symbolic links.
 
     Usage:
         # GitInfo tool can be used to set REPO_TAG in environment
@@ -207,7 +210,8 @@ def generate(env: Environment):
 
     The usual convention is that the full library name is something like:
         libxxx.so.X.Y
-    Where X is the major version number of the binary API and Y is the minor version.
+    Where X is the major version number of the binary API and Y is the minor
+    version.
 
     The SONAME of the library is
         libxxx.so.X
@@ -224,11 +228,12 @@ def generate(env: Environment):
 
     From the man page of ld, discussing the -soname option:
     -soname=name
-        When creating an ELF shared object, set the internal DT_SONAME field to
-        the specified name.  When an executable is linked with a shared object
-        which has a DT_SONAME field, then when the executable is run the dynamic
-        linker will attempt to  load  the  shared object specified by the
-        DT_SONAME field rather than the using the file name given to the linker.
+        When creating an ELF shared object, set the internal DT_SONAME field
+        to the specified name.  When an executable is linked with a shared
+        object which has a DT_SONAME field, then when the executable is run
+        the dynamic linker will attempt to  load  the  shared object specified
+        by the DT_SONAME field rather than the using the file name given to
+        the linker.
 
     If the SONAME of a library contains just the major version number, and a
     a symbolic link exists with a name equal to the SONAME, pointing
@@ -293,7 +298,7 @@ def generate(env: Environment):
             src_suffix='${SHOBJSUFFIX}',
             src_builder='SharedObject'
             )
-    env.Append(BUILDERS = {"SharedLibrary3": builder})
+    env.Append(BUILDERS={"SharedLibrary3": builder})
     env.AddMethod(SharedLibrary3Install)
     if 'ARCHLIBDIR' not in env:
         GetArchLibDir(env)
@@ -301,18 +306,3 @@ def generate(env: Environment):
 
 def exists(env):
     return 1
-
-
-def test_versions():
-    rev = _extract_shlibversions_from_tag("V3.2")
-    assert rev == (3, 2)
-    rev = _extract_shlibversions_from_tag("v1.99-alpha")
-    assert rev == (1, 99)
-    rev = _extract_shlibversions_from_tag("v1.alpha")
-    assert rev is None
-    rev = _extract_shlibversions_from_tag("v10.12.02")
-    assert rev == (10, 12)
-    rev = _extract_shlibversions_from_tag("v10.02")
-    assert rev == (10, 2)
-    rev = _extract_shlibversions_from_tag("xv10.02")
-    assert rev is None

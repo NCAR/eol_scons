@@ -745,21 +745,6 @@ def enable_module_osx(env, module, debug=False):
     # At this time we believe we can just use the enable_module_linux.
     return enable_module_linux(env, module, debug)
 
-    if env['QT5DIR'] == USE_PKG_CONFIG:
-      print('call pkg-config please')
-    else:
-      env.AppendUnique(FRAMEWORKPATH=['$QT5DIR/lib', ])
-
-      # FRAMEWORKS appears not to be used in Sierra.  Caused "ld:
-      # framework not found QtWidget".
-      env.AppendUnique(FRAMEWORKS=[module])
-
-      # Add include paths for the modules. One would think that the
-      # frameworks would do this, but apparently not.
-      env.AppendUnique(CPPPATH=['$QT5DIR/lib/' + module + '.framework/Headers', ])
-
-    return True
-
 
 def deploy_linux(env):
     """
@@ -787,16 +772,3 @@ def deploy_linux(env):
 
 def exists(_env):
     return True
-
-
-def test_replace_drive():
-    from SCons.Environment import Environment
-    env = Environment(tools=['default'])
-    b = env.File("C:/b")
-    c = env.File("/c/etc")
-    u = env.Dir("/tmp")
-    l1 = ["C:/a", b, c, u, "C:"]
-    l2 = l1
-    replace_drive_specs(l1)
-    assert(l1 == ["/c/a", "/c/b", c, u, "/c"])
-    assert(l2 == l1)

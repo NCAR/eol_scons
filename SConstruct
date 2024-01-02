@@ -29,7 +29,8 @@ env.Alias('docs', docs)
 # top-level __init__.py can keep the main package eol_scons/__init__.py from
 # thinking it is being imported in the deprecated layout, that is, as
 # site_scons/eol_scons/__init__.py.
-install = env.Install("$PREFIX/eol_scons", ["__init__.py", "eol_scons"])
+install = env.Install("$PREFIX/eol_scons", ["__init__.py", "eol_scons",
+                                            "site_tools"])
 install += env.Install("$PREFIX/eol_scons/scripts", ["scripts/build_rpm.sh"])
 env.Alias('install', install)
 
@@ -38,6 +39,10 @@ if env.GetOption('clean'):
                         "tests/config.log", "tests/.sconsign.dblite",
                         "tests/test_site_scons", "doxy/html"]))
 
-env.Test('tests/runtests', 'cd tests && ./runtests')
+# for the test script, look for scons and pytest executables in the same place
+# as the python executable running this SConstruct.
+testenv = env.Clone()
+testenv.PrependENVPath('PATH', str(Path(sys.executable).parent.resolve()))
+testenv.Test('tests/runtests', 'cd tests && ./runtests')
 
 env.SetHelp()
