@@ -2,6 +2,8 @@
 
 ## [Unreleased] - Unreleased changes
 
+- gcc.py tool: Sanitized output no longer needs to be translated, so
+  AsanFilter() has been removed.  See gcc.py for details.
 - testing.py tool: simplify SpawnerLogger and LogAction and make their
   arguments more consistent, but the changes are not backwards compatible and
   could change the console output.  SpawnerLogger is now in its own module,
