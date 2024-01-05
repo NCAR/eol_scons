@@ -26,7 +26,6 @@ ignore_tools = ['gcc', 'msvc',
                 'armcross',
                 'armbecross',
                 'windriver',
-                'vxworks',
                 ]
 for it in ignore_tools:
     toolnames.remove(it)
@@ -34,7 +33,7 @@ for it in ignore_tools:
 env = Environment(tools=['default'], GLOBAL_TOOLS=['prefixoptions'])
 envtools = env.GlobalTools()[:]
 
-env2 = Environment(tools=['default'], GLOBAL_TOOLS=['tnt'])
+env2 = Environment(tools=['default'], GLOBAL_TOOLS=['z'])
 env2tools = env2.GlobalTools()[:]
 
 subenv = SConscript("subdir/SConscript")
@@ -62,7 +61,7 @@ def test_2_extend_root_tools():
     gtools = env2tools
     print("env2.GlobalTools() = %s" % (gtools))
     assert 'prefixoptions' in gtools
-    assert 'tnt' in gtools
+    assert 'z' in gtools
     assert len(gtools) == 2
 
 
@@ -74,14 +73,14 @@ def test_3_subdir_global_tools():
     tools = subenv['TOOLS']
     assert 'netcdf' in tools
     assert 'prefixoptions' in tools
-    assert 'tnt' in tools
+    assert 'z' in tools
     # Make sure a root environment does not have a global tool
     # from a subdirectory, and the root global tools have
     # not changed.
     gtools = env3tools
     assert 'netcdf' not in gtools
     assert 'prefixoptions' in gtools
-    assert 'tnt' in gtools
+    assert 'z' in gtools
     assert len(gtools) == 2
 
 
@@ -93,7 +92,7 @@ def test_4_subdir_subdir_global_tools():
     tools = subenv['TOOLS']
     assert 'netcdf' in tools
     assert 'prefixoptions' in tools
-    assert 'tnt' in tools
+    assert 'z' in tools
 
 
 def test_5_xercesc():
