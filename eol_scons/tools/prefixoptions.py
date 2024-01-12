@@ -146,7 +146,7 @@ def InstallEtc (self, source):
 
 def InstallShare (self, subdir, source):
     """
-    Install <source> at INSTALL_DIR/share/<subdir>/<source>
+    Install _source_ at INSTALL_DIR/share/_subdir_/_source_
     """
     dir = os.path.join(self['INSTALL_SHAREDIR'], subdir)
     return self.Install (dir, source)

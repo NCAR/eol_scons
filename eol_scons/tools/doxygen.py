@@ -46,7 +46,7 @@ The Doxyfile builder uses these environment variables:
     This should hold verbatim Doxyfile configuration text which will be
     appended to the generated Doxyfile, thus overriding any of the default
     configuration settings.
-                        
+
     DOXYFILE_DICT
 
     A dictionary of Doxygen configuration parameters which will be
@@ -70,7 +70,7 @@ The Doxyfile builder uses these environment variables:
     Here are examples of some of the Doxyfile configuration parameters
     which typically need to be set for each documentation target.  Unless
     set explicitly, they are given defaults in the Doxyfile.
-    
+
     PROJECT_NAME        Title of project, defaults to the source directory.
     PROJECT_VERSION     Version string for the project.  Defaults to 1.0
 @endcode
@@ -160,9 +160,9 @@ dx = env.Doxygen (target="apidocs/index.html", source=[df])
 @endcode
 
 The targets are a little different in this case, since the html output (and
-thus the index.html file) is being placed directly into the apidocs
-directory rather than into a subdirectory.  Therefore the two builders are
-setup explicitly rather than with Pkg_Environment.Apidocs().
+thus the index.html file) is being placed directly into the apidocs directory
+rather than into a subdirectory.  Therefore the two builders are setup
+explicitly.
 
 The SCons doxygen support is defined in the tool file
 site_scons/site_tools/doxygen.py.

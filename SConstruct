@@ -20,10 +20,18 @@ variables.Update(env)
 
 # Someday this would be a good place to set the PROJECT_NUMBER in the Doxyfile
 # to the current version...
-docsources = ['doxy/Doxyfile', 'doxy/mainpage.dox', 'eol_scons/README']
+docsources = ['doxy/Doxyfile', 'doxy/mainpage.dox', 'eol_scons/README',
+              'doxy/eol_scons']
 docs = env.Command(env.Dir('doxy/html'), docsources, 'cd doxy && doxygen')
 env.AlwaysBuild(docs)
 env.Alias('docs', docs)
+
+# to get the right package paths in doxygen and subvert the top-level
+# __init__.py (ie eol_scons.gitinfo and not eol_scons.eol_scons.gitinfo),
+# install a copy of the eol_scons package under the doxy directory for doxygen
+# to scan.  This must be always built when needed for the doxygen target,
+# since scons does not compare all the individual files in the install.
+env.AlwaysBuild(env.Install("#/doxy", ["eol_scons"]))
 
 # For now, install the package in the same layout as in the repository, so the
 # top-level __init__.py can keep the main package eol_scons/__init__.py from

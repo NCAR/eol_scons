@@ -19,39 +19,43 @@ rsync from the remote specifier.  Once a file has been downloaded to the
 cache, it will not be synchronized with the remote source again.  The cache
 can be updated using the 'datasync' alias described below.
 
-This tool adds a scons variable called 'download', with one of three
-settings: force, auto, and off.  The default setting is 'auto'.
+This tool adds a scons variable called 'download', with one of three settings:
+*force*, *auto*, and *off*.  The default setting is *auto*.
 
-   force: Files will be explicitly synchronized whenever required for a
-          dependency, even if they already exist in the cache.
+**force**:
+  Files will be explicitly synchronized whenever required for a dependency,
+  even if they already exist in the cache.
 
-   off: Files will never be synchronized.  This can be helpful if the local
-        cache is already current, but the scons dependency cache has not
-        been updated.  For example, to prevent downloads in a fresh working
-        tree or after cleaning the scons cache files, run 'scons
-        download=off <targets>'.  The local cache files will be used as is
-        without attempting to synchronizing them.  If a local cache file is
-        needed for a dependency but does not exist, and 'download' is
-        disabled, then the build will fail.
+**off**:
+  Files will never be synchronized.  This can be helpful if the local cache is
+  already current, but the scons dependency cache has not been updated.  For
+  example, to prevent downloads in a fresh working tree or after cleaning the
+  scons cache files, run
 
-   auto: File synchronization follows scons dependency tracking.  If a file
-         already exists locally and the scons dependency info is
-         up-to-date, then no synchronization is run.  If the dependency
-         info is not up-to-date, then the file will be synchronized even if
-         it already exists locally, because scons has no record that the
-         target file is current.
+      scons download=off <targets>
 
-Each cached data file is added to the 'datasync' alias.  Run 'scons
-datasync' to build all the cached data file targets, and set the 'download' option
-to choose whether the files should be synchronized.  For example, this will update 
-all the data files in the cache:
+  The local cache files will be used as is without attempting to synchronizing
+  them.  If a local cache file is needed for a dependency but does not exist,
+  and 'download' is disabled, then the build will fail.
 
-   scons download=force datasync
+**auto**:
+  File synchronization follows scons dependency tracking.  If a file already
+  exists locally and the scons dependency info is up-to-date, then no
+  synchronization is run.  If the dependency info is not up-to-date, then the
+  file will be synchronized even if it already exists locally, because scons
+  has no record that the target file is current.
+
+Each cached data file is added to the 'datasync' alias.  Run `scons datasync`
+to build all the cached data file targets, and set the 'download' option to
+choose whether the files should be synchronized.  For example, this will
+update all the data files in the cache:
+
+    scons download=force datasync
 
 This command will just check that all the files exist in the cache and fail
 if any do not:
 
-   scons download=off datasync
+    scons download=off datasync
 """
 
 import SCons

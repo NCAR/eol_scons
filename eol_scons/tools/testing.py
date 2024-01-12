@@ -15,11 +15,11 @@ that may be shared across the whole source tree, such as 'xtest', and one
 that is qualified with the source directory, such as
 'datastore/tests/xtest'.
 
-Additionally, test output can be logged to a file, named <alias>.log in the
+Additionally, test output can be logged to a file, named _alias_.log in the
 Environment directory, and the output which gets shown on stdout can be
-filtered.  This allows the stdout output to be more concise while
-preserving all the debugging output in case it is needed for closer
-inspection.  The TestRun() builder runs a test without logging the output.
+filtered.  This allows the stdout output to be more concise while preserving
+all the debugging output in case it is needed for closer inspection.  The
+TestRun() builder runs a test without logging the output.
 
 The eol_scons package always adds a Test() pseudo-builder by default.  That
 method uses the 'xtest' and 'test' aliases by default, so it cannot be used

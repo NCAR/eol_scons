@@ -25,11 +25,11 @@ directory and the relative data file path identify exactly the full path to
 a locally cached data file.  The relative data file path is used to
 uniquely identify the file in the cache and sync it when necessary.
 
-Typically, the remote prefix includes a remote host specifier and a
-directory, such as 'barolo:/scr/raf_data'.  Clients request data files from
-the cache using a relative path like 'HIPPO/prod_data/HIPPO-2rf06.nc'.  The
-data file is stored locally in the cache by its relative path,
-<datacache>/HIPPO/prod_data/HIPPO-2rf06.nc, and it is synchronized from its
+Typically, the remote prefix includes a remote host specifier and a directory,
+such as 'barolo:/scr/raf_data'.  Clients request data files from the cache
+using a relative path like 'HIPPO/prod_data/HIPPO-2rf06.nc'.  The data file is
+stored locally in the cache by its relative path,
+_datacache_/HIPPO/prod_data/HIPPO-2rf06.nc, and it is synchronized from its
 fully qualified remote specifier:
 'barolo:/scr/raf_data/HIPPO/prod_data/HIPPO-2rf06.nc'.
 

@@ -3,10 +3,9 @@ README.html
 *.pyc
 *~
 .scon*
-eol_scons/tests/test_site_scons
 tests/test_site_scons
-eol_scons/doxy/html
 doxy/html
+doxy/eol_scons
 # build_rpm.sh files
 rpms.txt
 build

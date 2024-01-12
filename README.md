@@ -119,7 +119,7 @@ eol_scons/tools to the SCons tool search path:
 
 ```python
 import eol_scons
-env = Environment(tools=['default','boost_date_time'])
+env = Environment(tools=['default', 'boost_date_time'])
 ```
 
 The import also modifies the SCons tool path so that every `Environment`

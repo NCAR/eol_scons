@@ -9,18 +9,20 @@ See the eol_scons.gitinfo.GitInfo class for information on how the git repo
 information is collected.
 
 Example usage:
-env = Environment(tools = ['default', gitinfo'])
-repoinfo = env.GitInfo('repoInfo.h', '#/')
-env.Default(repoinfo)
+
+    env = Environment(tools = ['default', gitinfo'])
+    repoinfo = env.GitInfo('repoInfo.h', '#/')
+    env.Default(repoinfo)
 
 Useful hint: If a scons tool such as this (i.e contains exists() and
 generate()) is not located in the site_tools directory,
 just add a toolpath to locate it. E.g:
-env = Environment(tools = ['default', 'gitinfo'], toolpath=['#/'])
+
+    env = Environment(tools = ['default', 'gitinfo'], toolpath=['#/'])
 
 There are two parts to the source code for this tool.
-1) The GitInfo class manages the collection of git information.
-2) The collection of global functions provides the framework of the scons tool.
+1. The GitInfo class manages the collection of git information.
+2. The collection of global functions provides the framework of the scons tool.
 
 Just specifying gitinfo as a tool causes the repository variables to be
 added to the environment. These variables are accessed as env['REPO_REVISION'],
@@ -33,13 +35,16 @@ text.
 This code is adapted from the svninfo.py tool, which provides similar
 functionality for a subversion based source tree.
 
-The scons builder takes a working directory as the source argument
-(e.g. env.GitInfo('repoInfo.h', '#/').  A new GitInfo instance is created
-and cached for each working directory that is specified. However, GitInfo
-does not currently use the source directory in any way. It was useful for
-the earlier svninfo tool, since subversion versioning information is
-dependent upon the directory that svn info is applied to. The convention
-has been retained in gitinfo, as there may be a need for this later.
+The scons builder takes a working directory as the source argument, e.g.
+
+    env.GitInfo('repoInfo.h', '#/')
+
+A new GitInfo instance is created and cached for each working directory that
+is specified. However, GitInfo does not currently use the source directory in
+any way. It was useful for the earlier svninfo tool, since subversion
+versioning information is dependent upon the directory that svn info is
+applied to. The convention has been retained in gitinfo, as there may be a
+need for this later.
 """
 
 import os

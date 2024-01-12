@@ -2,7 +2,7 @@
 # Copyright 2007 UCAR, NCAR, All Rights Reserved
 
 """
-The eol_scons package for EOL extensions to standard SCons.
+eol_scons.library module wraps SCons Environment library methods.
 """
 
 import SCons.Tool
@@ -10,6 +10,7 @@ from SCons.Builder import BuilderBase
 from SCons.Builder import _null
 
 from eol_scons.debug import Debug
+
 
 class _LibraryBuilder(BuilderBase):
     """
@@ -38,6 +39,7 @@ class _LibraryBuilder(BuilderBase):
         else:
             Debug("library builder returned None!", env)
         return ret
+
 
 def _library_builder_str(env):
     t = "[env.Library=%s, builder=%s]"
@@ -83,4 +85,3 @@ def ReplaceLibraryBuilders(env):
     env['BUILDERS']['SharedLibrary'] = builder
 
     # Debug("After wrapping Library: %s" % (_library_builder_str(env)))
-
