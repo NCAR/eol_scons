@@ -1,17 +1,20 @@
-# -*- python -*-
+# Copyright (c) 2007-present, NSF NCAR, UCAR
 #
-# Tool providing access to the CanFestival-3 CANopen API. Currently, we only
-# check /usr/local and system default (i.e., /usr) as possible install locations
-# for CanFestival libraries and headers.
-#
-# The tool also provides a builder to generate CanFestival object dictionary
-# implementation files <foo>.c and <foo>.h from <foo>.od, e.g.,
-#
-#     env.canfestivalObjdictImpl('myobj.od')
-#
-# will cause generation of myobj.c and myobj.h if they are out of date w.r.t.
-# myobj.od.
-#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
+"""
+Tool providing access to the CanFestival-3 CANopen API. Currently, we only
+check /usr/local and system default (i.e., /usr) as possible install locations
+for CanFestival libraries and headers.
+
+The tool also provides a builder to generate CanFestival object dictionary
+implementation files <foo>.c and <foo>.h from <foo>.od, e.g.,
+
+    env.canfestivalObjdictImpl('myobj.od')
+
+will cause generation of myobj.c and myobj.h if they are out of date w.r.t.
+myobj.od.
+"""
 
 import os, os.path
 import string

@@ -1,15 +1,18 @@
-# -*- python -*-
-
-##
-# @file examples/logx/tool_logx_example.py
+# Copyright (c) 2007-present, NSF NCAR, UCAR
 #
-# This is an example of a SConscript file embedded in a source tree.  It
-# contains the SCons Environment calls which assemble the builders and
-# dependencies, but it also contains the logx() tool function for adding
-# the logx library and dependencies to other Environment instances.
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
+"""
+@file examples/logx/tool_logx_example.py
+
+This is an example of a SConscript file embedded in a source tree.  It
+contains the SCons Environment calls which assemble the builders and
+dependencies, but it also contains the logx() tool function for adding
+the logx library and dependencies to other Environment instances.
+"""
 
 tools = ['doxygen', 'log4cpp']
-env = Environment(tools = ['default'] + tools)
+env = Environment(tools=['default'] + tools)
 
 logxDir = Dir('.').abspath
 

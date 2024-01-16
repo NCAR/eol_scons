@@ -1,9 +1,11 @@
-# -*- python -*-
-# Copyright 2007 UCAR, NCAR, All Rights Reserved
-
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 "Module for the ImageComparisonPage class."
 
 from io import StringIO
+
 
 class ImageComparisonPage(object):
 
@@ -32,8 +34,8 @@ class ImageComparisonPage(object):
 table { border-width: 4 }
 body { margin: 0 0 0 0 ; padding: 0 0 0 0 }
 p { margin: 0 0 0 0 ; padding: 0 0 0 0 }
-h1, h2, h3, h4, h5,h6 { margin: 0 0 0 0 ; padding: 0 0 0 0 ; 
-			text-align: center }
+h1, h2, h3, h4, h5,h6 { margin: 0 0 0 0 ; padding: 0 0 0 0 ;
+                        text-align: center }
 ul { margin-top: 2px; margin-bottom: 2px }
 
 .titlebox { border: thick groove blue; padding: 5px 5px 5px 5px }
@@ -155,10 +157,8 @@ ul { margin-top: 2px; margin-bottom: 2px }
         if sources is None:
             sources = self.beforeImages() + self.afterImages()
         from SCons.Action import Action
-        action = Action(self.builder,
-                        cmdstr="Generating html comparison page $TARGET.abspath")
+        action = Action(self.builder, cmdstr=
+                        "Generating html comparison page $TARGET.abspath")
         page = env.Command(pagepath, [env.Value(contents)] + sources,
                            action)
         return page
-
-
