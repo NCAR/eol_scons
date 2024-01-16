@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 Add a Markdown builder which automatically detects a default markdown
 converter program but also allows overriding it with the MARKDOWN option.
@@ -11,7 +15,6 @@ Use it like this:
 
 import subprocess as sp
 
-import SCons
 from SCons.Script import Builder
 from SCons.Script import Action
 

@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 Tool for xmlrpc-c client with C++ interface.  Docs for the API are
 available at http://xmlrpc-c.sourceforge.net/.

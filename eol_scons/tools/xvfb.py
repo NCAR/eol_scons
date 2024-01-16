@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 This SCons tool took some inspiration from the xvfbwrapper package
 (https://pypi.python.org/pypi/xvfbwrapper/) to manage and share a

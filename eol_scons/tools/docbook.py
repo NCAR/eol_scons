@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 # SCons tool to add builders for rendering and publishing docbook files.
 #
 # A couple options have been used over the years.  One is the jw package
@@ -13,18 +17,15 @@
 # xmlto-xhtml may not be required for pdf and html output, but it's included
 # for good measure.
 
-
-import glob
 import os
-import SCons
 
 from SCons.Script import Builder
 
 
-def xmltohtml_emitter (target, source, env):
+def xmltohtml_emitter(target, source, env):
     outputdir = str(target[0].get_dir())
     # target = [ env.Dir (os.path.join(outputdir,"html")) ]
-    target = [ env.File (os.path.join(outputdir,"html","index.html")) ]
+    target = [env.File(os.path.join(outputdir, "html", "index.html"))]
     # print "emitter returning ", str(target[0]), str(source[0])
     return target, source
 
@@ -44,18 +45,18 @@ def xmltohtml_emitter (target, source, env):
 #   return None
 
 
-db2pdf = Builder(action = 'HOME=$HOME $DOCBOOK2PDF $SOURCE',
-                 suffix = '.pdf',
-                 src_suffix = '.xml')
-xmltopdf = Builder(action = '$XMLTO pdf -o $TARGET.dir $XMLTOFLAGS $SOURCE',
-                   suffix = '.pdf',
-                   src_suffix = '.xml')
-xmltohtml = Builder(action = '$XMLTO html-nochunks -o $TARGET.dir $XMLTOFLAGS $SOURCE',
-                     suffix = '.html',
-                     src_suffix = '.xml')
-xmltohtmlchunks = Builder(action = '$XMLTO html -o $TARGET.dir $XMLTOFLAGS $SOURCE',
-                    emitter = xmltohtml_emitter,
-                    src_suffix = '.xml')
+db2pdf = Builder(action='HOME=$HOME $DOCBOOK2PDF $SOURCE',
+                 suffix='.pdf',
+                 src_suffix='.xml')
+xmltopdf = Builder(action='$XMLTO pdf -o $TARGET.dir $XMLTOFLAGS $SOURCE',
+                   suffix='.pdf',
+                   src_suffix='.xml')
+xmltohtml = Builder(action='$XMLTO html-nochunks -o $TARGET.dir $XMLTOFLAGS $SOURCE',
+                    suffix='.html',
+                    src_suffix='.xml')
+xmltohtmlchunks = Builder(action='$XMLTO html -o $TARGET.dir $XMLTOFLAGS $SOURCE',
+                          emitter=xmltohtml_emitter,
+                          src_suffix='.xml')
 
 
 def publish_docbook(env, name, pubdir):
@@ -63,7 +64,7 @@ def publish_docbook(env, name, pubdir):
     html = env.DocbookHtmlChunks([name])
     env.Clean(html, [env.Dir("html")])
     pdf = env.DocbookPdf([name])
-    htmlinstall = env.Install(os.path.join(pubdir,"html"), html)
+    htmlinstall = env.Install(os.path.join(pubdir, "html"), html)
     env.AddPostAction(htmlinstall, "cp -r $SOURCE.dir/. $TARGET.dir")
     pdfinstall = env.Install(pubdir, pdf)
     html1install = env.Install(pubdir, html1)

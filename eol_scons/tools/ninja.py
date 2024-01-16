@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 This tool generates ninja rules by traversing the node tree and extracting
 command strings where possible.  Nodes with builders which do not translate to
@@ -292,7 +296,7 @@ def SeparateNodes(env, targets, ninjanodes, sconsnodes):
             print("building Value node with scons: %s" % (str(node)))
             sconsnodes.append(node)
         elif isinstance(node.builder.action, SCons.Action.FunctionAction):
-            print("building function node with scons: %s" % (str(node))) 
+            print("building function node with scons: %s" % (str(node)))
             sconsnodes.append(node)
         else:
             ninjanodes.append(node)

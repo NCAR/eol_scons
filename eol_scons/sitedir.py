@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 There was a time when importing eol_scons did not seem to work,
 especially when trying to use an alternate location for site_scons.  For

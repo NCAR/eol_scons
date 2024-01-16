@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 Add this tool to the project GLOBAL_TOOLS to run scons builds under the
 Clang Static Analyzer.  If this tool detects that scan-build is running

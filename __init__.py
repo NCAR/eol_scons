@@ -1,3 +1,8 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
+
 # All the python files for the eol_scons package are actually in the eol_scons
 # subdirectory.  This module sets the package __path__ to that subdirectory
 # and executes the package __init__.py file, so it is loaded into this

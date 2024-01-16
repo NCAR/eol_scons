@@ -1,5 +1,10 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 import os
 import eol_scons.parseconfig as pc
+
 
 def generate(env):
 
@@ -12,8 +17,8 @@ def generate(env):
     if debugpath:
         # Include headers directly from the src directory and link to the
         # static library with debug symbols.
-        env.AppendUnique(CPPPATH = os.path.join(debugpath, 'src'))
-        env.Append(LIBS = env.File(os.path.join(debugpath, 'libXmlRpcpp.a')))
+        env.AppendUnique(CPPPATH=os.path.join(debugpath, 'src'))
+        env.Append(LIBS=env.File(os.path.join(debugpath, 'libXmlRpcpp.a')))
         return
 
     # If xmlrpcpp pkg-config file exists, which is installed by the
@@ -61,15 +66,16 @@ def generate(env):
     # with debian systems.
 
     # if pkg-config file doesn't exist, look in the usual places
-    paths = [ '/usr/lib64', '/usr/lib' ]
+    paths = ['/usr/lib64', '/usr/lib']
     prefix = env.get('OPT_PREFIX')
     found = False
     if prefix:
-        paths[:0] = [ prefix + '/lib64', prefix + '/lib' ]
+        paths[:0] = [prefix + '/lib64', prefix + '/lib']
     for libpath in paths:
         prefix = os.path.dirname(libpath)
-        if (os.path.exists(os.path.join(libpath,'libxmlrpcpp.so'))):
-            env.AppendUnique(CPPPATH = [os.path.join(prefix,'include','xmlrpcpp')])
+        if (os.path.exists(os.path.join(libpath, 'libxmlrpcpp.so'))):
+            env.AppendUnique(CPPPATH=[os.path.join(prefix, 'include',
+                                                   'xmlrpcpp')])
             if prefix != '/usr':
                 env.AppendUnique(LIBPATH=[libpath])
             env.Append(LIBS=['xmlrpcpp'])
@@ -79,10 +85,10 @@ def generate(env):
     if not found:
         # if built and installed from the original source, the library
         # is called libXmlRpc.a
-        env.AppendUnique(CPPPATH=[os.path.join(prefix, 'include','XmlRpc')])
+        env.AppendUnique(CPPPATH=[os.path.join(prefix, 'include', 'XmlRpc')])
         env.AppendUnique(LIBPATH=[os.path.join(prefix, 'lib')])
         env.Append(LIBS=['XmlRpc'])
 
+
 def exists(env):
     return True
-

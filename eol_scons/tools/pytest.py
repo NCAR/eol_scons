@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 
 import SCons.Warnings
 
@@ -32,7 +36,6 @@ def PythonTest(env, name, script, **kw):
                          PYTHONTESTDIR=testdir, **kw)
     env.Alias(name, target)
     return target
-
 
 
 def PyTest(env, name, sources, **kw):
@@ -72,7 +75,7 @@ def generate(env):
     env.AddMethod(PythonTest, "PythonTest")
     env.AddMethod(PyDotTest, "PyDotTest")
     env.AddMethod(PyTest, "PyTest")
-                   
+
 
 def exists(env):
     return True

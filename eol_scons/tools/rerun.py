@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 Use GetBuildFailures() in recent SCons versions to cache the commands which
 cause a build to fail.  Then rerun just those commands in subsequent SCons

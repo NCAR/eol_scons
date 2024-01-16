@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 
 import os
 
@@ -10,16 +14,15 @@ import os
 # pre 1.34 installs to work as before, while 1.34 and after need to install
 # the boost-devel-static package.
 
+
 def generate(env):
-    slib='/usr/lib/libboost_unit_test_framework.a'
+    slib = '/usr/lib/libboost_unit_test_framework.a'
     env.Require('boost')
     if False and os.path.exists(slib):
-        env.Append (LIBS = [env.File(slib)])
+        env.Append(LIBS=[env.File(slib)])
     else:
-        env.Append (LIBS = ['boost_unit_test_framework'])
+        env.Append(LIBS=['boost_unit_test_framework'])
+
 
 def exists(env):
     return True
-
-
-

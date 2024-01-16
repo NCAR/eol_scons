@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 Qwt can be built against either Qt4 or Qt5, so this tool tries to
 figure out which is intended using the QT_VERSION variable.  If not set,
@@ -16,6 +20,7 @@ _options = None
 myKey = 'HAS_PACKAGE_QWT'
 USE_PKG_CONFIG = 'Using pkg-config'
 
+
 def find_lib_subdir(path):
     libs = ['lib']
     # Add lib64 if this is a 64-bit system
@@ -25,7 +30,7 @@ def find_lib_subdir(path):
         libpath = os.path.join(path, subdir)
         if os.path.exists(libpath):
             return libpath
-    return 
+    return
 
 
 class QwtTool(object):
@@ -53,7 +58,7 @@ class QwtTool(object):
 
         if (qwt_dir == USE_PKG_CONFIG):
             return
-            
+
         qwt_libdir = find_lib_subdir(qwt_dir)
 
         if env['PLATFORM'] != 'darwin':
@@ -61,7 +66,7 @@ class QwtTool(object):
             self.settings['LIBPATH'] = [qwt_libdir]
         else:
             self.settings['FRAMEWORKPATH'] = '/usr/local/opt/qwt/lib'
-            self.settings['FRAMEWORKS']    = 'qwt'
+            self.settings['FRAMEWORKS'] = 'qwt'
 
         if env['PLATFORM'] != 'darwin':
             if qwt_dir != "/usr":
@@ -69,7 +74,8 @@ class QwtTool(object):
             else:
                 print('Qwt Qt version ' + str(env.get('QT_VERSION')))
                 if env.get('QT_VERSION') != 5:
-                    self.settings['CPPPATH'] = [os.path.join(qwt_dir, 'include','qwt')]
+                    self.settings['CPPPATH'] = [
+                        os.path.join(qwt_dir, 'include', 'qwt')]
                 else:
                     # EOL's qwt-qt5-devel RPM installs Qwt headers under
                     # /usr/include/qt5/qwt. Use that if it exists, otherwise
@@ -83,12 +89,11 @@ class QwtTool(object):
                         self.settings['CPPPATH'] = '/usr/include/qwt'
 
         if env['PLATFORM'] == 'darwin':
-                self.settings['CPPPATH'] = '/usr/local/opt/qwt/lib/qwt.framework/Headers'
+            self.settings['CPPPATH'] = '/usr/local/opt/qwt/lib/qwt.framework/Headers'
 
-        plugindir='$QWTDIR/designer/plugins/designer'
+        plugindir = '$QWTDIR/designer/plugins/designer'
         self.settings['QT_UICIMPLFLAGS'] = ['-L', plugindir]
         self.settings['QT_UICDECLFLAGS'] = ['-L', plugindir]
-
 
     def apply_settings(self, env):
 
@@ -106,12 +111,13 @@ class QwtTool(object):
             env.ParseConfig('pkg-config --libs ' + self.pkgConfigName)
 
             if env['PLATFORM'] == 'darwin':
-              # On homebrew, the pkg-config includes points to class includes,
-              # not the actual headers (QwtPlot instead of qwt_plot.h).  So we
-              # need to build up a -I for the real incldues.
-              prefix = pc.PkgConfigVariable(env, 'Qt5Qwt6', 'libdir')
-              qwt_real_include_dir = prefix + '/qwt.framework/Headers'
-              env.AppendUnique(CPPPATH=qwt_real_include_dir)
+                # On homebrew, the pkg-config includes points to class
+                # includes, not the actual headers (QwtPlot instead of
+                # qwt_plot.h).  So we need to build up a -I for the real
+                # incldues.
+                prefix = pc.PkgConfigVariable(env, 'Qt5Qwt6', 'libdir')
+                qwt_real_include_dir = prefix + '/qwt.framework/Headers'
+                env.AppendUnique(CPPPATH=qwt_real_include_dir)
             return
 
         if env['PLATFORM'] != 'darwin':
@@ -157,6 +163,7 @@ class QwtTool(object):
                 return False
         return False
 
+
 def enable_qwt(env):
     # This configure test for qwt must be delayed, and not done
     # by the generate() function when this qwt tool is loaded.
@@ -173,9 +180,9 @@ def enable_qwt(env):
         # by this run of scons. Otherwise those libraries will be built
         # as part of the check, which leads to major confusion.
         # We need the Qt libraries, however.
-        qtlibs = [ lib for lib in env['LIBS'] if str(lib).startswith('Qt') ]
+        qtlibs = [lib for lib in env['LIBS'] if str(lib).startswith('Qt')]
         conf = env.Clone(LIBS=qtlibs).Configure(clean=False, help=False)
-        hasQwt = conf.CheckLibWithHeader('qwt','qwt.h','c++',autoadd=False)
+        hasQwt = conf.CheckLibWithHeader('qwt', 'qwt.h', 'c++', autoadd=False)
         conf.Finish()
 
     hasQwt = True
@@ -188,14 +195,16 @@ def enable_qwt(env):
         conf.Finish()
     return hasQwt
 
+
 qwt_tool = QwtTool()
+
 
 def find_qwtdir(env):
     qwtdir = None
 
     pkgConfigKnowsQwt = qwt_tool.findPkgConfig(env)
 
-    # 
+    #
     # Try to find the Qwt installation location, trying in order:
     #    o command line QWTDIR option (or otherwise set in the environment)
     #    o OS environment QWTDIR
@@ -222,7 +231,7 @@ def generate(env):
     global _options
     if not _options:
         _options = env.GlobalVariables()
-        _options.AddVariables(PathVariable('QWTDIR', 'Qwt installation root.', 
+        _options.AddVariables(PathVariable('QWTDIR', 'Qwt installation root.',
                                            None))
     _options.Update(env)
 
@@ -233,13 +242,12 @@ def generate(env):
         #
         # We should also require Qt here, but which version?
         #
-        #env.Require(['qt', 'doxygen'])
+        # env.Require(['qt', 'doxygen'])
         env.Require(['doxygen'])
-        
+
     qwt_tool.require(env)
     env[myKey] = True
 
 
 def exists(env):
     return True
-

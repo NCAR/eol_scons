@@ -1,12 +1,18 @@
-# Tool which provides a builder to use tdrp_gen to build Params.cc and Params.hh
-# from file paramdef.<appname>.
+# Copyright (c) 2007-present, NSF NCAR, UCAR
 #
-# After loading this tool in env, just add:
-#
-#     env.tdrpParamFiles('foo')
-#
-# to cause Params.cc and Params.hh to be generated for app 'foo' from
-# file paramdef.foo.
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
+"""
+Tool which provides a builder to use tdrp_gen to build Params.cc and Params.hh
+from file paramdef.<appname>.
+
+After loading this tool in env, just add:
+
+    env.tdrpParamFiles('foo')
+
+to cause Params.cc and Params.hh to be generated for app 'foo' from file
+paramdef.foo.
+"""
 import os
 import SCons
 from SCons.Builder import Builder
@@ -43,7 +49,7 @@ def tdrpGenerator(source, target, env, for_signature):
     # running tdrp_gen. We must do this because tdrp_gen explcitly generates
     # Params.cc and Params.hh in the current working directory.
     srcdir = os.path.split(source[0].path)[0]
-   
+
     # The application name is the extension of the source file. I.e.,
     # if the source file is 'paramdef.foo', the application name is 'foo'.
     appname = source[0].name.split('.')[-1]

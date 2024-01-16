@@ -1,4 +1,9 @@
-"""scons armhf tool
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
+"""
+scons armhf tool
 
 Customize an environment to use the GCC ARM cross-compiler tools for
 armhf: arm-linux-gnueabihf-*
@@ -9,25 +14,28 @@ import eol_scons.utils
 
 prefix = 'arm-linux-gnueabihf'
 
-def generate(env,**kw):
+
+def generate(env, **kw):
     """
     Add construction variables for C compilers to an Environment.
     """
 
-    env.Replace(AR	= prefix + '-ar')
-    env.Replace(AS	= prefix + '-as')
-    env.Replace(CC	= prefix + '-gcc')
-    env.Replace(LD	= prefix + '-ld')
-    env.Replace(CXX	= prefix + '-g++')
-    env.Replace(LINK	= prefix + '-g++')
-    env.Replace(RANLIB	= prefix + '-ranlib')
-    env.Replace(KMAKE   = 'make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=' + prefix + '-')
+    env.Replace(AR=prefix + '-ar')
+    env.Replace(AS=prefix + '-as')
+    env.Replace(CC=prefix + '-gcc')
+    env.Replace(LD=prefix + '-ld')
+    env.Replace(CXX=prefix + '-g++')
+    env.Replace(LINK=prefix + '-g++')
+    env.Replace(RANLIB=prefix + '-ranlib')
+    env.Replace(
+        KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=' + prefix + '-')
 
     # if a multiarch pkgconfig path exists, add it to PKG_CONFIG_PATH
-    pkgpath = os.path.join("/usr","lib",prefix,"pkgconfig")
+    pkgpath = os.path.join("/usr", "lib", prefix, "pkgconfig")
     if os.path.isdir(pkgpath):
-        env.PrependENVPath("PKG_CONFIG_PATH",pkgpath)
-        print("armhfcross: PKG_CONFIG_PATH=%s" % (env['ENV']['PKG_CONFIG_PATH']))
+        env.PrependENVPath("PKG_CONFIG_PATH", pkgpath)
+        print("armhfcross: PKG_CONFIG_PATH=%s" %
+              (env['ENV']['PKG_CONFIG_PATH']))
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if arm-linux-gcc is
@@ -41,16 +49,16 @@ def generate(env,**kw):
 
     if not exists(env):
         print("*** %s not found on path: %s" %
-                  (env['CC'], env['ENV']['PATH']))
+              (env['CC'], env['ENV']['PATH']))
         return
 
-    print("armhfcross: found %s and %s" % 
+    print("armhfcross: found %s and %s" %
           (env.WhereIs(env['CC']), env.WhereIs(env['CXX'])))
 
     cxxrev = eol_scons.utils.get_cxxversion(env)
     if cxxrev != None:
-        env.Replace(CXXVERSION = cxxrev)
+        env.Replace(CXXVERSION=cxxrev)
+
 
 def exists(env):
     return bool(env.Detect(prefix + '-gcc')) and bool(env.Detect(prefix + '-g++'))
-

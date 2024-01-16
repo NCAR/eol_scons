@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 
 def _sphinxhtml(env, build, source):
     """
@@ -20,7 +24,9 @@ def _sphinxhtml(env, build, source):
     env.AlwaysBuild(targets)
     return env.Alias('html', targets)
 
+
 _variables = None
+
 
 def generate(env):
     "Tool to add pseudo-builders for sphinx documentation from python."
@@ -34,14 +40,14 @@ def generate(env):
                                  "to re-generate all outputs.", ""))
     _variables.Update(env)
     if env.Detect('sphinx-build'):
-        env.SetDefault(SPHINXBUILD   = "sphinx-build")
+        env.SetDefault(SPHINXBUILD="sphinx-build")
     else:
-        env.SetDefault(SPHINXBUILD   = "sphinx-build-2")
+        env.SetDefault(SPHINXBUILD="sphinx-build-2")
     # env.SetDefault(SPHINXOPTS    = "")
-    env.SetDefault(SPHINXPAPEROPT = "-D latex_paper_size=letter")
-    env.SetDefault(SPHINXALLOPTS  = "${SPHINXPAPEROPT} ${SPHINXOPTS}")
+    env.SetDefault(SPHINXPAPEROPT="-D latex_paper_size=letter")
+    env.SetDefault(SPHINXALLOPTS="${SPHINXPAPEROPT} ${SPHINXOPTS}")
     env.AddMethod(_sphinxhtml, "SphinxHTML")
+
 
 def exists(env):
     return env.Detect('sphinx-build')
-

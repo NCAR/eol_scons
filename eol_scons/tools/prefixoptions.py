@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 
 import os
 import sys
@@ -10,17 +14,18 @@ _options = None
 # all of the install methods.  The INSTALL_PREFIX can default to OPT_PREFIX
 # when it exists.
 
+
 def SetupVariables(env):
     global _options
     _options = env.GlobalVariables()
     default_opt = '$DEFAULT_OPT_PREFIX'
     default_install = '$DEFAULT_INSTALL_PREFIX'
-    _options.Add ('OPT_PREFIX',
-                  "The common prefix for external tools and libraries.",
-                  default_opt)
-    _options.Add ('INSTALL_PREFIX',
-                  "The root installation directory for bin, lib, and include.",
-                  default_install)
+    _options.Add('OPT_PREFIX',
+                 "The common prefix for external tools and libraries.",
+                 default_opt)
+    _options.Add('INSTALL_PREFIX',
+                 "The root installation directory for bin, lib, and include.",
+                 default_install)
 
 
 def AppendCppLastPath(env, incdir):
@@ -60,9 +65,9 @@ def OptPrefixSetup(env):
     if not opt_prefix:
         return env
     # Use the expanded variables to check for path existence.
-    opt_lib=os.path.join(opt_prefix, "lib")
-    opt_inc=os.path.join(opt_prefix, "include")
-    opt_bin=os.path.join(opt_prefix, "bin")
+    opt_lib = os.path.join(opt_prefix, "lib")
+    opt_inc = os.path.join(opt_prefix, "include")
+    opt_bin = os.path.join(opt_prefix, "bin")
     if os.path.exists(opt_bin):
         # Prepend opt bin path so that -config tools like log4cpp-config
         # will be found first and used.
@@ -113,47 +118,56 @@ def OptPrefixSetup(env):
 # expected for those setups that count on a 'default' install alias to
 # install everything under INSTALL_PREFIX.
 
-def Install (self, *args, **kw):
-    """Add 'install' alias to targets created with standard Install() method."""
+def Install(self, *args, **kw):
+    "Add 'install' alias to targets created with standard Install() method."
     inst = self._prefixoptions_StandardInstall(*args, **kw)
     self.Alias('install', inst)
     return inst
 
-def InstallAs (self, *args, **kw):
-    """Add 'install' alias to targets created with standard Install() method."""
-    inst = self._prefixoptions_StandardInstallAs (*args, **kw)
+
+def InstallAs(self, *args, **kw):
+    "Add 'install' alias to targets created with standard Install() method."
+    inst = self._prefixoptions_StandardInstallAs(*args, **kw)
     self.Alias('install', inst)
     return inst
 
-def InstallLibrary (self, source):
-    """Convenience method to install a library into INSTALL_LIBDIR."""
-    return self.Install (self['INSTALL_LIBDIR'], source)
 
-def InstallPythonLibrary (self, source):
+def InstallLibrary(self, source):
+    """Convenience method to install a library into INSTALL_LIBDIR."""
+    return self.Install(self['INSTALL_LIBDIR'], source)
+
+
+def InstallPythonLibrary(self, source):
     """
     Convenience method to install a python library into INSTALL_PYTHON_LIBDIR.
     """
-    return self.Install (self['INSTALL_PYTHON_LIBDIR'], source)
+    return self.Install(self['INSTALL_PYTHON_LIBDIR'], source)
 
-def InstallProgram (self, source):
-    return self.Install (self['INSTALL_BINDIR'], source)
 
-def InstallConfig (self, source):
-    return self.Install (self['INSTALL_CONFIGDIR'], source)
+def InstallProgram(self, source):
+    return self.Install(self['INSTALL_BINDIR'], source)
 
-def InstallEtc (self, source):
-    return self.Install (self['INSTALL_ETCDIR'], source)
 
-def InstallShare (self, subdir, source):
+def InstallConfig(self, source):
+    return self.Install(self['INSTALL_CONFIGDIR'], source)
+
+
+def InstallEtc(self, source):
+    return self.Install(self['INSTALL_ETCDIR'], source)
+
+
+def InstallShare(self, subdir, source):
     """
     Install _source_ at INSTALL_DIR/share/_subdir_/_source_
     """
     dir = os.path.join(self['INSTALL_SHAREDIR'], subdir)
-    return self.Install (dir, source)
+    return self.Install(dir, source)
 
-def InstallHeaders (self, subdir, source):
-    incdir = os.path.join(self['INSTALL_INCDIR'],subdir)
-    return self.Install (incdir, source)
+
+def InstallHeaders(self, subdir, source):
+    incdir = os.path.join(self['INSTALL_INCDIR'], subdir)
+    return self.Install(incdir, source)
+
 
 def InstallPrefixSetup(env):
     # Rather than depend upon OPT_PREFIX to be set, supply our own default
@@ -161,7 +175,7 @@ def InstallPrefixSetup(env):
     # methods all depend upon some reasonable install path.  The default
     # install prefix has no affect unless INSTALL_PREFIX has not been
     # changed.
-    if not env.subst(env.get('DEFAULT_INSTALL_PREFIX','')):
+    if not env.subst(env.get('DEFAULT_INSTALL_PREFIX', '')):
         if sys.platform == 'darwin':
             env['DEFAULT_INSTALL_PREFIX'] = '/usr/local'
         else:
@@ -207,6 +221,7 @@ def generate(env):
     _options.Update(env)
     OptPrefixSetup(env)
     InstallPrefixSetup(env)
+
 
 def exists(env):
     return True

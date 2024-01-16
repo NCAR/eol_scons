@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 
 import os
 import re
@@ -7,8 +11,9 @@ _options = None
 pylint = "${PYLINTPYTHONPATH and 'env PYTHONPATH='+PYLINTPYTHONPATH or ''} "
 pylint += "${PYLINT} ${PYLINTARGS} "
 pylint += "${PYLINTRC and '--rcfile='+str(PYLINTRC) or ''} ${SOURCES} 2>&1"
-#pylint += '| egrep -v "maximum recursion depth exceeded.*ignored" | '
-#pylint += 'egrep -v "Instance of \'Popen\' has no \'.*\' member"'
+# pylint += '| egrep -v "maximum recursion depth exceeded.*ignored" | '
+# pylint += 'egrep -v "Instance of \'Popen\' has no \'.*\' member"'
+
 
 def find_python_files(env, topdir, excludes=None):
     found = []
@@ -16,7 +21,7 @@ def find_python_files(env, topdir, excludes=None):
         excludes = []
     excludes = [env.File(xf).get_abspath() for xf in excludes]
     for root, dirs, files in os.walk(str(env.Dir(topdir))):
-        dirs[:] = [ d for d in dirs if d not in ['.svn', 'CVS'] ]
+        dirs[:] = [d for d in dirs if d not in ['.svn', 'CVS']]
         for f in files:
             if not re.match("[^.].*\.py$", f):
                 continue
@@ -34,6 +39,7 @@ def PythonLint(env, name, sources, **kw):
 
 pylintrc = os.path.join(os.path.dirname(__file__), "pylintrc")
 
+
 def generate(env):
     global _options
     if not _options:
@@ -46,7 +52,7 @@ def generate(env):
     env.SetDefault(PYLINTRC=pylintrc)
     env.SetDefault(PYLINTARGS='')
     env.SetDefault(PYLINTPYTHONPATH=env.Dir('.').path)
-                   
+
 
 def exists(env):
     return env.Detect('pylint')

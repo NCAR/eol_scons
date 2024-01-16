@@ -1,3 +1,7 @@
+# Copyright (c) 2007-present, NSF NCAR, UCAR
+#
+# This source code is licensed under the MIT license found in the LICENSE
+# file in the root directory of this source tree.
 """
 cppcheck is a straightforward C++ code checker, with lots of checks for
 bad code, poor style, and inefficient code.  It can accept typical C++
