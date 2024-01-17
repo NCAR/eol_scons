@@ -4,7 +4,7 @@ Name: eol_scons
 Version: 4.2.5
 Release: %{releasenum}%{?dist}
 Summary: EOL SCons tools
-License: GPL
+License: MIT
 Group: System Environment/Daemons
 URL: https://github.com/NCAR/eol_scons
 Vendor: UCAR
