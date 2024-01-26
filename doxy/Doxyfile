@@ -936,10 +936,6 @@ WARN_LOGFILE           =
 
 INPUT                  = eol_scons/README \
                          mainpage.dox \
-                         ../examples/SConstruct \
-                         ../examples/logx/tool_logx_example.py \
-                         ../examples/datastore/SConscript \
-                         ../examples/aeros/SConscript \
                          eol_scons \
                          eol_scons/tools \
                          ../README.md \

@@ -388,17 +388,27 @@ following sections cover the public functions.
 
 @subsection examples Examples
 
-Underneath the site_scons directory is an 'examples' directory.  This
-directory contains example SConstruct, SConscript, and tool files lifted
-directly from the 'aeros' project source tree, just without the source.
-These files can be used as templates for new projects, new source
-directories, or as reference examples for some of the techniques mentioned
-here.
+Below are some examples of projects which use eol_scons:
 
-@li @ref examples/SConstruct
-@li @ref examples/logx/tool_logx_example.py
-@li @ref examples/datastore/SConscript
-@li @ref examples/aeros/SConscript
+- Library: [logx](https://github.com/NCAR/logx/)
+- Library: [domx](https://github.com/NCAR/domx)
+- Full project: [NIDAS](https://github.com/ncareol/nidas)
+- Single application: [acTrack2kml](https://github.com/NCAR/kml_tools/tree/master/acTrack2kml)
+
+For EOL developers, these projects are also good examples, but they are not
+public:
+
+- [AEROS](https://github.com/NCAR/aeros)
+- [ASPEN](https://github.com/NCAR/aspen)
+
+The libraries contain examples of SConscript files and tools for embedding a
+module into another project.  The [NIDAS
+SConstruct](https://github.com/ncareol/nidas/blob/master/src/SConstruct) is a
+good example of a few techniques:
+
+- Providing both brief and verbose help for build settings and aliases.
+- Variant builds derived from target OS and architecture.
+- Separating config from build to enable `-Werror` on compile.
 
 @section globalvariables GlobalVariables()
 
@@ -545,11 +555,6 @@ I'm concerned, it seems legitimate to assume that a module or tool is only
 ever loaded once.  That's why the eol_scons Tool() method overrides the
 scons standard method to only load a tool once.]
 
-A similar issue occurs if a module is imported under two names.  For
-example, the 'chdir.py' module can be imported either as 'eol_scons.chdir'
-or just 'chdir'.  It appears that python will load that module under both
-names, causing any module-scope code to be executed twice.
-
 Tools are python modules and not SConscript files, so certain functions and
 symbols are not available in the global namespace as they are in SConscript
 files.  The symbols available globally in a SConscript file can be imported
@@ -562,9 +567,11 @@ by a tool from the `SCons.Script` package.  Here's an example:
 @endcode
 
 To refer to tools defined in SConscript files in other directories within a
-source tree, Export() the tool function in the SConscript file, then
-Import() it in the SConscript files which need it.  See the examples
-directory.
+source tree, Export() the tool function in the SConscript file, then just
+reference the exported name as a tool in the SConscript files which need it,
+such as in the `tools` argument to `Environment()` or in the `Require()` or
+`Tool()` methods.  See the examples section for projects which demonstrate
+this.
 
 @section configuration Configuration
 
