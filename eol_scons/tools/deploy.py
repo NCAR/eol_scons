@@ -3,8 +3,6 @@ import SCons
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from SCons.Defaults import Copy
-
 from eol_scons.ldd import ldd
 
 # As of scons 1.2 the Mkdir action works even if the directory exists.
@@ -35,7 +33,11 @@ def deploy_program_emitter(target, source, env):
     # that variable is not referenced anywhere scons can detect it.  So add
     # it as an explicit dependency node.
     libslist = env.Value(",".join(env['DEPLOY_SHARED_LIBS']))
-    return [dest], source+[libslist]
+    target = [dest]
+    source = source+[libslist]
+    env.LogDebug("deploy_program_emitter()->%s, %s" %
+                 ([str(t) for t in target], [str(s) for s in source]))
+    return target, source
 
 
 def deploy_program(target, source, env):
@@ -52,7 +54,8 @@ def deploy_program(target, source, env):
     actions = [Mkdir(bindir), Mkdir(libdir)]
     progdest = target[0]
     libraries = ldd(source[0], env, env['DEPLOY_SHARED_LIBS'])
-    actions.append(Copy(progdest, source[0]))
+    cp = 'cp -fp'
+    actions.append(f'{cp} "{source[0]}" "{progdest}"')
     for k in libraries:
         libfile = libraries[k]
         libdest = os.path.join(libdir, libfile.name)
@@ -61,7 +64,7 @@ def deploy_program(target, source, env):
         # scons v2.3.5. This created a problem when copying symlinked
         # objects such as system dynamic libraries.  This should be portable
         # enough since deploy is not used on Windows.
-        actions.append(Action('cp ' + libfile.get_abspath() + ' ' + libdest))
+        actions.append(Action(f'{cp} "{libfile.get_abspath()}" "{libdest}"'))
     return env.Execute(actions)
 
 
