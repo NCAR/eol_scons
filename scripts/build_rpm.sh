@@ -118,7 +118,7 @@ get_releasenum() # version
     # yum on centos7 does not support --refresh or --repofrompath, so for now
     # resort to relying on the eol repo to be already defined, and explicitly
     # update the cache for it...
-    yum="yum --disablerepo=* --enablerepo=eol-signed"
+    yum="yum --disablerepo=* --enablerepo=eol"
     $yum makecache
     entry=`$yum list $pkgname egrep $pkgname | tail -1`
     echo "$entry"
