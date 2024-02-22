@@ -27,6 +27,9 @@ snapshot_specfile=
 # links.
 builddir=build
 
+rpmargs="--define=debug_package %{nil}"
+
+
 set -o pipefail
 
 topdir=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
@@ -112,7 +115,7 @@ get_releasenum() # version
     # release num for each version.
     local eolreponame
     get_eolreponame
-    url="https://archive.eol.ucar.edu/software/rpms/${eolreponame}-signed"
+    url="https://archive.eol.ucar.edu/software/rpms/${eolreponame}"
     url="$url/\$releasever/\$basearch"
     yum="yum --refresh --repofrompath eol-temp,$url --repo=eol-temp"
     # yum on centos7 does not support --refresh or --repofrompath, so for now
@@ -233,7 +236,7 @@ get_rpms() # specfile releasenum
     # made a difference in practice.  This could be fixed by making the arch
     # directory part of the package name in the query format.
     rpms=(`echo "$srpm" ; \
-           rpmspec --define "releasenum $releasenum" -q --queryformat="${qfrpm}\n" "${specfile}" | \
+           rpmspec "$rpmargs" --define="releasenum $releasenum" -q --queryformat="${qfrpm}\n" "${specfile}" | \
            while read rpmf; do \
                echo "$topdir/RPMS/$arch/${rpmf}" ; \
            done`)
@@ -301,8 +304,7 @@ EOF
     rpmbuild -v -ba \
         --define "_topdir $topdir"  \
         --define "releasenum $releasenum" \
-        --define "debug_package %{nil}" \
-        $specfile || exit $?
+        "$rpmargs" $specfile || exit $?
     set +x
 
     cat /dev/null > rpms.txt
