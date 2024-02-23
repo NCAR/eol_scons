@@ -14,12 +14,12 @@ if not conftest.called_from_test:
     # directory, then no import is needed to apply eol_scons just like a tool.
 
     env = Environment(tools=['default', 'eol_scons_tool', 'prefixoptions',
-                             'netcdf'])
+                             'gsl'])
     variables = env.GlobalVariables()
 
     # And not applying the eol_scons tool means no eol_scons extensions.
     try:
-        env = Environment(tools=['default', 'prefixoptions', 'netcdf'])
+        env = Environment(tools=['default', 'prefixoptions', 'gsl'])
         variables = env.GlobalVariables()
     except AttributeError:
         print("Exception raised as expected.")

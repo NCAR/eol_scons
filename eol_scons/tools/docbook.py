@@ -18,7 +18,6 @@
 # for good measure.
 
 import os
-
 from SCons.Script import Builder
 
 
@@ -45,7 +44,7 @@ def xmltohtml_emitter(target, source, env):
 #   return None
 
 
-db2pdf = Builder(action='HOME=$HOME $DOCBOOK2PDF $SOURCE',
+db2pdf = Builder(action='$DOCBOOK2PDF $SOURCE',
                  suffix='.pdf',
                  src_suffix='.xml')
 xmltopdf = Builder(action='$XMLTO pdf -o $TARGET.dir $XMLTOFLAGS $SOURCE',
@@ -72,11 +71,9 @@ def publish_docbook(env, name, pubdir):
 
 
 def generate(env):
-
     env.SetDefault(XMLTO='xmlto')
     env.SetDefault(XMLTOFLAGS='')
     env.SetDefault(DOCBOOK2PDF='docbook2pdf')
-    env.SetDefault(HOME=os.environ['HOME'])
     env['BUILDERS']['DocbookHtml'] = xmltohtml
     env['BUILDERS']['DocbookHtmlChunks'] = xmltohtmlchunks
     env['BUILDERS']['DocbookPdf'] = xmltopdf

@@ -30,7 +30,8 @@ def run_scons(sconsfile):
     print("%s", " ".join(cmd))
     # whatever test runs this will fail with an exception if the sconscript
     # fails
-    task = sp.run(cmd, capture_output=True, universal_newlines=True)
+    task = sp.run(cmd, universal_newlines=True,
+                  stdout=sp.PIPE, stderr=sp.STDOUT)
     print(task.stdout)
     task.check_returncode()
     return task

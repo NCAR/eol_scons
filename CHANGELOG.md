@@ -2,6 +2,9 @@
 
 ## [Unreleased] - Unreleased changes
 
+- fix staticlink.py tool when LIBPATH is not set: fixes error message
+  `NoneType object is not subscriptable trying to evaluate
+  ${_replace_static_libraries(__env__)}`
 - many obsolete and (presumed) unused tools have been removed
 - gcc.py tool: Sanitized output no longer needs to be translated, so
   AsanFilter() has been removed.  See gcc.py for details.

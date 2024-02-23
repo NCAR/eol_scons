@@ -71,7 +71,8 @@ def _replace_static_libraries(env):
     liblinkprefix = env.get("LIBLINKPREFIX")  # eg '-l'
     liblinksuffix = env.get("LIBLINKSUFFIX")  # eg ''
 
-    searchpaths = env.get('LIBPATH')[:]
+    libpath = env.get('LIBPATH', [])
+    searchpaths = libpath[:]
     # This is a kludge but a sort of failsafe, since the primary motivation
     # for this tool is to get static linking of boost_serialization, and so
     # on OSX this is equivalent to the original working fix of hardcoding

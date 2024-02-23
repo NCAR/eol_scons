@@ -57,6 +57,7 @@ _builder = Builder(action=Action(MarkdownBuilder, MarkdownMessage,
                                  varlist=["MARKDOWN_COMMAND",
                                           "MARKDOWN_DICT"]))
 
+
 def generate(env):
     if env['BUILDERS'].get('Markdown'):
         return
@@ -78,6 +79,6 @@ def generate(env):
         env['MARKDOWN_COMMAND'] = 'markdown2'
     env['BUILDERS']['Markdown'] = _builder
 
+
 def exists(env):
     return _detect(env)
-

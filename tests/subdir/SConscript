@@ -2,7 +2,7 @@
 
 from SCons.Script import Environment, Return
 
-subenv = Environment(tools=["default"], GLOBAL_TOOLS=['netcdf'])
+subenv = Environment(tools=["default"], GLOBAL_TOOLS=['gsl'])
 subtools = subenv.GlobalTools()
 print("subtools = %s" % (subtools))
 

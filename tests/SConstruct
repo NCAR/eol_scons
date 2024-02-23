@@ -34,6 +34,9 @@ ignore_tools = ['gcc', 'msvc',
                 'armcross',
                 'armbecross',
                 'windriver',
+                'netcdf',
+                'netcdfcxx',
+                'netcdfcxx4'
                 ]
 for it in ignore_tools:
     toolnames.remove(it)
@@ -75,18 +78,18 @@ def test_2_extend_root_tools():
 
 def test_3_subdir_global_tools():
     print("subenv GLOBAL_TOOLS = %s" % (subtools))
-    assert 'netcdf' in subtools
+    assert 'gsl' in subtools
     assert len(subtools) == 1
     # Make sure the parent tools were also applied.
     tools = subenv['TOOLS']
-    assert 'netcdf' in tools
+    assert 'gsl' in tools
     assert 'prefixoptions' in tools
     assert 'z' in tools
     # Make sure a root environment does not have a global tool
     # from a subdirectory, and the root global tools have
     # not changed.
     gtools = env3tools
-    assert 'netcdf' not in gtools
+    assert 'gsl' not in gtools
     assert 'prefixoptions' in gtools
     assert 'z' in gtools
     assert len(gtools) == 2
@@ -98,7 +101,7 @@ def test_4_subdir_subdir_global_tools():
     assert len(subtools) == 0
     # Make sure the parent tools were also applied.
     tools = subenv['TOOLS']
-    assert 'netcdf' in tools
+    assert 'gsl' in tools
     assert 'prefixoptions' in tools
     assert 'z' in tools
 
@@ -144,17 +147,24 @@ def test_7_load_all_tools():
     # Test each tool individually, so we can catch SCons.Errors.StopError
     # from the tools which abort if their component is not found.
     tut = dict([(name, None) for name in toolnames])
-    tut['readyflow'] = SCons.Errors.StopError
     tut['cppunit'] = SCons.Errors.StopError
     if env.Detect('cppunit-config'):
         tut['cppunit'] = None
-    tut['lrose'] = SCons.Errors.StopError
-    tut['apar'] = SCons.Errors.StopError
-    tut['canfestival'] = SCons.Errors.StopError
-    tut['osxqtapp'] = SCons.Errors.StopError
-    tut['xmlrpc_server_abyss++'] = SCons.Errors.StopError
-    tut['boost_python'] = (lambda result: result is None or
-                           isinstance(result, SCons.Errors.StopError))
+    # these may or may not stop, depending on platform and what's installed,
+    # but the result should be one or the other.
+    stop_or_none = (lambda result: result is None or
+                    isinstance(result, SCons.Errors.StopError))
+    tut['readyflow'] = stop_or_none
+    tut['lrose'] = stop_or_none
+    tut['apar'] = stop_or_none
+    tut['canfestival'] = stop_or_none
+    tut['osxqtapp'] = stop_or_none
+    tut['xmlrpc_server_abyss++'] = stop_or_none
+    tut['boost_python'] = stop_or_none
+    tut['boost_thread'] = stop_or_none
+    tut['netcdf'] = stop_or_none
+    tut['netcdfcxx'] = stop_or_none
+
     # No point testing these directly since they conflict.  Tools which
     # do require qt modules will be tested with QT_VERSION=5.
     del tut['qt4']
