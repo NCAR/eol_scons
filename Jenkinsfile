@@ -33,6 +33,11 @@ pipeline {
           }
         }
         stages {
+          stage('Testing') {
+            steps {
+              sh 'scons test'
+            }
+          }
           stage('Build RPM packages') {
             steps {
               sh './jenkins.sh build_rpms'
@@ -58,6 +63,11 @@ pipeline {
           }
         }
         stages {
+          stage('Testing') {
+            steps {
+              sh 'scons test'
+            }
+          }
           stage('Build RPM packages') {
             steps {
               sh './jenkins.sh build_rpms'
@@ -83,6 +93,11 @@ pipeline {
           }
         }
         stages {
+          stage('Testing') {
+            steps {
+              sh 'scons test'
+            }
+          }
           stage('Build Debian packages') {
             steps {
               sh 'scripts/build_dpkg.sh -I bionic i386'
