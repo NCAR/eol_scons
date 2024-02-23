@@ -1,10 +1,6 @@
 pipeline {
 
-  agent {
-     node {
-        label 'CentOS8_x86_64'
-        }
-  }
+  agent none
 
   options {
     buildDiscarder(
@@ -21,31 +17,81 @@ pipeline {
     pollSCM('H/30 * * * *')
   }
 
+  // this smight be better done as a matrix, but I can't tell if matrix cells
+  // run in parallel.
+
   stages {
-    // stage('Checkout Scm') {
-    //   steps {
-    //     git 'https://github.com/NCAR/eol_scons'
-    //   }
-    // }
 
-    stage('Build RPM packages') {
-      steps {
-        sh './jenkins.sh build_rpms'
+    stage('Running CentOS8, CentOS9, Ubuntu32') {
+
+    parallel {
+
+      stage('CentOS8_x86_64') {
+        agent {
+          node {
+            label 'CentOS8_x86_64'
+          }
+        }
+        stages {
+          stage('Build RPM packages') {
+            steps {
+              sh './jenkins.sh build_rpms'
+            }
+          }
+          stage('Sign RPM packages') {
+            steps {
+              sh './jenkins.sh sign_rpms'
+            }
+          }
+          stage('Push RPM packages to EOL repository') {
+            steps {
+              sh './jenkins.sh push_rpms'
+            }
+          }
+        }
+      }
+
+      stage('CentOS9_x86_64') {
+        agent {
+          node {
+            label 'CentOS9_x86_64'
+          }
+        }
+        stages {
+          stage('Build RPM packages') {
+            steps {
+              sh './jenkins.sh build_rpms'
+            }
+          }
+          stage('Sign RPM packages') {
+            steps {
+              sh './jenkins.sh sign_rpms'
+            }
+          }
+          stage('Push RPM packages to EOL repository') {
+            steps {
+              sh './jenkins.sh push_rpms'
+            }
+          }
+        }
+      }
+
+      stage('ub32') {
+        agent {
+          node {
+            label 'ub32'
+          }
+        }
+        stages {
+          stage('Build Debian packages') {
+            steps {
+              sh 'scripts/build_dpkg.sh -I bionic i386'
+            }
+          }
+        }
       }
     }
-
-    stage('Sign RPM packages') {
-      steps {
-        sh './jenkins.sh sign_rpms'
-      }
-    }
-
-    stage('Push RPM packages to EOL repository') {
-      steps {
-        sh './jenkins.sh push_rpms'
-      }
-    }
-
+  }
   }
 
   post {
