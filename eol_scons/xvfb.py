@@ -3,8 +3,10 @@
 import os
 import subprocess as sp
 import select
+import shutil
 
-class Xvfb(object):
+
+class Xvfb:
 
     """
     Wrap a Xvfb subprocess and provide methods to start and stop it.
@@ -16,6 +18,9 @@ class Xvfb(object):
         self.proc = None
         self.dpipe = None
         self.displayfd = None
+
+    def detected(self):
+        return shutil.which('Xvfb') is not None
 
     def start(self):
         dpipe = os.pipe()

@@ -1,5 +1,3 @@
-import os
-
 
 def generate(env):
     # Look for udunits, and if not found look for udunits2.  We need a
@@ -13,6 +11,7 @@ def generate(env):
         env.Append(LIBS=['udunits2'])
         env.Append(CPPPATH=['/usr/include/udunits2'])
     ckenv = conf.Finish()
+
 
 def exists(env):
     return True

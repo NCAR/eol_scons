@@ -147,20 +147,21 @@ def test_7_load_all_tools():
     # Test each tool individually, so we can catch SCons.Errors.StopError
     # from the tools which abort if their component is not found.
     tut = dict([(name, None) for name in toolnames])
-    tut['readyflow'] = SCons.Errors.StopError
     tut['cppunit'] = SCons.Errors.StopError
     if env.Detect('cppunit-config'):
         tut['cppunit'] = None
-    tut['lrose'] = SCons.Errors.StopError
-    tut['apar'] = SCons.Errors.StopError
-    tut['canfestival'] = SCons.Errors.StopError
-    tut['osxqtapp'] = SCons.Errors.StopError
     # these may or may not stop, depending on platform and what's installed,
     # but the result should be one or the other.
     stop_or_none = (lambda result: result is None or
                     isinstance(result, SCons.Errors.StopError))
+    tut['readyflow'] = stop_or_none
+    tut['lrose'] = stop_or_none
+    tut['apar'] = stop_or_none
+    tut['canfestival'] = stop_or_none
+    tut['osxqtapp'] = stop_or_none
     tut['xmlrpc_server_abyss++'] = stop_or_none
     tut['boost_python'] = stop_or_none
+    tut['boost_thread'] = stop_or_none
     tut['netcdf'] = stop_or_none
     tut['netcdfcxx'] = stop_or_none
 

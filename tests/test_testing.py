@@ -53,12 +53,18 @@ if not conftest.called_from_test:
                         SPAWN=SpawnerLogger("saver.log"))
 
 
+def ensure_removed(path: str):
+    try:
+        Path(path).unlink()
+    except FileNotFoundError:
+        pass
+
 @pytest.fixture(scope="module")
 def sconscript_task():
-    Path('junk.log').unlink(True)
-    Path('junk2.log').unlink(True)
-    Path('xtest.log').unlink(True)
-    Path('saver.log').unlink(True)
+    ensure_removed('junk.log')
+    ensure_removed('junk2.log')
+    ensure_removed('xtest.log')
+    ensure_removed('saver.log')
     return conftest.run_scons(_this_file)
 
 

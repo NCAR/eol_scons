@@ -1,11 +1,11 @@
 # -*- python -*-
 
-import os, os.path
-import string
+import os
+import os.path
 import SCons
 
 # LROSE requires these tools which are not provided in the LROSE distribution
-dep_tools=['z', 'fftw', 'bz2', 'boost_thread']
+dep_tools = ['z', 'fftw', 'bz2', 'boost_thread']
 
 _lrose_source_file = """
 #include <toolsa/udatetime.h>
@@ -17,11 +17,13 @@ int main(int argc, char **argv)
 }
 """
 
+
 def CheckLROSE(context):
     context.Message('Checking for lrose linking...')
     result = context.TryLink(_lrose_source_file, '.c')
     context.Result(result)
     return result
+
 
 _settings = {}
 
@@ -30,6 +32,7 @@ lroseLibs = ['dsdata', 'radar', 'Fmq', 'Spdb', 'Mdv', 'titan',
              'euclid', 'rapmath', 'physics',
              'didss', 'toolsa', 'dataport', 'tdrp',
              'netcdf', 'pthread']
+
 
 def _calculate_settings(env, settings):
     # Look for LROSE under $LROSE_INSTALL_DIR, /usr/local/lrose,
@@ -45,18 +48,19 @@ def _calculate_settings(env, settings):
             prefix = path
             break
     if not prefix:
-        msg = "Unable to find LROSE. No directory in [%s] exists." % (', '.join(paths))
+        msg = "Unable to find LROSE. No directory in [%s] exists." % (
+            ', '.join(paths))
         raise SCons.Errors.StopError(msg)
     else:
         print("Using LROSE directory", prefix)
-    
+
     # Libs will be in <prefix>/lib
     libdir = os.path.join(prefix, 'lib')
     settings['LIBDIR'] = libdir
-    
+
     # Headers will be in <prefix>/include
     headerdir = os.path.join(prefix, 'include')
-    settings['CPPPATH'] = [ headerdir ]
+    settings['CPPPATH'] = [headerdir]
 
     settings['LIBS'] = lroseLibs
 
@@ -68,11 +72,13 @@ def _calculate_settings(env, settings):
     clone.Require(dep_tools)
     clone.AppendUnique(CPPPATH=settings['CPPPATH'])
     clone.AppendUnique(LIBPATH=[settings['LIBDIR']])
-    conf = clone.Configure(custom_tests = { "CheckLROSE" : CheckLROSE })
-    if not conf.CheckLROSE():
+    conf = clone.Configure(custom_tests={"CheckLROSE": CheckLROSE})
+    found = conf.CheckLROSE()
+    conf.Finish()
+    if not found:
         msg = "Failed to link to LROSE. Check config.log."
         raise SCons.Errors.StopError(msg)
-    conf.Finish()
+
 
 def generate(env):
     if not _settings:
@@ -80,9 +86,9 @@ def generate(env):
     env.AppendUnique(CPPPATH=_settings['CPPPATH'])
     env.Append(LIBS=_settings['LIBS'])
     env.AppendUnique(LIBPATH=[_settings['LIBDIR']])
-    env.AppendUnique(LINKFLAGS = ['-Wl,-rpath,' + _settings['LIBDIR']])
+    env.AppendUnique(LINKFLAGS=['-Wl,-rpath,' + _settings['LIBDIR']])
     env.Require(dep_tools)
+
 
 def exists(env):
     return True
-

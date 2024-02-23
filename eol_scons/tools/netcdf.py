@@ -80,16 +80,18 @@ def _calculate_settings(env, settings):
     clone.AppendUnique(LIBPATH=settings['LIBPATH'])
     conf = clone.Configure(custom_tests={"CheckNetCDF": CheckNetCDF})
     conf.env.Replace(LIBS=list(libs))
-    if not conf.CheckNetCDF():
+    found = conf.CheckNetCDF()
+    if not found:
         # First attempt without HDF5 failed, so try with HDF5
         libs.append(['hdf5_hl', 'hdf5', 'bz2'])
         conf.env.Replace(LIBS=list(libs))
-        if not conf.CheckNetCDF():
-            msg = "Failed to link to netcdf both with and without"
-            msg += " explicit HDF libraries.  Check config.log."
-            raise SCons.Errors.StopError(msg)
-    settings['LIBS'] = libs
+        found = conf.CheckNetCDF()
     conf.Finish()
+    settings['LIBS'] = libs
+    if not found:
+        msg = "Failed to link to netcdf both with and without"
+        msg += " explicit HDF libraries.  Check config.log."
+        raise SCons.Errors.StopError(msg)
 
 # Background on Configure check for netcdf linking: The first attempt
 # directly used the Environment passed in.  That works as long as the

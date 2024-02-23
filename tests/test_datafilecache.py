@@ -58,5 +58,11 @@ def test_cachepaths():
 
     assert dfcache.getFile("anyfile") == "/tmp/anyfile"
 
+    # test user home dir expansion
+    envhome = os.environ.get('HOME')
     dfcache.setDataCachePath("~")
+    if not envhome:
+        os.environ['HOME'] = "/home/testing-only"
     assert dfcache.localDownloadPath() == os.getenv('HOME')
+    if not envhome:
+        del os.environ['HOME']
