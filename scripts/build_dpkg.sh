@@ -57,29 +57,17 @@ rsync --exclude=.git -a --no-perms --no-owner --chmod=g-w --no-owner DEBIAN $pkg
 
 sed -ri "s/^Version:.*/Version: $gitdesc/" $pkgdir/DEBIAN/control
 
-ddir=$pkgdir/usr/share/scons/site_scons/eol_scons
-mkdir -p $ddir
-
-rsync __init__.py $ddir
-rsync --exclude=.git --exclude=.sconf_temp --exclude="*.pyc" \
-    --exclude=__pycache__ \
-    -a --no-perms --no-owner --chmod=g-w eol_scons $ddir
-
-# cd $ddir
-# python << EOD
-# import compileall
-# compileall.compile_dir("eol_scons", force=1)
-# EOD
+scons install PREFIX=$pkgdir/usr/share/scons/site_scons
 
 ddir=$pkgdir/usr/share/doc/eol-scons
 mkdir -p $ddir
 
 cp copyright $ddir
 
-scripts/deb_changelog.sh | gzip -9 -c > $ddir/changelog.Debian.gz
+scripts/deb_changelog.sh | gzip -n -9 -c > $ddir/changelog.Debian.gz
 # cp $ddir/changelog.Debian.gz /tmp
 
-cat << EOD | gzip -9 -c > $ddir/changelog.gz
+cat << EOD | gzip -n -9 -c > $ddir/changelog.gz
 eol-scons Debian maintainer and upstream author are identical.
 Therefore also see normal changelog file for Debian changes.
 EOD

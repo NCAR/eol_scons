@@ -37,8 +37,12 @@ env.AlwaysBuild(env.Install("#/doxy", ["eol_scons"]))
 # top-level __init__.py can keep the main package eol_scons/__init__.py from
 # thinking it is being imported in the deprecated layout, that is, as
 # site_scons/eol_scons/__init__.py.
-install = env.Install("$PREFIX/eol_scons", ["__init__.py", "eol_scons",
-                                            "site_tools"])
+install = env.Install("$PREFIX/eol_scons", ["__init__.py"])
+for subdir in ['site_tools', 'eol_scons', 'eol_scons/tools',
+               'eol_scons/hooks', 'eol_scons/postgres']:
+    files = env.Glob(f"{subdir}/*.py")
+    files += env.Glob(f"{subdir}/pylintrc")
+    install += env.Install(f"$PREFIX/eol_scons/{subdir}", files)
 install += env.Install("$PREFIX/eol_scons/scripts", ["scripts/build_rpm.sh"])
 env.Alias('install', install)
 
