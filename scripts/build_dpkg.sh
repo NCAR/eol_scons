@@ -97,6 +97,7 @@ newname=$(dpkg-name $pkg.deb | sed -r "s/^[^']+'[^']+' to '([^']+).*/\1/")
 newname=${newname##*/}
 
 lintian $newname
+install_status=0
 
 if [ -n "$repo" ]; then
     # allow group write
@@ -116,6 +117,7 @@ if [ -n "$repo" ]; then
         reprepro -V -b $repo remove $codename $pkg
         reprepro -V -b $repo deleteunreferenced
         reprepro -V -b $repo includedeb $codename $newname"
+    install_status=$?
 fi
 
 popd > /dev/null
@@ -123,3 +125,5 @@ popd > /dev/null
 if [ -n "$dest" ]; then
     cp $tmpdir/$newname $dest && echo "$dest/$newname is ready"
 fi
+exit $install_status
+
