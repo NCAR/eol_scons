@@ -34,6 +34,9 @@ ignore_tools = ['gcc', 'msvc',
                 'armcross',
                 'armbecross',
                 'windriver',
+                'netcdf',
+                'netcdfcxx',
+                'netcdfcxx4'
                 ]
 for it in ignore_tools:
     toolnames.remove(it)
@@ -75,18 +78,18 @@ def test_2_extend_root_tools():
 
 def test_3_subdir_global_tools():
     print("subenv GLOBAL_TOOLS = %s" % (subtools))
-    assert 'netcdf' in subtools
+    assert 'gsl' in subtools
     assert len(subtools) == 1
     # Make sure the parent tools were also applied.
     tools = subenv['TOOLS']
-    assert 'netcdf' in tools
+    assert 'gsl' in tools
     assert 'prefixoptions' in tools
     assert 'z' in tools
     # Make sure a root environment does not have a global tool
     # from a subdirectory, and the root global tools have
     # not changed.
     gtools = env3tools
-    assert 'netcdf' not in gtools
+    assert 'gsl' not in gtools
     assert 'prefixoptions' in gtools
     assert 'z' in gtools
     assert len(gtools) == 2
@@ -98,7 +101,7 @@ def test_4_subdir_subdir_global_tools():
     assert len(subtools) == 0
     # Make sure the parent tools were also applied.
     tools = subenv['TOOLS']
-    assert 'netcdf' in tools
+    assert 'gsl' in tools
     assert 'prefixoptions' in tools
     assert 'z' in tools
 

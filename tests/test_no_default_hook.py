@@ -12,7 +12,7 @@ if not conftest.called_from_test:
     from SCons.Script import Environment
 
     try:
-        env = Environment(tools=['default', 'prefixoptions', 'netcdf'])
+        env = Environment(tools=['default', 'prefixoptions'])
         variables = env.GlobalVariables()
     except AttributeError:
         print("Exception raised as expected.")
