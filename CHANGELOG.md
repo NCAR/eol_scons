@@ -1,7 +1,12 @@
 # CHANGELOG
 
-## [Unreleased] - Unreleased changes
+## [Unreleased] - Unreleased
 
+## [4.3] - Pending
+
+- relicense as MIT, update copyright info everywhere
+- make tests more robust on platforms with different package installations
+- prevent build_rpms from listing debug packages when disabled
 - fix staticlink.py tool when LIBPATH is not set: fixes error message
   `NoneType object is not subscriptable trying to evaluate
   ${_replace_static_libraries(__env__)}`
@@ -181,8 +186,9 @@
 
 <!-- Versions -->
 [unreleased]: https://github.com/NCAR/eol_scons
-[4.2.5]: https://github.com/NCAR/eol_scons/releases/tag/v4.2.5
-[4.2.4]: https://github.com/NCAR/eol_scons/releases/tag/v4.2.4
+[4.3]: https://github.com/NCAR/eol_scons/compare/v4.2.5...v4.3
+[4.2.5]: https://github.com/NCAR/eol_scons/compare/v4.2.4...v4.2.5
+[4.2.4]: https://github.com/NCAR/eol_scons/compare/v4.2.3...v4.2.4
 [4.2.3]: https://github.com/NCAR/eol_scons/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/NCAR/eol_scons/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/NCAR/eol_scons/compare/v4.2...v4.2.1
