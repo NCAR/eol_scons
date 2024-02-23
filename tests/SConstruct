@@ -155,9 +155,15 @@ def test_7_load_all_tools():
     tut['apar'] = SCons.Errors.StopError
     tut['canfestival'] = SCons.Errors.StopError
     tut['osxqtapp'] = SCons.Errors.StopError
-    tut['xmlrpc_server_abyss++'] = SCons.Errors.StopError
-    tut['boost_python'] = (lambda result: result is None or
-                           isinstance(result, SCons.Errors.StopError))
+    # these may or may not stop, depending on platform and what's installed,
+    # but the result should be one or the other.
+    stop_or_none = (lambda result: result is None or
+                    isinstance(result, SCons.Errors.StopError))
+    tut['xmlrpc_server_abyss++'] = stop_or_none
+    tut['boost_python'] = stop_or_none
+    tut['netcdf'] = stop_or_none
+    tut['netcdfcxx'] = stop_or_none
+
     # No point testing these directly since they conflict.  Tools which
     # do require qt modules will be tested with QT_VERSION=5.
     del tut['qt4']
