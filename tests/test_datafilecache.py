@@ -12,7 +12,8 @@ def test_datafilecache(tmpdir):
     assert dfcache.getCachePath() == [str(tmpdir)]
     assert dfcache.localDownloadPath() == str(tmpdir)
 
-    dfcache.setPrefix('rafdata:/scr/raf_data')
+    prefix = "rafdata:/no-such-dir/scr/raf_data"
+    dfcache.setPrefix(prefix)
     target = 'DEEPWAVE/DEEPWAVErf01.kml'
     hippopath = dfcache.getFile(target)
     xpath = str(tmpdir.join(target))
@@ -28,7 +29,7 @@ def test_datafilecache(tmpdir):
     dfcache.enableDownload(True)
     # return will be None because echo enabled
     assert dfcache.download(target) is None
-    xcmd = f"rsync -tv rafdata:/scr/raf_data/{target} {tmpdir}/{target}"
+    xcmd = f"rsync -tv {prefix}/{target} {tmpdir}/{target}"
     assert dfcache.rsync_command == xcmd
     # assert os.path.exists(xpath)
     dfcache.echo = False
@@ -40,7 +41,7 @@ def test_datafilecache(tmpdir):
     assert dfcache.download(target)
 
     dfcache = DataFileCache(str(tmpdir))
-    dfcache.setPrefix('rafdata:/scr/raf_data')
+    dfcache.setPrefix(prefix)
     dfcache.insertCachePath("/tmp")
     assert dfcache.getFile(target) == xpath
 
