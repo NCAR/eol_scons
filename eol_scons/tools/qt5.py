@@ -760,7 +760,7 @@ def deploy_linux(env):
       (application)/lib
     """
     shared_libs = ['Qt5DBus', 'Qt5XcbQpa', 'xcb-icccm',
-                   'xcb-render-util', 'xcb-image']
+                   'xcb-render-util', 'xcb-image', 'xcb-keysyms']
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
     xcbpath = ""
     if env['QT5DIR'] == USE_PKG_CONFIG:

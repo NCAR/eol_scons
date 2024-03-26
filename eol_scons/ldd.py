@@ -15,10 +15,14 @@ def ldd(node, env, names=None):
     dependencies will themselves be searched for dependencies.
     """
     libraries = {}
+    lddEnv = {}
+    # if LD_LIBRARY_PATH is set in ENV, use it when running ldd
+    if 'LD_LIBRARY_PATH' in env['ENV']:
+        lddEnv['LD_LIBRARY_PATH'] = env['ENV']['LD_LIBRARY_PATH']
     # Run ldd on the program
     lddcmd = ["ldd", node.get_abspath()]
     env.LogDebug(lddcmd)
-    lddprocess = sp.Popen(lddcmd, stdout=sp.PIPE)
+    lddprocess = sp.Popen(lddcmd, stdout=sp.PIPE, env=lddEnv)
     lddout = lddprocess.communicate()[0].decode()
     env.LogDebug(lddout)
     for line in lddout.splitlines():
