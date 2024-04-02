@@ -57,10 +57,24 @@ pipenv run scons
 ```
 
 `pipenv` is especially convenient when project-specific `SCons` builds have
-other python dependencies, such as the `requests` package.
+other python dependencies, such as the `requests` package.  A project with
+non-trivial python requirements can create a `requirements.txt` file like
+below.
 
-Of course the same approach can be used with `pip` to install `eol_scons` into
-other python environments.
+```
+eol_scons @ https://github.com/NCAR/eol_scons/archive/refs/heads/master.zip
+requests
+```
+
+Then the `scons` build environment can be created without needing to first
+clone or install `eol_scons` somewhere else:
+
+```sh
+pipenv install
+```
+
+Of course similar approaches can be used with `pip` to install `eol_scons`
+into other python environments.
 
 The source and wheel packages can be built like below, assuming the python
 `build` package is installed in the current python environment.
