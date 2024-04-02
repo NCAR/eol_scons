@@ -1,0 +1,7 @@
+
+global-exclude *
+include __init__.py
+include pyproject.toml
+graft eol_scons
+include scripts/build_rpm.sh
+recursive-exclude **/__pycache__ *

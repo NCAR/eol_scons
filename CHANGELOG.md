@@ -4,6 +4,9 @@
 
 ## [4.3] - Pending
 
+- eol_scons can now be installed as a python package from source, in
+  particular to create a scons build environment with `pipenv` that does not
+  require a `site_scons` directory.  See [README.md](README.md).
 - relicense as MIT, update copyright info everywhere
 - make tests more robust on platforms with different package installations
 - prevent build_rpms from listing debug packages when disabled

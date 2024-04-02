@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eol_scons"
+version = "4.3.dev1"
+requires-python = ">= 3.6"
+description = "SCons extensions"
+readme = "README.md"
+license = {text = "MIT License"}
+authors = [
+  {name = "Gary Granger", email = "granger@ucar.edu"},
+  {name = "EOL", email = "eol-prog@ucar.edu"}
+]
+
+dependencies = [
+    "scons>4.0",
+]
+
+[project.urls]
+Readme = "https://github.com/NCAR/eol_scons/blob/master/README.md"
+Homepage = "https://github.com/NCAR/eol_scons"
+Repository = "https://github.com/NCAR/eol_scons"
+Changelog = "https://github.com/NCAR/eol_scons/blob/master/CHANGELOG.md"
+
+[tool.setuptools]
+# this is the default, but make it explicit to get the template files
+include-package-data = true
+
+[tool.setuptools.package-dir]
+eol_scons = "."
+# "eol_scons.eol_scons" = "eol_scons"
+
+[tool.setuptools.package-data]
+eol_scons = ['scripts/build_rpm.sh', 'eol_scons/tools/pylintrc']

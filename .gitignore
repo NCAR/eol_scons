@@ -6,6 +6,8 @@ README.html
 tests/test_site_scons
 doxy/html
 doxy/eol_scons
+*.egg-info
+dist
 # build_rpm.sh files
 rpms.txt
 build
