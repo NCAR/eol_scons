@@ -35,5 +35,5 @@ test_sconstruct() # sfile options
 test_sconstruct SConstruct
 
 pytest=pytest
-which pytest-3 && pytest=pytest-3
+which pytest-3 1> /dev/null 2>&1 && pytest=pytest-3
 $pytest
