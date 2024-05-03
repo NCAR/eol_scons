@@ -223,7 +223,7 @@ def find_qwtdir(env):
             qwtdir = env['OPT_PREFIX']
     if not qwtdir:
         qwtdir = "/usr"
-    print("qwtdir set to '%s'" % (qwtdir))
+    env.PrintProgress("qwtdir set to '%s'" % (qwtdir))
     return qwtdir
 
 
