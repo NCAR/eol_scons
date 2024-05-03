@@ -24,6 +24,9 @@ def SetDebug(spec):
     """
     global debug
     debug = spec
+    if LookupDebug('parseconfig'):
+        import eol_scons.parseconfig as pc
+        pc.set_debug(True)
 
 
 def GetSubdir(env):
@@ -48,7 +51,7 @@ Include a tool name to enable extra debugging in that tool, if it supports it, e
 
 # A list of tools which have extra debugging, so they should not be
 # treated as variables to dump when in the debug key list.
-_debug_tools = ['doxygen']
+_debug_tools = ['doxygen', 'parseconfig']
 
 
 def Watches(env):
@@ -88,3 +91,6 @@ def LogDebug(env, msg):
         if env:
             context = GetSubdir(env) + ": "
         print("%s%s" % (context, msg))
+
+
+SetDebug(debug)
