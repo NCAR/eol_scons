@@ -7,6 +7,7 @@ from SCons.Script import ARGUMENTS
 
 debug = ARGUMENTS.get('eolsconsdebug', None)
 
+
 def _Dump(env, key=None):
     'Dump a value of the given key or else the whole Environment.'
     if not key:
@@ -14,6 +15,7 @@ def _Dump(env, key=None):
     if key not in env:
         return ''
     return env.Dump(key)
+
 
 def SetDebug(spec):
     """
@@ -23,11 +25,13 @@ def SetDebug(spec):
     global debug
     debug = spec
 
+
 def GetSubdir(env):
     subdir = str(env.Dir('.').get_path(env.Dir('#')))
     if subdir == '.':
         subdir = 'root'
     return subdir
+
 
 def AddVariables(variables):
     variables.Add('eolsconsdebug',
@@ -41,9 +45,11 @@ Include a tool name to enable extra debugging in that tool, if it supports it, e
 """,
                   None)
 
+
 # A list of tools which have extra debugging, so they should not be
 # treated as variables to dump when in the debug key list.
 _debug_tools = ['doxygen']
+
 
 def Watches(env):
     """
@@ -59,6 +65,7 @@ def Watches(env):
             text = "\n  " + "\n  ".join(values)
     return text
 
+
 def LookupDebug(tool):
     """
     Tools use this to see if their tool name appears in the debug key list,
@@ -69,11 +76,23 @@ def LookupDebug(tool):
     """
     return debug and (tool in [v.strip() for v in debug.split(',')])
 
+
 def Debug(msg, env=None):
     """Print a debug message if the global debugging flag is true."""
+    LogDebug(env, msg)
+
+
+def LogDebug(env, msg):
     if debug:
         context = ""
         if env:
             context = GetSubdir(env) + ": "
         print("%s%s" % (context, msg))
 
+
+def add_methods(env):
+    env.AddMethod(LogDebug)
+
+
+def add_methods_to_class(env):
+    env.LogDebug = LogDebug

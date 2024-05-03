@@ -78,7 +78,7 @@ def _apply_global_tools(env):
     env.Require(gtools)
 
 
-def _GlobalTools(env):
+def GlobalTools(env):
     """
     Return the list of global tools for this Environment.  To preserve past
     behavior, in case anything depends on it, this method specifically does
@@ -93,7 +93,7 @@ def _GlobalTools(env):
     return gtools
 
 
-def _RequireGlobal(env, tools):
+def RequireGlobal(env, tools):
     """
     Add the tool(s) to the global tools list and apply them to the
     environment.  This is just like the Require() method, except for also
@@ -215,7 +215,7 @@ def _loadToolFile(env, name):
 _tool_dict = {}
 
 
-def _Tool(env, tool, toolpath=None, **kw):
+def Tool(env, tool, toolpath=None, **kw):
     env.LogDebug("eol_scons.Tool(%s,%s,kw=%s)" % (env.Dir('.'), tool, str(kw)))
     name = str(tool)
     env.LogDebug("...before applying tool %s: %s" % (name, esd.Watches(env)))
@@ -292,7 +292,7 @@ def _Tool(env, tool, toolpath=None, **kw):
     return tool
 
 
-def _Require(env, tools):
+def Require(env, tools):
     applied = []
     if not isinstance(tools, type([])):
         tools = [tools]
@@ -321,14 +321,15 @@ def generate(env, **_kw):
         return
     env._eol_scons_generated = True
 
-    # Add methods local to this module.
-    env.AddMethod(_GlobalTools, "GlobalTools")
-    env.AddMethod(_RequireGlobal, "RequireGlobal")
-    env.AddMethod(_Tool, "Tool")
-    env.AddMethod(_Require, "Require")
+    # Setup methods
+    eol_scons.methods.AddMethods(env)
 
-    # Add other methods
-    eol_scons.methods._addMethods(env)
+    # Add methods local to this module.
+    env.AddMethod(GlobalTools)
+    env.AddMethod(RequireGlobal)
+    env.AddMethod(Tool)
+    env.AddMethod(Require)
+
     eol_scons.variables._update_variables(env)
 
     name = env.Dir('.').get_path(env.Dir('#'))
