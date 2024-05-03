@@ -14,14 +14,10 @@ the default environment is not recursive because this function is not
 called (via _update_variables) until global Variables have been added.
 """
 
-import sys
-import traceback
-
 import SCons.Variables
 import SCons.Script
 from SCons.Script import Variables
 from SCons.Script import DefaultEnvironment
-from SCons.Script import BoolVariable
 
 import eol_scons.debug
 from eol_scons.methods import PrintProgress
@@ -29,7 +25,6 @@ from eol_scons.methods import PrintProgress
 _global_variables = None
 _cache_variables = None
 _default_cfile = "#/config.py"
-_enable_cache = False
 
 
 def _GlobalVariables(cfile=None, env=None):
@@ -43,75 +38,45 @@ def _GlobalVariables(cfile=None, env=None):
         cfile = env.File(cfile).get_abspath()
         _global_variables = Variables(cfile)
         eol_scons.debug.AddVariables(_global_variables)
-        _global_variables.AddVariables(
-            BoolVariable('eolsconscache',
-                         'Enable tools.cache optimization.',
-                         _enable_cache))
         PrintProgress("Config files: %s" % (_global_variables.files))
     return _global_variables
 
 
-class VariableCache(SCons.Variables.Variables):
+class VariableCache(dict):
     """
-    Add a file-backed cache store to Variables, originally to be used to
-    cache locations of tool files embedded in the source tree and to cache
-    output from expensive config scripts across builds.  The file store is
-    disabled by default now, since it can cause confusion when tool files
-    change in the tree but are not discovered because of the cache.  Also,
-    the results of config scripts will change depending upon the
-    environment running them.  For example, PKG_CONFIG_PATH might be
-    different for different environments, and cross-build environments will
-    return different results.  Therefore this cache is no longer used for
-    config script results, and it is only used for tool file locations if
-    explicitly enabled.
+    Originally a file-backed cache store for Variables, also used to cache
+    locations of tool files embedded in the source tree and to cache output
+    from expensive config scripts across builds.  The file store capability
+    has been removed, since it can cause confusion when tool files change in
+    the tree but are not discovered because of the cache.  Also, the results
+    of config scripts can change depending upon the environment running them,
+    so tools should only use this to cache values it knows will be the same
+    across environments.  For example, PKG_CONFIG_PATH might be different for
+    different environments, and cross-build environments will return different
+    results.
     """
-    def __init__(self, path):
-        SCons.Variables.Variables.__init__(self, path)
-        self.cfile = path
+    def __init__(self):
+        pass
 
-    def getPath(self):
-        return self.cfile
-
-    def cacheKey(self, name):
-        return "_vcache_" + name
-
-    def lookup(self, env, name):
-        key = self.cacheKey(name)
-        if key not in self.keys():
-            self.Add(key)
-        self.Update(env)
-        value = None
-        if key in env:
-            value = env[key]
+    def lookup(self, env, key):
+        value = self.get(key)
+        if value is not None:
             env.LogDebug("returning %s cached value: %s" % (key, value))
         else:
             env.LogDebug("no value cached for %s" % (key))
         return value
 
-    def store(self, env, name, value):
+    def store(self, env, key, value):
         # Update the cache
-        key = self.cacheKey(name)
-        env[key] = value
-        if self.getPath():
-            self.Save(self.getPath(), env)
-        env.LogDebug("Updated %s to value: %s" % (key, value))
+        self[key] = value
+        env.LogDebug("updated %s to value: %s" % (key, value))
 
 
 def ToolCacheVariables(env):
     global _cache_variables
     if not _cache_variables:
-        env.LogDebug(
-            "creating _cache_variables: eolsconsdebug=%s, eolsconscache=%s" %
-            (eol_scons.debug.debug, _enable_cache))
-        cfile = "#/tools.cache"
-        cfile = env.File(cfile).get_abspath()
-        if _enable_cache:
-            _cache_variables = VariableCache(cfile)
-            print("Tool settings cache: %s" % (_cache_variables.getPath()))
-        else:
-            _cache_variables = VariableCache(None)
-            env.LogDebug("Tool cache is disabled by default. "
-                         "Enable it by setting eolsconscache=1.")
+        env.LogDebug("creating _cache_variables")
+        _cache_variables = VariableCache()
     return _cache_variables
 
 
@@ -300,6 +265,3 @@ def _update_variables(env):
 
     if 'eolsconsdebug' in env:
         eol_scons.debug.SetDebug(env['eolsconsdebug'])
-    if 'eolsconscache' in env:
-        global _enable_cache
-        _enable_cache = env['eolsconscache']

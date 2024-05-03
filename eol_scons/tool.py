@@ -113,16 +113,14 @@ def _findToolFile(env, name):
     # Need to know if the cache is enabled or not.
     esv._update_variables(env)
     cache = esv.ToolCacheVariables(env)
-    toolcache = cache.getPath()
     if _tool_matches is None:
         cvalue = cache.lookup(env, '_tool_matches')
         if cvalue:
             _tool_matches = cvalue.split("\n")
-            print("Using %d cached tool filenames from %s" % 
-                  (len(_tool_matches), toolcache))
+            print("using %d cached tool filenames" % (len(_tool_matches)))
 
     if _tool_matches is None:
-        env.PrintProgress("Searching for tool_*.py files...")
+        env.PrintProgress("searching for tool_*.py files...")
         # Get a list of all files named "tool_<tool>.py" under the
         # top directory.
         toolpattern = re.compile(r"^tool_.*\.py")
@@ -141,12 +139,8 @@ def _findToolFile(env, name):
                                   toolpattern.match(fname)])
         # Update the cache
         cache.store(env, '_tool_matches', "\n".join(_tool_matches))
-        if toolcache:
-            cachemsg = "cached in %s." % (toolcache)
-        else:
-            cachemsg = "caching is disabled."
-        env.PrintProgress("Found %d tool files, %s" %
-                          (len(_tool_matches), cachemsg))
+        env.PrintProgress("found %d tool files." %
+                          (len(_tool_matches)))
 
     toolfilename = "tool_" + name + ".py"
     return [f for f in _tool_matches if toolfilename == os.path.basename(f)]
