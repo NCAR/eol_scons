@@ -221,10 +221,17 @@ def FindPackagePath(env, optvar, globspec, defaultpath=None):
     return pdir
 
 
+_create_warned = False
+
+
 # This is for backwards compatibility only to help with transition.
 # Someday it will be removed.
 def Create(env, package, platform=None, tools=None,
            toolpath=None, options=None, **kw):
+    global _create_warned
+    if not _create_warned:
+        _create_warned = True
+        print("Create() has been deprecated, replace it with Environment().")
     return Environment(platform, tools, toolpath, options, **kw)
 
 
