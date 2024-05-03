@@ -88,11 +88,3 @@ def LogDebug(env, msg):
         if env:
             context = GetSubdir(env) + ": "
         print("%s%s" % (context, msg))
-
-
-def add_methods(env):
-    env.AddMethod(LogDebug)
-
-
-def add_methods_to_class(env):
-    env.LogDebug = LogDebug
