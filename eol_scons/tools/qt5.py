@@ -605,12 +605,16 @@ def replace_drive_specs(pathlist):
     return None
 
 
+_qt5_header_path = None
+
+
 def get_header_path(env):
     # Starting directory for headers.  First try
     # 'pkg-config --variable=headerdir Qt'. If that's empty
     # (this happens on CentOS 5 systems...), try
     # 'pkg-config --variable=prefix QtCore' and append '/include'.
-    hdir = env.get('QT5_HEADER_PATH')
+    global _qt5_header_path
+    hdir = _qt5_header_path
     if hdir:
         return hdir
     hdir = pc.RunConfig(
@@ -621,7 +625,7 @@ def get_header_path(env):
             print('Unable to build Qt header dir for adding modules')
             return None
         hdir = os.path.join(prefix, 'include')
-        env['QT5_HEADER_PATH'] = hdir
+        _qt5_header_path = hdir
     return hdir
 
 
