@@ -346,8 +346,19 @@ atexit.register(method_stats.print)
 
 def AddMethod(env, function, name=None):
     "Replace SCons AddMethod to avoid MethodWrapper."
-    # if name is different, then may as well resort to the SCons
-    # implementation which renames the function before adding it.
+    # The SCons AddMethod seems to want to wrap even the simplest method
+    # bindings, which besides possibly having a cost performance makes profile
+    # call stacks harder to analyze.  So this tries to subvert the wrapper
+    # with a direct binding here.  If name is different, then resort to the
+    # SCons implementation which renames the function before adding it.  This
+    # fails for function objects because of no __code__ attribute, but despite
+    # several attempts I could not get those to work here, even by passing
+    # them to SCons.Util.AddMethod().  So in case there are projects which
+    # want to create methods from function objects, this call is not actually
+    # used yet, but it's here in case it can be useful for profiling.  The
+    # function object methods in the Aspen tests SConscript have been removed,
+    # so there may not be any other obstacles to inserting this method by
+    # default.
     if not name:
         name = function.__name__
     if not hasattr(function, "__name__") or name != function.__name__:
@@ -360,16 +371,11 @@ def AddMethod(env, function, name=None):
 
 
 def AddMethods(env):
-    # I think this is superflous, because generate() already has such a guard,
-    # and that is the only caller of this function.
-
-    # if hasattr(env, "_eol_scons_methods_installed"):
-    #     env.LogDebug("environment %s already has methods added" % (env))
-    #     return
-    # env._eol_scons_methods_installed = True
-
-    # First replace AddMethod so all these other calls use it.
-    env.AddMethod = AddMethod.__get__(env)
+    # Replace AddMethod first so all these further calls use it, except for
+    # now it is left out in favor of the wider compatibility of the SCons
+    # implementation, explained above.
+    #
+    # env.AddMethod = AddMethod.__get__(env)
     env.AddMethod(esd.LogDebug)
     env.AddMethod(AddLibraryTarget)
     env.AddMethod(AddGlobalTarget)
