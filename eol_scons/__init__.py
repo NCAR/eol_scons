@@ -61,7 +61,7 @@ import SCons.Defaults
 # namespace.
 from eol_scons.debug import Debug
 from eol_scons.debug import LookupDebug
-from eol_scons.variables import GlobalVariables
+from eol_scons.variables import _GlobalVariables as GlobalVariables
 from eol_scons.variables import PathToAbsolute
 from eol_scons.tool import DefineQtTools
 from eol_scons.methods import EnableInstallAlias
