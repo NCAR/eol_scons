@@ -5,6 +5,7 @@
 import os
 import subprocess as sp
 import SCons.Util
+from SCons.Script import Environment
 
 """
 Notes on PKG_CONFIG environment variables.
@@ -43,7 +44,7 @@ is_String = SCons.Util.is_String
 is_List = SCons.Util.is_List
 
 
-def _string_env(env):
+def _string_env(env: dict):
     """
     This is taken from SCons.Action._subproc to convert non-string
     environment values to to strings.
@@ -81,7 +82,7 @@ def setGlobalCache(global_cache: bool):
     _global_cache = global_cache
 
 
-def getConfigCache(env):
+def getConfigCache(env: Environment):
     global _cache
     cache = _cache
     if not _global_cache:
@@ -92,7 +93,7 @@ def getConfigCache(env):
     return cache
 
 
-def _get_config(env, search_paths, config_script, args):
+def _get_config(env: Environment, search_paths, config_script, args):
     """
     Return a (returncode, output) tuple for a call to @p config_script.
 
@@ -158,7 +159,7 @@ def _get_config(env, search_paths, config_script, args):
     return result
 
 
-def PassPkgConfigPath(env, psenv=None):
+def PassPkgConfigPath(env: Environment, psenv: dict | None = None):
     """
     Propagate PKG_CONFIG_PATH and PKG_CONFIG_LIBDIR to the scons process
     environment (ENV) if they are set anywhere in the scons construction or
@@ -178,7 +179,7 @@ def PassPkgConfigPath(env, psenv=None):
             psenv[pcp] = os.environ.get(pcp)
 
 
-def RunConfig(env, command):
+def RunConfig(env: Environment, command: str):
     """
     Run the config script command and return tuple (returncode, output).
     """
@@ -186,7 +187,7 @@ def RunConfig(env, command):
     return _get_config(env, None, args[0], args[1:])[1]
 
 
-def CheckConfig(env, command):
+def CheckConfig(env: Environment, command: str):
     """
     Return True if the pkg-config-like command succeeds (returns 0).
 
@@ -197,7 +198,7 @@ def CheckConfig(env, command):
     return _get_config(env, None, args[0], args[1:])[0] == 0
 
 
-def ParseConfig(env, command, function=None, unique=True):
+def ParseConfig(env: Environment, command: str, function=None, unique=True):
     """
     Like Environment.ParseConfig, except do not raise OSError if the
     command fails, and the config script results are cached in the
@@ -221,7 +222,8 @@ def _search_paths():
     return search_paths
 
 
-def PkgConfigPrefix(env, pkg_name, default_prefix="$OPT_PREFIX"):
+def PkgConfigPrefix(env: Environment, pkg_name: str,
+                    default_prefix: str = "$OPT_PREFIX"):
     """Search for a config script and parse the output."""
     prefix = _get_config(env, _search_paths(), 'pkg-config',
                          ["--variable=prefix", pkg_name])[1]
@@ -230,8 +232,8 @@ def PkgConfigPrefix(env, pkg_name, default_prefix="$OPT_PREFIX"):
     return prefix
 
 
-def PkgConfigVariable(env, pkg_name, variable):
-    """Search for a config script and parse the output."""
+def PkgConfigVariable(env: Environment, pkg_name: str, variable: str):
+    "Get pkg-config @p variable in package @p pkg_name."
     var = '--variable=' + variable
     output = _get_config(env, _search_paths(), 'pkg-config',
                          [var, pkg_name])[1]
