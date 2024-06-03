@@ -4,6 +4,14 @@
 
 ## [4.3] - Pending
 
+- fix boost_thread tool to cache libs after first configure check
+- try to optimize how added methods are called to improve speed and debug
+  tracing
+- use a global cache for pkg-config results, rather than per-Environment,
+  presuming that all Environments in the same build will want to use the same
+  settings for pkg-config dependencies
+- the deprecated file-backed-store for VariableCache has been removed, and now
+  VariableCache works to cache variables globally, especially for the Qt tool
 - eol_scons can now be installed as a python package from source, in
   particular to create a scons build environment with `pipenv` that does not
   require a `site_scons` directory.  See [README.md](README.md).
