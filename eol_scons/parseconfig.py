@@ -159,7 +159,7 @@ def _get_config(env: Environment, search_paths, config_script, args):
     return result
 
 
-def PassPkgConfigPath(env: Environment, psenv: dict | None = None):
+def PassPkgConfigPath(env: Environment, psenv: [dict, None] = None):
     """
     Propagate PKG_CONFIG_PATH and PKG_CONFIG_LIBDIR to the scons process
     environment (ENV) if they are set anywhere in the scons construction or

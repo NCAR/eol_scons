@@ -83,7 +83,7 @@ def LookupDebug(tool):
     return debug and (tool in [v.strip() for v in debug.split(',')])
 
 
-def Debug(msg: str, env: Environment | None = None):
+def Debug(msg: str, env: [Environment, None] = None):
     """Print a debug message if the global debugging flag is true."""
     LogDebug(env, msg)
 
