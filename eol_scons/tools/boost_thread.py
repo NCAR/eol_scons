@@ -44,15 +44,14 @@ def generate(env):
 
         header = 'boost/thread/thread.hpp'
         test_src = 'boost::thread bt; boost::thread::id bt_id = bt.get_id();'
-        test_libs = ['boost_thread-mt', 'boost_thread', 'pthread']
+        test_libs = ['boost_thread', 'boost_thread-mt']
         found = conf.CheckLibWithHeader(test_libs, header, 'CXX', test_src)
         if not found:
             # Bare libraries didn't work. Try again with -lpthread added to
             # the mix.
             clonedEnv.Append(LIBS='pthread')
-            test_libs = ['boost_thread-mt', 'boost_thread']
             found = conf.CheckLibWithHeader(test_libs, header, 'CXX', test_src)
-        conf.Finish()
+        clonedEnv = conf.Finish()
         if not found:
             msg = "No working boost_thread library configuration found. "
             msg += "Check config.log."
