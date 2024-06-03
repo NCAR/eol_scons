@@ -5,7 +5,9 @@
 import os
 import re
 import glob
+import atexit
 
+import SCons.Util
 from SCons.Util import NodeList
 from SCons.Script import DefaultEnvironment
 from SCons.Script import Environment
@@ -61,12 +63,17 @@ def EnableInstallAlias(enabled):
 _print_progress = not GetOption("no_progress")
 
 
-def PrintProgress(msg):
+# PrintProgress can be called (env, msg) or just (msg), depending on whether
+# it is called as an Environment method.  So try to detect which it is.
+def PrintProgress(*args):
+    "Print the message unless the no_progress option (-Q) is in effect."
+    if not isinstance(args[0], str):
+        args = args[1:]
     if _print_progress:
-        print(msg)
+        print(*args)
 
 
-def _PassEnv(env, regexp):
+def PassEnv(env, regexp):
     """Pass system environment variables matching regexp to the scons
     execution environment."""
     for ek in os.environ.keys():
@@ -74,7 +81,7 @@ def _PassEnv(env, regexp):
             env['ENV'][ek] = os.environ[ek]
 
 
-def _Test(self, sources, actions):
+def Test(self, sources, actions):
     """Create a test target and aliases for the given actions with
     sources as its dependencies.
 
@@ -87,11 +94,11 @@ def _Test(self, sources, actions):
     return self.DefaultTest(self.TestRun("xtest", sources, actions))
 
 
-def _ChdirActions(self, actions, cdir=None):
+def ChdirActions(self, actions, cdir=None):
     return chdir.ChdirActions(self, actions, cdir)
 
 
-def _Install(env, ddir, source):
+def Install(env, ddir, source):
     """
     Call the standard Install() method and also add the target to the global
     'install' alias.  Make sure the destination is passed as a string and not
@@ -108,7 +115,7 @@ def _Install(env, ddir, source):
     return t
 
 
-def _AddLibraryTarget(env, base, target):
+def AddLibraryTarget(env, base, target):
     "Register this library target using a prefix reserved for libraries."
     while type(base) is NodeList or type(base) is type([]):
         base = base[0]
@@ -117,7 +124,7 @@ def _AddLibraryTarget(env, base, target):
     return target
 
 
-def _AddGlobalTarget(env, name, target):
+def AddGlobalTarget(env, name, target):
     "Register this target under the given name."
     # Make sure we register a node and not a list, just because that has
     # been the convention, started before scons changed all targets to
@@ -151,7 +158,7 @@ def _AddGlobalTarget(env, name, target):
     return node
 
 
-def _GetGlobalTarget(env, name):
+def GetGlobalTarget(env, name):
     "Look up a global target node by this name and return it."
     # If the target exists in the local environment targets, use that one,
     # otherwise resort to the global dictionary.
@@ -166,7 +173,7 @@ def _GetGlobalTarget(env, name):
     return None
 
 
-def _AppendLibrary(env, name, path=None):
+def AppendLibrary(env, name, path=None):
     "Add this library either as a local target or a link option."
     env.LogDebug("AppendLibrary wrapper looking for %s" % name)
     env.Append(DEPLOY_SHARED_LIBS=[name])
@@ -180,7 +187,7 @@ def _AppendLibrary(env, name, path=None):
             env.Append(LIBPATH=[path])
 
 
-def _AppendSharedLibrary(env, name, path=None):
+def AppendSharedLibrary(env, name, path=None):
     "Add this shared library either as a local target or a link option."
     env.Append(DEPLOY_SHARED_LIBS=[name])
     target = env.GetGlobalTarget("lib"+name)
@@ -194,7 +201,7 @@ def _AppendSharedLibrary(env, name, path=None):
     env.AppendUnique(RPATH=[path])
 
 
-def _FindPackagePath(env, optvar, globspec, defaultpath=None):
+def FindPackagePath(env, optvar, globspec, defaultpath=None):
     """Check for a package installation path matching globspec."""
     options = env.GlobalVariables()
     pdir = defaultpath
@@ -214,25 +221,23 @@ def _FindPackagePath(env, optvar, globspec, defaultpath=None):
     return pdir
 
 
+_create_warned = False
+
+
 # This is for backwards compatibility only to help with transition.
 # Someday it will be removed.
-def _Create(env,
-            package,
-            platform=None,
-            tools=None,
-            toolpath=None,
-            options=None,
-            **kw):
+def Create(env, package, platform=None, tools=None,
+           toolpath=None, options=None, **kw):
+    global _create_warned
+    if not _create_warned:
+        _create_warned = True
+        print("Create() has been deprecated, replace it with Environment().")
     return Environment(platform, tools, toolpath, options, **kw)
-
-
-def _LogDebug(env, msg):
-    esd.Debug(msg, env)
 
 
 # Include this as a standard part of Environment, so that other tools can
 # conveniently add their doxref without requiring the doxygen tool.
-def _AppendDoxref(env, ref):
+def AppendDoxref(env, ref):
     """
     Append to the DOXREF variable and force it to be a list.
 
@@ -254,11 +259,6 @@ def _AppendDoxref(env, ref):
     else:
         env['DOXREF'].append(ref)
     env.LogDebug("Appended %s; DOXREF=%s" % (ref, str(env['DOXREF'])))
-
-
-def _PrintProgress(env, msg):
-    "Print the message unless the no_progress option (-Q) is in effect."
-    PrintProgress(msg)
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +305,7 @@ def relax_errors(env):
 Export(relax_errors=relax_errors)
 
 
-def _Configure(env, *args, **kw):
+def Configure(env, *args, **kw):
     """
     Injected Configure() method to customize environments used by configure
     contexts.
@@ -319,7 +319,7 @@ def _Configure(env, *args, **kw):
     return conf
 
 
-def _ConfigureTools(env, tools):
+def ConfigureTools(env, tools):
     """
     Patch in a new Configure() method which applies the given tools to the
     Environment of the created Configure context.
@@ -327,35 +327,74 @@ def _ConfigureTools(env, tools):
     env['CONFIGURE_TOOLS'] = tools
     if not hasattr(env, "_eol_scons_saved_Configure"):
         env._eol_scons_saved_Configure = env.Configure
-        env.AddMethod(_Configure, "Configure")
+        env.AddMethod(Configure, "Configure")
 
 
-def _addMethods(env):
-    if hasattr(env, "_eol_scons_methods_installed"):
-        env.LogDebug("environment %s already has methods added" % (env))
-        return
-    env._eol_scons_methods_installed = True
-    env.AddMethod(_LogDebug, "LogDebug")
-    env.LogDebug("add methods to environment %s, Install=%s, new _Install=%s" %
-                 (env, env.Install, _Install))
-    env.AddMethod(_AddLibraryTarget, "AddLibraryTarget")
-    env.AddMethod(_AddGlobalTarget, "AddGlobalTarget")
-    env.AddMethod(_GetGlobalTarget, "GetGlobalTarget")
-    env.AddMethod(_AppendLibrary, "AppendLibrary")
-    env.AddMethod(_AppendSharedLibrary, "AppendSharedLibrary")
-    env.AddMethod(_PassEnv, "PassEnv")
+class MethodStats:
+    def __init__(self):
+        self.replaced = 0
+        self.wrapped = 0
+
+    def print(self):
+        esd.LogDebug(None, f"methods replaced: {self.replaced}, "
+                     f"methods wrapped: {self.wrapped}")
+
+
+method_stats = MethodStats()
+atexit.register(method_stats.print)
+
+
+def AddMethod(env, function, name=None):
+    "Replace SCons AddMethod to avoid MethodWrapper."
+    # The SCons AddMethod seems to want to wrap even the simplest method
+    # bindings, which besides possibly having a cost performance makes profile
+    # call stacks harder to analyze.  So this tries to subvert the wrapper
+    # with a direct binding here.  If name is different, then resort to the
+    # SCons implementation which renames the function before adding it.  This
+    # fails for function objects because of no __code__ attribute, but despite
+    # several attempts I could not get those to work here, even by passing
+    # them to SCons.Util.AddMethod().  So in case there are projects which
+    # want to create methods from function objects, this call is not actually
+    # used yet, but it's here in case it can be useful for profiling.  The
+    # function object methods in the Aspen tests SConscript have been removed,
+    # so there may not be any other obstacles to inserting this method by
+    # default.
+    if not name:
+        name = function.__name__
+    if not hasattr(function, "__name__") or name != function.__name__:
+        esd.Debug(f"wrapped method {name}")
+        SCons.Util.AddMethod(env, function, name)
+        method_stats.wrapped += 1
+    else:
+        setattr(env, name, function.__get__(env))
+        method_stats.replaced += 1
+
+
+def AddMethods(env):
+    # Replace AddMethod first so all these further calls use it, except for
+    # now it is left out in favor of the wider compatibility of the SCons
+    # implementation, explained above.
+    #
+    # env.AddMethod = AddMethod.__get__(env)
+    env.AddMethod(esd.LogDebug)
+    env.AddMethod(AddLibraryTarget)
+    env.AddMethod(AddGlobalTarget)
+    env.AddMethod(GetGlobalTarget)
+    env.AddMethod(AppendLibrary)
+    env.AddMethod(AppendSharedLibrary)
+    env.AddMethod(PassEnv)
     if _enable_install_alias:
         env._SConscript_Install = env.Install
-        env.AddMethod(_Install, "Install")
+        env.AddMethod(Install)
 
-    env.AddMethod(_ChdirActions, "ChdirActions")
-    env.AddMethod(_Test, "Test")
-    env.AddMethod(_FindPackagePath, "FindPackagePath")
-    env.AddMethod(_AppendDoxref, "AppendDoxref")
-    env.AddMethod(_PrintProgress, "PrintProgress")
+    env.AddMethod(ChdirActions)
+    env.AddMethod(Test)
+    env.AddMethod(FindPackagePath)
+    env.AddMethod(AppendDoxref)
+    env.AddMethod(PrintProgress)
 
     # add the method to enable and set ConfigureTools
-    env.AddMethod(_ConfigureTools, "ConfigureTools")
+    env.AddMethod(ConfigureTools)
 
     # For backwards compatibility:
-    env.AddMethod(_Create, "Create")
+    env.AddMethod(Create)

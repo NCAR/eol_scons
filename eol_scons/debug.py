@@ -3,17 +3,22 @@
 # This source code is licensed under the MIT license found in the LICENSE
 # file in the root directory of this source tree.
 
-from SCons.Script import ARGUMENTS
+from SCons.Script import ARGUMENTS, Environment, Variables
 
 debug = ARGUMENTS.get('eolsconsdebug', None)
 
-def _Dump(env, key=None):
+
+def _Dump(env: Environment, key=None):
     'Dump a value of the given key or else the whole Environment.'
     if not key:
         return env.Dump()
-    if key not in env:
-        return ''
-    return env.Dump(key)
+    value = env.get(key, '')
+    if isinstance(value, str):
+        value = env.subst(value)
+    elif isinstance(value, type([])):
+        value = [env.subst(str(v)) for v in env.Flatten(value)]
+    return env.Dump(key) + " ==> " + repr(value)
+
 
 def SetDebug(spec):
     """
@@ -22,14 +27,19 @@ def SetDebug(spec):
     """
     global debug
     debug = spec
+    if LookupDebug('parseconfig'):
+        import eol_scons.parseconfig as pc
+        pc.set_debug(True)
 
-def GetSubdir(env):
+
+def GetSubdir(env: Environment):
     subdir = str(env.Dir('.').get_path(env.Dir('#')))
     if subdir == '.':
         subdir = 'root'
     return subdir
 
-def AddVariables(variables):
+
+def AddVariables(variables: Variables):
     variables.Add('eolsconsdebug',
 """
 Enable debug messages from eol_scons.  Setting to 1 just enables
@@ -41,11 +51,13 @@ Include a tool name to enable extra debugging in that tool, if it supports it, e
 """,
                   None)
 
+
 # A list of tools which have extra debugging, so they should not be
 # treated as variables to dump when in the debug key list.
-_debug_tools = ['doxygen']
+_debug_tools = ['doxygen', 'parseconfig']
 
-def Watches(env):
+
+def Watches(env: Environment):
     """
     Generate a string containing the current values of all the watched
     variables, if any.
@@ -59,6 +71,7 @@ def Watches(env):
             text = "\n  " + "\n  ".join(values)
     return text
 
+
 def LookupDebug(tool):
     """
     Tools use this to see if their tool name appears in the debug key list,
@@ -69,11 +82,18 @@ def LookupDebug(tool):
     """
     return debug and (tool in [v.strip() for v in debug.split(',')])
 
-def Debug(msg, env=None):
+
+def Debug(msg: str, env: Environment | None = None):
     """Print a debug message if the global debugging flag is true."""
+    LogDebug(env, msg)
+
+
+def LogDebug(env: Environment, msg: str):
     if debug:
         context = ""
         if env:
             context = GetSubdir(env) + ": "
         print("%s%s" % (context, msg))
 
+
+SetDebug(debug)

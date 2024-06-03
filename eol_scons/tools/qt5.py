@@ -104,7 +104,25 @@ def _find_file(filename, paths, node_factory):
     return None
 
 
-class _Automoc(object):
+# This regular expression search can be rather slow, between reading in the
+# whole file contents and then searching it.  It takes up more than 25% of the
+# ASPEN scons startup.  The number of files scanned is not excessive, in that
+# most of the files scanned will have Q_OBJECT.  Maybe the results could be
+# cached between runs, but then how to know that the cache needs to be
+# updated?  I suppose the scan results could be Value() nodes cached in
+# sconsign, so they are not rescanned if the source files have not changed.
+# Maybe other qt tool implementations have a better way.
+
+# some regular expressions:
+# Q_OBJECT detection
+q_object_search = re.compile(r'\bQ_OBJECT\b')
+# cxx and c comment 'eater'
+# comment = re.compile(r'(//.*)|(/\*(([^*])|(\*[^/]))*\*/)')
+# CW: something must be wrong with the regexp. See also bug #998222
+#     CURRENTLY THERE IS NO TEST CASE FOR THAT
+
+
+class _Automoc:
     """
     Callable class, which works as an emitter for Programs, SharedLibraries and
     StaticLibraries.
@@ -125,14 +143,6 @@ class _Automoc(object):
         FS = SCons.Node.FS.default_fs
         objBuilder = getattr(env, self.objBuilderName)
 
-        # some regular expressions:
-        # Q_OBJECT detection
-        q_object_search = re.compile(r'[^A-Za-z0-9]Q_OBJECT[^A-Za-z0-9]')
-        # cxx and c comment 'eater'
-        # comment = re.compile(r'(//.*)|(/\*(([^*])|(\*[^/]))*\*/)')
-        # CW: something must be wrong with the regexp. See also bug #998222
-        #     CURRENTLY THERE IS NO TEST CASE FOR THAT
-
         # The following is kind of hacky to get builders working properly
         # (FIXME)
         objBuilderEnv = objBuilder.env
@@ -143,7 +153,8 @@ class _Automoc(object):
         # make a deep copy for the result; MocH objects will be appended
         out_sources = source[:]
 
-        Debug("%s: scanning [%s] to add targets to [%s]." %
+        Debug("%s: scanning [%s] for Q_OBJECT sources to add targets "
+              "to [%s]." %
               (self.objBuilderName,
                ",".join([str(s) for s in source]),
                ",".join([str(t) for t in target])), env)
@@ -184,14 +195,15 @@ class _Automoc(object):
                 hname = SCons.Util.splitext(cpp.name)[0] + h_ext
                 h = _find_file(hname, (cpp.get_dir(),), FS.File)
                 if h:
-                    Debug("scons: qt5: Scanning '%s' (header of '%s')" %
-                          (str(h), str(cpp)), env)
                     # h_contents = comment.sub('', h.get_text_contents())
                     h_contents = h.get_text_contents()
                     break
             if not h:
                 Debug("scons: qt5: no header for '%s'." % (str(cpp)), env)
             if h and q_object_search.search(h_contents):
+                Debug("scons: qt5: scanned '%s' (header of '%s') "
+                      "for Q_OBJECT" %
+                      (str(h), str(cpp)), env)
                 # h file with the Q_OBJECT macro found -> add moc_cpp
                 moc_cpp = env.Moc5(h)
                 moc_o = objBuilder(moc_cpp)
@@ -200,6 +212,8 @@ class _Automoc(object):
                 Debug("scons: qt5: found Q_OBJECT macro in '%s', "
                       "moc'ing to '%s'" % (str(h), str(moc_cpp)), env)
             if cpp and q_object_search.search(cpp_contents):
+                Debug("scons: qt5: scanned '%s' for Q_OBJECT" %
+                      (str(cpp)), env)
                 # cpp file with Q_OBJECT macro found -> add moc
                 # (to be included in cpp)
                 moc = env.Moc5(cpp)
@@ -591,6 +605,30 @@ def replace_drive_specs(pathlist):
     return None
 
 
+_qt5_header_path = None
+
+
+def get_header_path(env):
+    # Starting directory for headers.  First try
+    # 'pkg-config --variable=headerdir Qt'. If that's empty
+    # (this happens on CentOS 5 systems...), try
+    # 'pkg-config --variable=prefix QtCore' and append '/include'.
+    global _qt5_header_path
+    hdir = _qt5_header_path
+    if hdir:
+        return hdir
+    hdir = pc.RunConfig(
+        env, 'pkg-config --silence-errors --variable=includedir Qt5Core')
+    if hdir == '':
+        prefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt5Core')
+        if prefix == '':
+            print('Unable to build Qt header dir for adding modules')
+            return None
+        hdir = os.path.join(prefix, 'include')
+        _qt5_header_path = hdir
+    return hdir
+
+
 def enable_module_linux(env, module, debug=False):
     """
     On Linux, a Qt5 module is enabled either with the settings from
@@ -608,30 +646,15 @@ def enable_module_linux(env, module, debug=False):
         # prefix, e.g. Qt5 module 'QtCore' maps to pkg-config
         # package name 'Qt5Core'
         modpackage = qualify_module_name(module)
+        hdir = get_header_path(env)
 
-        # Starting directory for headers.  First try
-        # 'pkg-config --variable=headerdir Qt'. If that's empty
-        # (this happens on CentOS 5 systems...), try
-        # 'pkg-config --variable=prefix QtCore' and append '/include'.
-        hdir = pc.RunConfig(
-            env, 'pkg-config --silence-errors --variable=includedir Qt5Core')
-        if hdir == '':
-            prefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt5Core')
-            if (prefix == ''):
-                print('Unable to build Qt header dir for adding module ' +
-                      module)
-                return False
-            hdir = os.path.join(prefix, 'include')
-
-        if pc.CheckConfig(env, 'pkg-config --exists ' + modpackage):
-            # Retrieve LIBS and CFLAGS separately, so CFLAGS can be
-            # added just once (unique=1).  Otherwise projects like
-            # ASPEN which require qt modules many times over end up
-            # with dozens of superfluous CPP includes and defines.
-            pkgc = 'pkg-config --cflags --libs ' + modpackage
-            env.LogDebug("Before qt5 runconfig '%s': %s" %
+        # The pkg-config should at least return a library name, so if
+        # RunConfig() returns nothing, treat that the same as if a
+        # CheckConfig() had failed, to avoid running pkg-config twice.
+        pkgc = 'pkg-config --cflags --libs ' + modpackage
+        if cflags := pc.RunConfig(env, pkgc):
+            env.LogDebug("Before qt5 mergeflags '%s': %s" %
                          (pkgc, esd.Watches(env)))
-            cflags = pc.RunConfig(env, pkgc)
             env.MergeFlags(cflags, unique=1)
             env.LogDebug("After qt5 mergeflags '%s': %s" %
                          (cflags, esd.Watches(env)))

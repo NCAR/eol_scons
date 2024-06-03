@@ -131,18 +131,6 @@ def test_5_xercesc():
     assert 'xerces-c' in env['LIBS']
 
 
-def test_6_filter_ldflags():
-    from eol_scons.parseconfig import _filter_ldflags
-    pairs = [('-L/usr/lib', ''),
-             ('-L/usr/lib64', ''),
-             ('-L/opt/local/lib -L/usr/lib', '-L/opt/local/lib'),
-             ('-L/usr/lib -L/opt/local/lib', '-L/opt/local/lib'),
-             ('-L/usr/lib-extra', '-L/usr/lib-extra'),
-             ('-L/usr/lib64-extra', '-L/usr/lib64-extra')]
-    for p in pairs:
-        assert _filter_ldflags(p[0]) == p[1]
-
-
 def test_7_load_all_tools():
     # Test each tool individually, so we can catch SCons.Errors.StopError
     # from the tools which abort if their component is not found.

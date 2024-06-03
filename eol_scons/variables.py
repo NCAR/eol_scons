@@ -14,14 +14,10 @@ the default environment is not recursive because this function is not
 called (via _update_variables) until global Variables have been added.
 """
 
-import sys
-import traceback
-
 import SCons.Variables
 import SCons.Script
 from SCons.Script import Variables
 from SCons.Script import DefaultEnvironment
-from SCons.Script import BoolVariable
 
 import eol_scons.debug
 from eol_scons.methods import PrintProgress
@@ -29,9 +25,9 @@ from eol_scons.methods import PrintProgress
 _global_variables = None
 _cache_variables = None
 _default_cfile = "#/config.py"
-_enable_cache = False
 
-def GlobalVariables(cfile=None, env=None):
+
+def _GlobalVariables(cfile=None, env=None):
     """Return the eol_scons global variables."""
     global _global_variables
     if not _global_variables:
@@ -42,74 +38,45 @@ def GlobalVariables(cfile=None, env=None):
         cfile = env.File(cfile).get_abspath()
         _global_variables = Variables(cfile)
         eol_scons.debug.AddVariables(_global_variables)
-        _global_variables.AddVariables(
-            BoolVariable('eolsconscache',
-                         'Enable tools.cache optimization.',
-                         _enable_cache))
         PrintProgress("Config files: %s" % (_global_variables.files))
     return _global_variables
 
-class VariableCache(SCons.Variables.Variables):
+
+class VariableCache(dict):
     """
-    Add a file-backed cache store to Variables, originally to be used to
-    cache locations of tool files embedded in the source tree and to cache
-    output from expensive config scripts across builds.  The file store is
-    disabled by default now, since it can cause confusion when tool files
-    change in the tree but are not discovered because of the cache.  Also,
-    the results of config scripts will change depending upon the
-    environment running them.  For example, PKG_CONFIG_PATH might be
-    different for different environments, and cross-build environments will
-    return different results.  Therefore this cache is no longer used for
-    config script results, and it is only used for tool file locations if
-    explicitly enabled.
+    Originally a file-backed cache store for Variables, also used to cache
+    locations of tool files embedded in the source tree and to cache output
+    from expensive config scripts across builds.  The file store capability
+    has been removed, since it can cause confusion when tool files change in
+    the tree but are not discovered because of the cache.  Also, the results
+    of config scripts can change depending upon the environment running them,
+    so tools should only use this to cache values it knows will be the same
+    across environments.  For example, PKG_CONFIG_PATH might be different for
+    different environments, and cross-build environments will return different
+    results.
     """
-    def __init__(self, path):
-        SCons.Variables.Variables.__init__(self, path)
-        self.cfile = path
+    def __init__(self):
+        pass
 
-    def getPath(self):
-        return self.cfile
-
-    def cacheKey(self, name):
-        return "_vcache_" + name
-
-    def lookup(self, env, name):
-        key = self.cacheKey(name)
-        if not key in self.keys():
-            self.Add(key)
-        self.Update(env)
-        value = None
-        if key in env:
-            value = env[key]
+    def lookup(self, env, key):
+        value = self.get(key)
+        if value is not None:
             env.LogDebug("returning %s cached value: %s" % (key, value))
         else:
             env.LogDebug("no value cached for %s" % (key))
         return value
 
-    def store(self, env, name, value):
+    def store(self, env, key, value):
         # Update the cache
-        key = self.cacheKey(name)
-        env[key] = value
-        if self.getPath():
-            self.Save(self.getPath(), env)
-        env.LogDebug("Updated %s to value: %s" % (key, value))
+        self[key] = value
+        env.LogDebug("updated %s to value: %s" % (key, value))
 
 
 def ToolCacheVariables(env):
     global _cache_variables
     if not _cache_variables:
-        env.LogDebug(
-            "creating _cache_variables: eolsconsdebug=%s, eolsconscache=%s" %
-            (eol_scons.debug.debug, _enable_cache))
-        cfile = "#/tools.cache"
-        cfile = env.File(cfile).get_abspath()
-        if _enable_cache:
-            _cache_variables = VariableCache(cfile)
-            print("Tool settings cache: %s" % (_cache_variables.getPath()))
-        else:
-            _cache_variables = VariableCache(None)
-            env.LogDebug("Tool cache is disabled by default. "
-                         "Enable it by setting eolsconscache=1.")
+        env.LogDebug("creating _cache_variables")
+        _cache_variables = VariableCache()
     return _cache_variables
 
 
@@ -120,15 +87,26 @@ def PathToAbsolute(path, env):
     return apath
 
 
-def _GlobalVariables(env, cfile=None):
-    return GlobalVariables(cfile, env)
+def GlobalVariables(env, cfile=None):
+    return _GlobalVariables(cfile, env)
 
 
-def _CacheVariables(env):
+_global_options_warned = False
+
+
+def GlobalOptions(env, cfile=None):
+    global _global_options_warned
+    if not _global_options_warned:
+        _global_options_warned = True
+        print("GlobalOptions is deprecated, replace it with GlobalVariables.")
+    return _GlobalVariables(cfile, env)
+
+
+def CacheVariables(env):
     return ToolCacheVariables(env)
 
 
-def _AliasHelpText(env):
+def AliasHelpText(env):
     """
     Generate help text for all the aliases by tapping into the default
     AliasNameSpace, and listing their dependency nodes.
@@ -151,7 +129,7 @@ def _AliasHelpText(env):
     return text
 
 
-def _GenerateHelpText(env):
+def GenerateHelpText(env):
     """
     Generate the eol_scons default help text, which includes the help text
     from all the global variables, a list of aliases, and also a list of
@@ -170,7 +148,7 @@ def _GenerateHelpText(env):
 
     text += "\n"
     if env.GetOption("listaliases"):
-        text += _AliasHelpText(env)
+        text += AliasHelpText(env)
     else:
         text += "Aliases can be listed with '-h --list-aliases'.\n"
 
@@ -205,7 +183,7 @@ def _GenerateHelpText(env):
     return text
 
 
-def _SetHelp(env, text=None):
+def SetHelp(env, text=None):
     """
     Override the SConsEnvironment Help method to first erase any previous
     help text.  This can help if multiple SConstruct files in a project
@@ -234,7 +212,7 @@ def _SetHelp(env, text=None):
     """
     SCons.Script.help_text = None
     if text is None:
-        text = _GenerateHelpText(env)
+        text = GenerateHelpText(env)
 
     # It doesn't work to call the real Help() function because it performs
     # a substitution on the text.  There is already lots of variable help
@@ -251,13 +229,13 @@ def _SetHelp(env, text=None):
     SCons.Script.HelpFunction(text)
 
 
-def _AddHelp(env, text=None):
+def AddHelp(env, text=None):
     """
     Append help text to the current help text.  If text is None, generate
     the default text and append it.  See SetHelp().
     """
     if text is None:
-        text = _GenerateHelpText(env)
+        text = GenerateHelpText(env)
 
     # Because of the change in how HelpFunction() works between v2.3 and
     # v3.0, the only way to be sure we always append to the current
@@ -268,17 +246,17 @@ def _AddHelp(env, text=None):
 def _update_variables(env):
 
     # Add our variables methods to this Environment.
-    env.AddMethod(_GlobalVariables, "GlobalVariables")
-    env.AddMethod(_CacheVariables, "CacheVariables")
+    env.AddMethod(GlobalVariables)
+    env.AddMethod(CacheVariables)
     # Alias for temporary backwards compatibility
-    env.AddMethod(_GlobalVariables, "GlobalOptions")
+    env.AddMethod(GlobalOptions)
 
     # So that only the last Help text setting takes effect, rather than
     # duplicating info when SConstruct files are loaded from sub-projects.
-    env.AddMethod(_SetHelp, "SetHelp")
-    env.AddMethod(_AddHelp, "AddHelp")
-    env.AddMethod(_AliasHelpText, "AliasHelpText")
-    env.AddMethod(_GenerateHelpText, "GenerateHelpText")
+    env.AddMethod(SetHelp)
+    env.AddMethod(AddHelp)
+    env.AddMethod(AliasHelpText)
+    env.AddMethod(GenerateHelpText)
 
     # Do not update the environment with global variables unless some
     # global variables have been created.
@@ -287,6 +265,3 @@ def _update_variables(env):
 
     if 'eolsconsdebug' in env:
         eol_scons.debug.SetDebug(env['eolsconsdebug'])
-    if 'eolsconscache' in env:
-        global _enable_cache
-        _enable_cache = env['eolsconscache']

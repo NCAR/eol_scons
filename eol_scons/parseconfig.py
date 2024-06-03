@@ -3,13 +3,9 @@
 # This source code is licensed under the MIT license found in the LICENSE
 # file in the root directory of this source tree.
 import os
-import re
-
 import subprocess as sp
-
-_debug = False
-
 import SCons.Util
+from SCons.Script import Environment
 
 """
 Notes on PKG_CONFIG environment variables.
@@ -36,10 +32,19 @@ or
     env.PrependENVPath('PKG_CONFIG_PATH', '/path/to/custom/pcfiles')
 """
 
+_debug = False
+
+
+def set_debug(enabled: bool):
+    global _debug
+    _debug = enabled
+
+
 is_String = SCons.Util.is_String
 is_List = SCons.Util.is_List
 
-def _string_env(env):
+
+def _string_env(env: dict):
     """
     This is taken from SCons.Action._subproc to convert non-string
     environment values to to strings.
@@ -63,27 +68,32 @@ def _string_env(env):
     return new_env
 
 
-def _extract_results(text):
-    # The string result and integer returncode are coded in the cached
-    # string as '<returncode>,<resultstring>'.  Sometimes the result
-    # strings have more than one line, so we must be careful to extract the
-    # rest of the string, including any newlines.
-    m = re.match(r"^([-+]?\d+),", text)
-    if m:
-        return (int(m.group(1)), text[m.end():])
-    else:
-        return (-1, text)
+_cache = {}
+_global_cache = True
 
 
-def getConfigCache(env):
-    cache = env.get("_config_cache")
-    if cache is None:
-        cache = {}
-        env["_config_cache"] = cache
+def setGlobalCache(global_cache: bool):
+    """
+    Pass False to disable the global cache.  Right now the global cache can
+    only be enabled or disabled globally.  If necessary, it would be possible
+    someday to set it differently for each Environment.
+    """
+    global _global_cache
+    _global_cache = global_cache
+
+
+def getConfigCache(env: Environment):
+    global _cache
+    cache = _cache
+    if not _global_cache:
+        cache = env.get("_config_cache")
+        if cache is None:
+            cache = {}
+            env["_config_cache"] = cache
     return cache
 
 
-def _get_config(env, search_paths, config_script, args):
+def _get_config(env: Environment, search_paths, config_script, args):
     """
     Return a (returncode, output) tuple for a call to @p config_script.
 
@@ -93,35 +103,36 @@ def _get_config(env, search_paths, config_script, args):
     If there is a non-zero return code from the config script command, then
     tools can continue with other methods of configuring the tool.
 
-    The config results are cached in the calling Environment, so the
-    command does not need to be run every time a tool needs to run the same
-    config script.  However, the results are specific to the Environment,
-    since the results can change depending upon the Environment running
-    them.  For example, PKG_CONFIG_PATH or PKG_CONFIG_LIBDIR might be different
-    for different environments, and cross-build environments will return different
-    results.  The goal is to avoid redundant runs of the same config script
-    when called for the same environment, such as redundant applications of
-    the same tool.
+    The config results are cached globally, unless _global_cache is False, in
+    which each calling Environment gets its own cache, so the command does not
+    need to be run every time a tool needs to run the same config script.  It
+    is possible the results are specific to the Environment, since the results
+    can change depending upon the Environment running them.  For example,
+    PKG_CONFIG_PATH or PKG_CONFIG_LIBDIR might be different for different
+    environments, and cross-build environments will return different results.
+    Perhaps those values could be added to the cache key, but currently they
+    are not.  For projects which need that, they must call setGlobalCache().
+    The goal is to avoid redundant runs of the same config script when called
+    for the same environment, such as redundant applications of the same tool.
     """
     result = None
-    if _debug: print("_get_config(%s,%s): " % (config_script, ",".join(args)))
+    name = config_script + " " + " ".join(args)
+    if _debug:
+        print("_get_config(%s): " % (name))
     # See if the output for this config script call has already been cached.
-    name = re.sub(r'[^\w]', '_', config_script + " ".join(args))
     cache = getConfigCache(env)
     result = cache.get(name)
     if result:
-        if _debug: print("  cached: %s" % (result))
-        return _extract_results(result)
-    if not result:
-        if search_paths:
-            search_paths = [ p for p in search_paths if os.path.exists(p) ]
-            env.LogDebug("Checking for %s in %s" % 
-                         (config_script, ",".join(search_paths)))
-            config = env.WhereIs(config_script, search_paths)
-        else:
-            config = config_script
-        env.LogDebug("Found: %s" % config)
-    if not result and config:
+        if _debug:
+            print("  cached: %s" % (repr(result)))
+        return result
+    config = config_script
+    if search_paths:
+        search_paths = [p for p in search_paths if os.path.exists(p)]
+        env.LogDebug("Checking for %s in %s" % 
+                     (config_script, ",".join(search_paths)))
+        config = env.WhereIs(config_script, search_paths)
+    if config:
         # The env dictionary must be converted to strings or else
         # execve() complains.
         psenv = _string_env(env['ENV'])
@@ -131,27 +142,24 @@ def _get_config(env, search_paths, config_script, args):
             PassPkgConfigPath(env, psenv)
         if _debug:
             print("calling Popen([%s])" % ",".join([config]+args))
-            print("\n".join(["%s=%s" % (k,v) for k,v in psenv.items()]))
+            print("\n".join(["%s=%s" % (k, v) for k, v in psenv.items()]))
         try:
-            child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv)
+            child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv,
+                             universal_newlines=True)
             result = child.communicate()[0]
-            result = result.decode().strip()
-            # Ubuntu 16.04 on Vortex had a mal configured cpp_common.pc libs entry.
-            # e.g. -l:/usr/lib/libcpp_common.so - clean it up here.
-            result = result.replace('-l:/','/')
-            cache[name] = "%s,%s" % (child.returncode, result)
+            result = result.strip()
             result = (child.returncode, result)
+            cache[name] = result
         except OSError:
             # If the config script cannot be found, then the package must
             # not exist either.
             result = (1, None)
-    if not result:
-        result = (-1, "")
-    if _debug: print("   command: %s" % (str(result)))
+    if _debug:
+        print("   command: %s" % (str(result)))
     return result
 
 
-def PassPkgConfigPath(env, psenv=None):
+def PassPkgConfigPath(env: Environment, psenv: dict | None = None):
     """
     Propagate PKG_CONFIG_PATH and PKG_CONFIG_LIBDIR to the scons process
     environment (ENV) if they are set anywhere in the scons construction or
@@ -170,17 +178,16 @@ def PassPkgConfigPath(env, psenv=None):
         elif pcp in os.environ:
             psenv[pcp] = os.environ.get(pcp)
 
-def RunConfig(env, command):
+
+def RunConfig(env: Environment, command: str):
     """
     Run the config script command and return tuple (returncode, output).
     """
     args = command.split()
-    config_script = args[0]
-    args = args[1:]
-    return _get_config(env, None, config_script, args)[1]
+    return _get_config(env, None, args[0], args[1:])[1]
 
 
-def CheckConfig(env, command):
+def CheckConfig(env: Environment, command: str):
     """
     Return True if the pkg-config-like command succeeds (returns 0).
 
@@ -188,12 +195,10 @@ def CheckConfig(env, command):
     same config command will not need to execute the command again.
     """
     args = command.split()
-    config_script = args[0]
-    args = args[1:]
-    return _get_config(env, None, config_script, args)[0] == 0
+    return _get_config(env, None, args[0], args[1:])[0] == 0
 
 
-def ParseConfig(env, command, function=None, unique=True):
+def ParseConfig(env: Environment, command: str, function=None, unique=True):
     """
     Like Environment.ParseConfig, except do not raise OSError if the
     command fails, and the config script results are cached in the
@@ -211,35 +216,25 @@ def ParseConfig(env, command, function=None, unique=True):
     return False
 
 
-def _filter_ldflags(flags):
-    "Fix ldflags from config scripts which return standard library dirs."
-    fields = flags.split()
-    fields = [ f for f in fields if not re.match(r'^-L/usr/lib(64)?$', f) ]
-    flags = " ".join(fields)
-    return flags
+def _search_paths():
+    search_prefixes = ['/usr', '/usr/local', '/opt/homebrew', '/mingw64']
+    search_paths = [os.path.join(p, "bin") for p in search_prefixes]
+    return search_paths
 
 
-def PkgConfigPrefix(env, pkg_name, default_prefix = "$OPT_PREFIX"):
+def PkgConfigPrefix(env: Environment, pkg_name: str,
+                    default_prefix: str = "$OPT_PREFIX"):
     """Search for a config script and parse the output."""
-    search_prefixes = ['/usr', '/usr/local','/opt/homebrew','/mingw64']
-    search_paths = [ os.path.join(env.subst(x),"bin")
-                     for x in [y for y in search_prefixes if y] ]
-    prefix = None
-    prefix = _get_config(env, search_paths, 'pkg-config',
-                             ["--variable=prefix", pkg_name])[1]
+    prefix = _get_config(env, _search_paths(), 'pkg-config',
+                         ["--variable=prefix", pkg_name])[1]
     if not prefix:
         prefix = default_prefix
     return prefix
 
-def PkgConfigVariable(env, pkg_name, variable):
-    """Search for a config script and parse the output."""
-    search_prefixes = ['/usr', '/usr/local','/opt/homebrew','/mingw64']
-    search_paths = [ os.path.join(env.subst(x),"bin")
-                     for x in [y for y in search_prefixes if y] ]
-    prefix = None
+
+def PkgConfigVariable(env: Environment, pkg_name: str, variable: str):
+    "Get pkg-config @p variable in package @p pkg_name."
     var = '--variable=' + variable
-    output = _get_config(env, search_paths, 'pkg-config',
-                             [var, pkg_name])[1]
+    output = _get_config(env, _search_paths(), 'pkg-config',
+                         [var, pkg_name])[1]
     return output
-
-
