@@ -652,7 +652,8 @@ def enable_module_linux(env, module, debug=False):
         # RunConfig() returns nothing, treat that the same as if a
         # CheckConfig() had failed, to avoid running pkg-config twice.
         pkgc = 'pkg-config --cflags --libs ' + modpackage
-        if cflags := pc.RunConfig(env, pkgc):
+        cflags = pc.RunConfig(env, pkgc)
+        if cflags:
             env.LogDebug("Before qt5 mergeflags '%s': %s" %
                          (pkgc, esd.Watches(env)))
             env.MergeFlags(cflags, unique=1)

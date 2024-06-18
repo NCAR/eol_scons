@@ -39,7 +39,8 @@ def find_lib(nc4dir) -> tuple[Path, str]:
     # raising a StopError can prevent help usage, so just print a warning, but
     # only the first time.
     global _error_printed
-    if not _error_printed and (_error_printed := True):
+    if not _error_printed:
+        _error_printed = True
         print("netcdf-cxx4 library not found: %s" % (nc4dir))
     return search_paths[0]
 
