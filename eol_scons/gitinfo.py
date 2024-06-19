@@ -5,7 +5,7 @@
 """
 GitInfo collects versioning and other metadata from a git repository.
 
-The git information is based on the most recent annotated git tag 
+The git information is based on the most recent annotated git tag
 that can be reached through 'git describe'. This is combined
 with the number of commits since that tag to create a distinct
 revision number which can be traced to a particular git commit.
@@ -55,6 +55,7 @@ from pathlib import Path
 # Set to 1 to enable debugging output
 _debug = 0
 
+
 # Debugging print
 def pdebug(msg):
     if _debug:
@@ -65,7 +66,7 @@ class GitInfo:
     """
     Encapsulate the repository characteristics, making them available via a
     dictionary.
-    
+
     Git commands used to extract the repository information:
 
     git describe --match [vV][0-9]*:
@@ -76,18 +77,18 @@ class GitInfo:
       number of commits since the tag.  Third is the abbreviate object name of
       the last commit.  If the tag points to the most recent commit, then
       commit is '0'.
-                  
+
     git config --get remote.origin.url:
 
       Get the repository URL that this branch was fetched from.
-                  
-    git log --pretty=format:"%cd,%H" -1: 
+
+    git log --pretty=format:"%cd,%H" -1:
 
       Get the date and hash of the last commit in a form easily split.
 
       Wed Nov 26 16:42:30 2014 -0700,3189d8e443a6cf5827fc9617ebe8b95ab83d8eaf
-    
-    git rev-parse --show-toplevel: 
+
+    git rev-parse --show-toplevel:
 
       Find the top of the working directory: /Users/martinc/git/aspen
 
@@ -144,8 +145,8 @@ class GitInfo:
 
     gitcmd: str
     match: str
-    repopath: Path or None
-    header: Path or None
+    repopath: Path
+    header: Path
 
     def __init__(self, env=None, repopath=None):
         """
@@ -224,15 +225,15 @@ class GitInfo:
         error = []
 
         # Use the collected git details to populate the dicitionary items
-        gitrevision     = None
-        gitdate         = None
-        giturl          = None
-        gitworkdir      = None
-        gittag          = None
-        gitcommits      = None
-        githash         = None
-        gitbranch       = None
-        gitdirty        = None
+        gitrevision = None
+        gitdate = None
+        giturl = None
+        gitworkdir = None
+        gittag = None
+        gitcommits = None
+        githash = None
+        gitbranch = None
+        gitdirty = None
 
         # Run git describe, and extract the tag, number of commits, and
         # object name.  Extract the hyphenated fields from right to left,
@@ -261,17 +262,18 @@ class GitInfo:
             gitdate, githash = cmd_out.split(',')
 
         # Run git rev-parse to fetch the top level working directory
-        cmd_out = self._get_output([self.gitcmd, 'rev-parse', '--show-toplevel'])
+        cmd_out = self._get_output([self.gitcmd, 'rev-parse',
+                                    '--show-toplevel'])
         if self._cmd_out_ok(cmd_out, error):
             # Normalize path.
             gitworkdir = cmd_out.replace('\\', '/').strip()
-        
+
         # Run git rev-parse to fetch the branch
         cmd_out = self._get_output([self.gitcmd, 'rev-parse',
                                     '--abbrev-ref', 'HEAD'])
         if self._cmd_out_ok(cmd_out, error):
             gitbranch = cmd_out.strip()
-        
+
         gitdirty = None
         cmd_out = self._get_output([self.gitcmd, 'status', '--porcelain'])
         if self._cmd_out_ok(cmd_out, error):
@@ -325,7 +327,7 @@ class GitInfo:
 
     def applyToEnv(self, env):
         "Apply the info values to the environment."
-        for k,v in self.values.items():
+        for k, v in self.values.items():
             env[k] = v
 
     def loadFromHeader(self, path):
@@ -358,8 +360,8 @@ class GitInfo:
 
     def generateHeader(self):
         """
-        Create C text suitable for a header file, containing the revision attributes
-        included as defines.
+        Create C text suitable for a header file, containing the revision
+        attributes included as defines.
 
         The self.values dictionary provide the attributes.
 
@@ -381,7 +383,7 @@ class GitInfo:
 
 #endif
 """
-        repl = {k:("unknown" if v is None else v)
+        repl = {k: ("unknown" if v is None else v)
                 for k, v in self.values.items()}
         githeader = githeader % repl
         pdebug(githeader)
