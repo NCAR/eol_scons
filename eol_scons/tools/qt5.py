@@ -402,12 +402,6 @@ def generate(env):
         pass
     elif ('QT5DIR' in os.environ):
         env['QT5DIR'] = os.environ['QT5DIR']
-    elif (env['PLATFORM'] == 'win32'):
-        print("""
-For Windows, QT5DIR must be set on the command line or in the environment.
-E.g.:
-  scons QT5DIR='/c/QtSDK/Desktop/Qt/4.7.4/mingw'
-""")
     elif checkPkgConfig(env):
         env['QT5DIR'] = USE_PKG_CONFIG
     else:

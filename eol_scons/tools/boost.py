@@ -93,10 +93,9 @@ def generate(env):
     # env.Append(DEPLOY_SHARED_LIBS=['boost_date_time'])
     # env.Append(DEPLOY_SHARED_LIBS=['boost_serialization'])
     if 'BOOST_LIBRARY_SUFFIX' not in env:
-        if env['PLATFORM'] == 'win32':
-            env['BOOST_LIBRARY_SUFFIX'] = '-vc71-mt-gd-1_33_1'
-        else:
-            env['BOOST_LIBRARY_SUFFIX'] = ''
+        # We don't have any platform specific suffix at this time.
+        env['BOOST_LIBRARY_SUFFIX'] = ''
+
     if 'BOOST_DIR' in env:
         bdir = env['BOOST_DIR']
         if bdir and bdir != "/usr" and bdir != "":
@@ -105,6 +104,7 @@ def generate(env):
             env.Append(CPPPATH=[os.path.join(bdir)])
             env.AppendUnique(LIBPATH=[os.path.join(bdir, "lib")])
             env.AppendUnique(RPATH=[os.path.join(bdir, "lib")])
+
     # Override the _LIBFLAGS variable so we can append the suffix for
     # boost libraries.
     if '_boost_save_libflags' not in env:

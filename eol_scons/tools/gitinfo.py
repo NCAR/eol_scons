@@ -245,9 +245,6 @@ def generate(env):
         emitter=gitinfo_emitter_value)
     env['BUILDERS']['GitInfo'] = gitinfobuilder
     env['GIT'] = "git"
-    if env['PLATFORM'] == 'win32':
-        gitbin = r'c:\Tools\git\bin'
-        env.PrependENVPath('PATH', gitbin)
 
     env.AddMethod(LoadGitInfo, "LoadGitInfo")
     env.LoadGitInfo('#')

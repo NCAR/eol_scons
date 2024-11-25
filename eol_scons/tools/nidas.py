@@ -272,7 +272,7 @@ the settings from the system pkg-config.""" % (USE_PKG_CONFIG),
 def generate(env):
     # It is not (yet) possible to build against NIDAS on anything
     # except Linux, so don't even give anyone the option.
-    if sys.platform == 'win32' or sys.platform == 'darwin':
+    if sys.platform == 'cygwin' or sys.platform == 'win32' or sys.platform == 'darwin':
         env.EnableNIDAS = (lambda: 0)
         return
 
