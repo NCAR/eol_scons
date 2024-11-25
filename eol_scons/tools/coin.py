@@ -17,12 +17,13 @@ def generate(env):
         pc.ParseConfig(env,
 		'pkg-config --silence-errors --cflags --libs Coin')
 
-    if env['PLATFORM'] == 'posix':
-        env.Append(LIBS=["GLU"])
-        env.Append(LIBS=["dl"])
-        env.Append(LIBS=["GL"])
-        env.Append(LIBS=["X11"])
+# Redhat variants don't need this.  Leave it case Ubuntu or something needs it
+#    if env['PLATFORM'] == 'posix':
+#        env.Append(LIBS=["GLU"])
+#        env.Append(LIBS=["GL"])
+#        env.Append(LIBS=["X11"])
 
+    # msys/ucrt coin pkg-config does not drag these in.  Do it manually here.
     if env['PLATFORM'] == 'msys':
         env.Append(LIBS=['opengl32'])
         env.Append(LIBS=['glu32'])
