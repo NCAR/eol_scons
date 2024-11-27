@@ -449,6 +449,10 @@ _qtmodules = [
     ('QtWebEngine',),
     ('QtWebView', 'QtWebEngineWidgets'),
     ('QtWebEngineWidgets',),
+
+    # Qt6 modules
+    ('QtOpenGLWidgets', 'QtOpenGL',),
+
 ]
 
 
