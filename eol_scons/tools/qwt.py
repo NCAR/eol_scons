@@ -152,6 +152,8 @@ class QwtTool(object):
         because it assumes those are only for Qt4.
         """
         qwtpcnames = ['qwt', 'Qwt']
+        if env.get('QT_VERSION') == 6:
+            qwtpcnames = ['Qt6Qwt6']
         if env.get('QT_VERSION') == 5:
             qwtpcnames = ['Qt5Qwt6']
         for qname in qwtpcnames:

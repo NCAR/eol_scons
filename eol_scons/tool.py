@@ -400,10 +400,12 @@ def export_qt_module_tool(modules):
             raise SCons.Errors.StopError(
                 "Cannot load tool for Qt module %s without first setting "
                 "QT_VERSION or requiring the qt4 or qt5 tool." % modules[0])
-        elif qtversion == 4:
-            env.Require('qt4')
+        elif qtversion == 6:
+            env.Require('qt6')
         elif qtversion == 5:
             env.Require('qt5')
+        elif qtversion == 4:
+            env.Require('qt4')
         env.EnableQtModules(modules)
     kw = {}
     kw[module.lower()] = qtmtool
@@ -447,6 +449,10 @@ _qtmodules = [
     ('QtWebEngine',),
     ('QtWebView', 'QtWebEngineWidgets'),
     ('QtWebEngineWidgets',),
+
+    # Qt6 modules
+    ('QtOpenGLWidgets', 'QtOpenGL',),
+
 ]
 
 

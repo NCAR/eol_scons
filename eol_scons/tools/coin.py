@@ -8,19 +8,22 @@ import eol_scons.parseconfig as pc
 
 def generate(env):
     if env['PLATFORM'] == 'msys':
-        env.AppendUnique(CXXFLAGS=["-DCOIN_NOT_DLL"])
+# Latest msys2/mingw/ucrt provides coin & quarter.  Yeah!  So it's a DLL now.
+# I'm just going to comment this out for now.	cjw 11/2024
+#        env.AppendUnique(CXXFLAGS=["-DCOIN_NOT_DLL"])
         pc.ParseConfig(env,
 		'pkg-config --silence-errors --with-path=/usr/local/lib/pkgconfig --cflags --libs Coin')
     else:
         pc.ParseConfig(env,
 		'pkg-config --silence-errors --cflags --libs Coin')
 
-    if env['PLATFORM'] == 'posix':
-        env.Append(LIBS=["GLU"])
-        env.Append(LIBS=["dl"])
-        env.Append(LIBS=["GL"])
-        env.Append(LIBS=["X11"])
+# Redhat variants don't need this.  Leave it case Ubuntu or something needs it
+#    if env['PLATFORM'] == 'posix':
+#        env.Append(LIBS=["GLU"])
+#        env.Append(LIBS=["GL"])
+#        env.Append(LIBS=["X11"])
 
+    # msys/ucrt coin pkg-config does not drag these in.  Do it manually here.
     if env['PLATFORM'] == 'msys':
         env.Append(LIBS=['opengl32'])
         env.Append(LIBS=['glu32'])

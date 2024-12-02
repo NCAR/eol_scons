@@ -293,11 +293,6 @@ def generate(env):
     env['BUILDERS']['SvnInfo'] = svninfobuilder
     env['SVN'] = "svn"
     env['SVNVERSION'] = "svnversion"
-    # Use the default location for the subversion Windows installer.
-    if env['PLATFORM'] == 'win32':
-        svnbin=r'c:\Tools\svn\bin'
-        env['SVN'] = os.path.join(svnbin, "svn")
-        env['SVNVERSION'] = os.path.join(svnbin, "svnversion")
 
     env.AddMethod(LoadSvnInfo, "LoadSvnInfo")
     env.LoadSvnInfo('#')
