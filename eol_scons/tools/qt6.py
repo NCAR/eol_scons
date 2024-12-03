@@ -299,7 +299,7 @@ def _locateQt6Command(env, command):
         # Otherwise, look for Qt6 binaries in <QT6DIR>/bin
         else:
             qtbindir = os.path.join(env['QT6DIR'], 'bin')
-
+            qtlibexecdir = os.path.join(env['QT6DIR'], 'share/qt/libexec')
 
     # If we built a qtbindir, check (only) there first for the command.
     # This will make sure we get e.g., <myQT6DIR>/bin/moc ahead of
@@ -307,9 +307,16 @@ def _locateQt6Command(env, command):
     # we're trying to use a custom one by setting QT6DIR.
     if qtbindir:
         # check for the binaries in *just* qtbindir
+        # qmake is available in bin
         result = None
         for cmd in cmds:
             result = result or env.WhereIs(cmd, [qtbindir])
+
+    if not result:
+        # check for the binaries in qtlibexecdir
+        # all other binaries (moc & uic) are in libexec
+        for cmd in cmds:
+            result = result or env.WhereIs(cmd, [qtlibexecdir])
 
     # Check the default path
     if not result:
