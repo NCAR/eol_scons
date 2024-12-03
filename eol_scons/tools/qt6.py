@@ -40,6 +40,33 @@ location of the header files and the version-qualified library names like
 libQt6<Module>.
 """
 
+# Notes on install locations for each environment
+#
+# MSYS2
+#
+# pkg-conifg works
+#
+# There is no qmake...or it is in some other uninstalled package
+# All other binaries are in /ucrt64/share/qt6/bin - in PATH
+
+# MacOS - w/ Homebrew on x86_64
+#
+# pkg-config does not work.
+#   Qt .pc files exist in non-standard location that is not searched.
+#   /usr/local/opt/qt6/libexec/lib/pkgconfig
+#
+# qmake avaiable in standard qt path /usr/local/opt/qt6/bin - in PATH
+# All other binaries (moc & uic) are in /usr/local/opt/qt/share/qt6/libexec/
+
+# Alma 9
+#
+# pkg-conifg works
+#
+# qmake avaiable in standard path /bin - in PATH
+# All other binaries (moc & uic) are in /usr/lib64/qt6/libexec
+
+
+
 import sys
 import re
 import os
