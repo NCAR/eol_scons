@@ -58,6 +58,15 @@ libQt6<Module>.
 # qmake avaiable in standard qt path /usr/local/opt/qt6/bin - in PATH
 # All other binaries (moc & uic) are in /usr/local/opt/qt/share/qt6/libexec/
 
+# MacOS - w/ Homebrew on M2
+#
+# pkg-config not tested (yet)
+#   /opt/homebrew/opt/qt/libexec/lib/pkgconfig
+#
+# qmake available in /opt/homebrew/opt/qt/bin - in PATH
+# All other binaries (moc & uic) are in /opt/homebrew/opt/qt/share/qt/libexec
+#
+
 # Alma 9
 #
 # pkg-conifg works
@@ -290,6 +299,7 @@ def _locateQt6Command(env, command):
         # Otherwise, look for Qt6 binaries in <QT6DIR>/bin
         else:
             qtbindir = os.path.join(env['QT6DIR'], 'bin')
+
 
     # If we built a qtbindir, check (only) there first for the command.
     # This will make sure we get e.g., <myQT6DIR>/bin/moc ahead of
@@ -571,8 +581,8 @@ def enable_modules(env, modules, debug=False):
     platform-specific code:
 
     The module name must be a Qt module name that is not qualified by the
-    Qt version.  So QtCore is the module name in both Qt4 and Qt6.  This
-    function specifically rejects module names starting with Qt4 or Qt6.
+    Qt version.  So QtCore is the module name in Qt4, Qt5 and Qt6.  This
+    function specifically rejects module names starting with Qt4, Qt5 or Qt6.
 
     QT6DIR must be set in the Environment.  If not, then the Qt6 setup in
     generate() above did not succeed, and therefore no Qt6 modules can be
@@ -587,7 +597,8 @@ def enable_modules(env, modules, debug=False):
 
     onefailed = False
     for module in modules:
-        if module.startswith('Qt6') or module.startswith('Qt4'):
+        if module.startswith('Qt6') or module.startswith('Qt5') or \
+                module.startswith('Qt4'):
             raise SCons.Errors.StopError(
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
