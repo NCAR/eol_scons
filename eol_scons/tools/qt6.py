@@ -60,7 +60,7 @@ libQt6<Module>.
 
 # MacOS - w/ Homebrew on M2
 #
-# pkg-config not tested (yet)
+# pkg-config does not work.
 #   /opt/homebrew/opt/qt/libexec/lib/pkgconfig
 #
 # qmake available in /opt/homebrew/opt/qt/bin - in PATH
@@ -73,8 +73,6 @@ libQt6<Module>.
 #
 # qmake avaiable in standard path /bin - in PATH
 # All other binaries (moc & uic) are in /usr/lib64/qt6/libexec
-
-
 
 import sys
 import re
@@ -96,6 +94,10 @@ _options = None
 USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT6"
 
+# Known paths for executables -- other than qmake
+libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',
+		'/opt/homebrew/opt/qt/share/qt/libexec',
+		'/usr/lib64/qt6/libexec']
 
 class ToolQt6Warning(SCons.Warnings.WarningOnByDefault):
     pass
@@ -299,7 +301,6 @@ def _locateQt6Command(env, command):
         # Otherwise, look for Qt6 binaries in <QT6DIR>/bin
         else:
             qtbindir = os.path.join(env['QT6DIR'], 'bin')
-            qtlibexecdir = os.path.join(env['QT6DIR'], 'share/qt/libexec')
 
     # If we built a qtbindir, check (only) there first for the command.
     # This will make sure we get e.g., <myQT6DIR>/bin/moc ahead of
@@ -307,21 +308,21 @@ def _locateQt6Command(env, command):
     # we're trying to use a custom one by setting QT6DIR.
     if qtbindir:
         # check for the binaries in *just* qtbindir
-        # qmake is available in bin
         result = None
         for cmd in cmds:
             result = result or env.WhereIs(cmd, [qtbindir])
-
-    if not result:
-        # check for the binaries in qtlibexecdir
-        # all other binaries (moc & uic) are in libexec
-        for cmd in cmds:
-            result = result or env.WhereIs(cmd, [qtlibexecdir])
 
     # Check the default path
     if not result:
         Debug("qt6: checking path for commands: %s" % (cmds))
         result = env.Detect(cmds)
+
+    # Check know paths for Qt6 on all OS's
+    if not result:
+        for dir in libexecPaths:
+            for cmd in cmds:
+                result = result or env.WhereIs(cmd, [dir])
+
 
     if not result:
         msg = "Qt6 command " + qtcommand + " (" + command + ")"
@@ -466,7 +467,6 @@ def generate(env):
         errmsg = "Qt6 not found, try setting QT6DIR."
         # raise SCons.Errors.StopError, errmsg
         print(errmsg)
-        return
 
     # the basics
     env['QT6_MOC'] = _locateQt6Command(env, 'moc')
