@@ -22,7 +22,7 @@ pipeline {
 
   stages {
 
-    stage('Running CentOS8, CentOS9', 'Fedora') {
+    stage('Running CentOS8, CentOS9, Fedora') {
 
     parallel {
 
