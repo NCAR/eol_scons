@@ -114,7 +114,7 @@ class QwtTool(object):
                 # On homebrew, the pkg-config includes points to class
                 # includes, not the actual headers (QwtPlot instead of
                 # qwt_plot.h).  So we need to build up a -I for the real
-                # incldues.
+                # includes.
                 prefix = pc.PkgConfigVariable(env, 'Qt5Qwt6', 'libdir')
                 qwt_real_include_dir = prefix + '/qwt.framework/Headers'
                 env.AppendUnique(CPPPATH=qwt_real_include_dir)
