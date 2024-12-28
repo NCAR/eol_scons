@@ -217,7 +217,7 @@ def ParseConfig(env: Environment, command: str, function=None, unique=True):
 
 
 def _search_paths():
-    search_prefixes = ['/usr', '/usr/local', '/opt/homebrew', '/mingw64']
+    search_prefixes = ['/usr', '/usr/local', '/opt/homebrew', '/ucrt64']
     search_paths = [os.path.join(p, "bin") for p in search_prefixes]
     return search_paths
 
