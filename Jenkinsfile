@@ -22,7 +22,7 @@ pipeline {
 
   stages {
 
-    stage('Running CentOS8, CentOS9, Ubuntu32') {
+    stage('Running CentOS8, CentOS9, Fedora') {
 
     parallel {
 
@@ -86,10 +86,10 @@ pipeline {
         }
       }
 
-      stage('ub32') {
+      stage('Fedora') {
         agent {
           node {
-            label 'ub32'
+            label 'fedora'
           }
         }
         stages {
@@ -98,13 +98,16 @@ pipeline {
               sh 'scons test'
             }
           }
-          stage('Build Debian packages') {
+          stage('Build RPM packages') {
             steps {
-              sh 'scripts/build_dpkg.sh -I bionic i386'
+              sh './jenkins.sh build_rpms'
             }
           }
+          // Don't bother signing or pushing rpms on Fedora, just test rpm
+          // build.
         }
       }
+
     }
   }
   }
