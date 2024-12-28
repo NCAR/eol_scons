@@ -95,6 +95,8 @@ USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT6"
 
 # Known paths for executables -- other than qmake
+pkgCfgCmd = "pkg-config --with-path=/usr/local/opt/qt/libexec/lib/pkgconfig "
+
 libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',
 		'/opt/homebrew/opt/qt/share/qt/libexec',
 		'/usr/lib64/qt6/libexec']
@@ -295,8 +297,8 @@ def _locateQt6Command(env, command):
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if env['QT6DIR'] == USE_PKG_CONFIG:
-            qtprefix = pc.RunConfig(env,
-                                    'pkg-config --variable=prefix Qt6Core')
+            qtprefix = pc.RunConfig(env, pkgCfgCmd +
+                                    '--variable=prefix Qt6Core')
             qtbindir = os.path.join(qtprefix, 'bin')
         # Otherwise, look for Qt6 binaries in <QT6DIR>/bin
         else:
@@ -395,7 +397,7 @@ def checkPkgConfig(env):
     #
     global _pkgConfigKnowsQt6
     if _pkgConfigKnowsQt6 is None:
-        check = pc.CheckConfig(env, 'pkg-config --exists Qt6Core')
+        check = pc.CheckConfig(env, pkgCfgCmd + '--exists Qt6Core')
         _pkgConfigKnowsQt6 = check
     return _pkgConfigKnowsQt6
 
@@ -602,10 +604,12 @@ def enable_modules(env, modules, debug=False):
         env.LogDebug("QT6DIR not set, cannot enable module.")
         return False
 
+    if sys.platform == "darwin":
+      env.AppendUnique(FRAMEWORKPATH=['/usr/local/Frameworks',])
+
     onefailed = False
     for module in modules:
-        if module.startswith('Qt6') or module.startswith('Qt5') or \
-                module.startswith('Qt4'):
+        if module.startswith('Qt6') or module.startswith('Qt5'):
             raise SCons.Errors.StopError(
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
@@ -657,9 +661,9 @@ def get_header_path(env):
     if hdir:
         return hdir
     hdir = pc.RunConfig(
-        env, 'pkg-config --silence-errors --variable=includedir Qt6Core')
+        env, pkgCfgCmd + '--silence-errors --variable=includedir Qt6Core')
     if hdir == '':
-        prefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt6Core')
+        prefix = pc.RunConfig(env, pkgCfgCmd + '--variable=prefix Qt6Core')
         if prefix == '':
             print('Unable to build Qt header dir for adding modules')
             return None
@@ -690,7 +694,7 @@ def enable_module_linux(env, module, debug=False):
         # The pkg-config should at least return a library name, so if
         # RunConfig() returns nothing, treat that the same as if a
         # CheckConfig() had failed, to avoid running pkg-config twice.
-        pkgc = 'pkg-config --cflags --libs ' + modpackage
+        pkgc = pkgCfgCmd + '--cflags --libs ' + modpackage
         cflags = pc.RunConfig(env, pkgc)
         if cflags:
             env.LogDebug("Before qt6 mergeflags '%s': %s" %
@@ -805,6 +809,8 @@ def enable_module_osx(env, module, debug=False):
     /usr/local/opt.  There is no support for enabling debug modules as on
     Windows and Linux.
     """
+
+    env.AppendUnique(FRAMEWORKS=[module])
     if debug:
         print("Enabling debug for Qt6 modules has no effect on OSX.")
 
@@ -827,7 +833,7 @@ def deploy_linux(env):
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
     xcbpath = ""
     if env['QT6DIR'] == USE_PKG_CONFIG:
-        pdir = pc.RunConfig(env, 'pkg-config --variable=plugindir Qt6')
+        pdir = pc.RunConfig(env, pkgCfgCmd + '--variable=plugindir Qt6')
         xcbpath = os.path.join(pdir, "platforms/libqxcb.so")
     else:
         xcbpath = os.path.join(env['QT6DIR'], "plugins/platforms/libqxcb.so")
