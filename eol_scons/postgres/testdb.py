@@ -129,6 +129,9 @@ class PostgresTestDB:
         self.debug = False
         # cache the password so it can be removed from log output
         self.password = None
+        # cache and echo the command but do not run it
+        self.dryrun = False
+        self.last_command = None
 
     def _log(self, msg):
         if self.debug:
@@ -260,6 +263,10 @@ class PostgresTestDB:
 
     def _run(self, cmd, env=None):
         scmd = self._sanitized_cmd(cmd)
+        if self.dryrun:
+            self.last_command = cmd
+            print("Dry run: %s" % (scmd))
+            return
         p = self._popen(cmd, env=env)
         retcode = p.wait()
         if retcode:
