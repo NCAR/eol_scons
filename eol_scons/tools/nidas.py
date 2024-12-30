@@ -204,28 +204,6 @@ def _NidasRuntimeENV(env):
     env.PrependENVPath('LD_LIBRARY_PATH', '/opt/nc_server/lib')
 
 
-def _NidasAppFindFile(env, name):
-    # Look for a program with the given name in either the build dir for
-    # the active arch in the source tree, or else in the installed path.
-    vdir = '#/build/build'
-    if 'ARCH' in env and env['ARCH'] not in ['host', 'x86', '']:
-        arch = env['ARCH']  # empty string for native builds
-        vdir = vdir + '_' + arch
-    vdir = env.Dir(vdir)
-    eol_scons.Debug("Looking up app %s under %s..." % (name, vdir))
-    nodes = env.arg2nodes([vdir], env.fs.Dir)
-    app = SCons.Node.FS.find_file(name, tuple(nodes), verbose=True)
-    # app = env.FindFile(name, [vdir])
-    if not app:
-        # Default to install bin using the prefix, which already contains
-        # the arch distinction.
-        vdir = env.Dir(env['PREFIX'])
-        eol_scons.Debug("Looking up app %s under %s..." % (name, vdir))
-        app = env.FindFile(name, [vdir])
-    eol_scons.Debug("Found app: %s" % (str(app)))
-    return app
-
-
 def _check_nc_server(env, lib):
     lddcmd = ["ldd", lib]
     lddprocess = sp.Popen(lddcmd, stdout=sp.PIPE, env=env['ENV'])
@@ -241,7 +219,7 @@ def _resolve_libpaths(env, paths):
         plib = os.path.join(p, 'lib')
         if os.path.exists(parch):
             libpaths.append(parch)
-        elif os.path.exists(plib):
+        if os.path.exists(plib):
             libpaths.append(plib)
     return libpaths
 
