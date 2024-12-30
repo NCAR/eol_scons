@@ -7,7 +7,8 @@ Tool to add Qwt
 """
 
 
-import platform
+import sys
+import subprocess
 import eol_scons.parseconfig as pc
 
 
@@ -18,16 +19,18 @@ def generate(env):
     if env.get('QT_VERSION') == 5:
       qwtpcname = 'Qt5Qwt6'
 
-    pcpath = ''
-    # This covers osx x86_64.  ARM uses /opt/homebrew, so when we get to that
-    # we will update.
-    if platform.system() == 'Darwin':
-      pcpath = '--with-path=/usr/local/opt/qwt/lib/pkgconfig --with-path=/usr/local/opt/qt/libexec/lib/pkgconfig'
+    if sys.platform == 'darwin':
+      brewPath = subprocess.run(['brew', '--prefix'], capture_output=True, text=True).stdout.strip()
+      qwtPcPath = brewPath + '/opt/qwt/lib/pkgconfig'
+      qtPcPath = brewPath + '/opt/qt/libexec/lib/pkgconfig'
+
+      env.PrependENVPath('PKG_CONFIG_PATH', qtPcPath)
+      env.PrependENVPath('PKG_CONFIG_PATH', qwtPcPath)
       # I feel we shouldn't need to add this, but pkg-config is not returning it.
-      env.AppendUnique(CPPPATH='/usr/local/opt/qwt/lib/qwt.framework/Headers')
+      env.AppendUnique(CPPPATH=brewPath+'/opt/qwt/lib/qwt.framework/Headers')
 
 
-    pc.ParseConfig(env, 'pkg-config ' + pcpath + ' --cflags --libs ' + qwtpcname)
+    pc.ParseConfig(env, 'pkg-config --cflags --libs ' + qwtpcname)
 
 
 def exists(env):

@@ -77,6 +77,7 @@ libQt6<Module>.
 import sys
 import re
 import os
+import subprocess
 import textwrap
 
 import SCons.Defaults
@@ -95,8 +96,6 @@ USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT6"
 
 # Known paths for executables -- other than qmake
-pkgCfgCmd = "pkg-config --with-path=/usr/local/opt/qt/libexec/lib/pkgconfig "
-
 libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',
 		'/opt/homebrew/opt/qt/share/qt/libexec',
 		'/usr/lib64/qt6/libexec']
@@ -297,8 +296,7 @@ def _locateQt6Command(env, command):
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if env['QT6DIR'] == USE_PKG_CONFIG:
-            qtprefix = pc.RunConfig(env, pkgCfgCmd +
-                                    '--variable=prefix Qt6Core')
+            qtprefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt6Core')
             qtbindir = os.path.join(qtprefix, 'bin')
         # Otherwise, look for Qt6 binaries in <QT6DIR>/bin
         else:
@@ -397,7 +395,7 @@ def checkPkgConfig(env):
     #
     global _pkgConfigKnowsQt6
     if _pkgConfigKnowsQt6 is None:
-        check = pc.CheckConfig(env, pkgCfgCmd + '--exists Qt6Core')
+        check = pc.CheckConfig(env, 'pkg-config --exists Qt6Core')
         _pkgConfigKnowsQt6 = check
     return _pkgConfigKnowsQt6
 
@@ -434,6 +432,14 @@ def generate(env):
                                            env.get('QT6INCDIR', None),
                                            PathVariable.PathAccept))
     _options.Update(env)
+
+
+    # MacOS specifics.  Qt6 pkg-config files are in a non-standard location.
+    if sys.platform == "darwin":
+      brewPath = subprocess.run(['brew', '--prefix'], capture_output=True, text=True).stdout.strip()
+      env.AppendUnique(FRAMEWORKPATH=[brewPath + '/Frameworks',])
+      env.PrependENVPath('PKG_CONFIG_PATH', brewPath + '/opt/qt/libexec/lib/pkgconfig')
+
 
     # Try to find the Qt6 installation location, trying in order:
     #    o command line QT6DIR option
@@ -604,9 +610,6 @@ def enable_modules(env, modules, debug=False):
         env.LogDebug("QT6DIR not set, cannot enable module.")
         return False
 
-    if sys.platform == "darwin":
-      env.AppendUnique(FRAMEWORKPATH=['/usr/local/Frameworks',])
-
     onefailed = False
     for module in modules:
         if module.startswith('Qt6') or module.startswith('Qt5'):
@@ -661,9 +664,9 @@ def get_header_path(env):
     if hdir:
         return hdir
     hdir = pc.RunConfig(
-        env, pkgCfgCmd + '--silence-errors --variable=includedir Qt6Core')
+        env, 'pkg-config --silence-errors --variable=includedir Qt6Core')
     if hdir == '':
-        prefix = pc.RunConfig(env, pkgCfgCmd + '--variable=prefix Qt6Core')
+        prefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt6Core')
         if prefix == '':
             print('Unable to build Qt header dir for adding modules')
             return None
@@ -694,7 +697,7 @@ def enable_module_linux(env, module, debug=False):
         # The pkg-config should at least return a library name, so if
         # RunConfig() returns nothing, treat that the same as if a
         # CheckConfig() had failed, to avoid running pkg-config twice.
-        pkgc = pkgCfgCmd + '--cflags --libs ' + modpackage
+        pkgc = 'pkg-config --cflags --libs ' + modpackage
         cflags = pc.RunConfig(env, pkgc)
         if cflags:
             env.LogDebug("Before qt6 mergeflags '%s': %s" %
@@ -833,7 +836,7 @@ def deploy_linux(env):
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
     xcbpath = ""
     if env['QT6DIR'] == USE_PKG_CONFIG:
-        pdir = pc.RunConfig(env, pkgCfgCmd + '--variable=plugindir Qt6')
+        pdir = pc.RunConfig(env, 'pkg-config --variable=plugindir Qt6')
         xcbpath = os.path.join(pdir, "platforms/libqxcb.so")
     else:
         xcbpath = os.path.join(env['QT6DIR'], "plugins/platforms/libqxcb.so")
