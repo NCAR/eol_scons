@@ -127,6 +127,8 @@ class PostgresTestDB:
         self.settingsfile = None
         self.setupTempConnection()
         self.debug = False
+        # cache the password so it can be removed from log output
+        self.password = None
 
     def _log(self, msg):
         if self.debug:
@@ -238,8 +240,14 @@ class PostgresTestDB:
         """
         self._run(["pg_ctl", "-m", "fast", "-w", "stop"])
 
-    def _popen(self, cmd, env=None, **args):
+    def _sanitized_cmd(self, cmd: list) -> str:
         scmd = " ".join(cmd)
+        if self.password:
+            scmd = scmd.replace(self.password, "*****")
+        return scmd
+
+    def _popen(self, cmd, env=None, **args):
+        scmd = self._sanitized_cmd(cmd)
         print("Running: %s" % (scmd))
         if not env:
             env = self.getEnvironment()
@@ -251,7 +259,7 @@ class PostgresTestDB:
             raise
 
     def _run(self, cmd, env=None):
-        scmd = " ".join(cmd)
+        scmd = self._sanitized_cmd(cmd)
         p = self._popen(cmd, env=env)
         retcode = p.wait()
         if retcode:
@@ -320,6 +328,7 @@ class PostgresTestDB:
         self.PGUSER = None
         pwd = ""
         if password:
+            self.password = password
             pwd = "PASSWORD '%s'" % (password)
         self._psql("template1", "CREATE USER \"%s\" "
                    "WITH %s CREATEDB;" % (user, pwd))
