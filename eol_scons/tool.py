@@ -406,6 +406,10 @@ def export_qt_module_tool(modules):
             env.Require('qt5')
         elif qtversion == 4:
             env.Require('qt4')
+        else:
+            raise SCons.Errors.StopError(
+                "QT_VERSION (%s) must be integer 4, 5, or 6" %
+                (repr(qtversion)))
         env.EnableQtModules(modules)
     kw = {}
     kw[module.lower()] = qtmtool
