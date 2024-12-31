@@ -7,7 +7,6 @@ Tool to add Qwt
 """
 
 
-import sys
 import subprocess
 import eol_scons.parseconfig as pc
 
@@ -19,7 +18,7 @@ def generate(env):
     if env.get('QT_VERSION') == 5:
       qwtpcname = 'Qt5Qwt6'
 
-    if sys.platform == 'darwin':
+    if env['PLATFORM'] == 'darwin':
       brewPath = subprocess.run(['brew', '--prefix'], capture_output=True, text=True).stdout.strip()
       qwtPcPath = brewPath + '/opt/qwt/lib/pkgconfig'
       qtPcPath = brewPath + '/opt/qt/libexec/lib/pkgconfig'
