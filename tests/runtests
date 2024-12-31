@@ -33,6 +33,7 @@ test_sconstruct() # sfile options
 }
 
 test_sconstruct SConstruct
+# test_sconstruct SConstruct qt_version=6
 
 pytest=pytest
 which pytest-3 1> /dev/null 2>&1 && pytest=pytest-3
