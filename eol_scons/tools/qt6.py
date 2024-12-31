@@ -74,7 +74,6 @@ libQt6<Module>.
 # qmake avaiable in standard path /bin - in PATH
 # All other binaries (moc & uic) are in /usr/lib64/qt6/libexec
 
-import sys
 import re
 import os
 import subprocess
@@ -435,7 +434,7 @@ def generate(env):
 
 
     # MacOS specifics.  Qt6 pkg-config files are in a non-standard location.
-    if sys.platform == "darwin":
+    if env['PLATFORM'] == "darwin":
       brewPath = subprocess.run(['brew', '--prefix'], capture_output=True, text=True).stdout.strip()
       env.AppendUnique(FRAMEWORKPATH=[brewPath + '/Frameworks',])
       env.PrependENVPath('PKG_CONFIG_PATH', brewPath + '/opt/qt/libexec/lib/pkgconfig')
@@ -603,8 +602,8 @@ def enable_modules(env, modules, debug=False):
     generate() above did not succeed, and therefore no Qt6 modules can be
     enabled.
     """
-    env.LogDebug("Entering qt6 enable_modules(%s) with sys.platform=%s..." %
-                 (",".join(modules), sys.platform))
+    env.LogDebug("Entering qt6 enable_modules(%s) with platform=%s..." %
+                 (",".join(modules), env['PLATFORM']))
 
     if 'QT6DIR' not in env:
         env.LogDebug("QT6DIR not set, cannot enable module.")
@@ -617,13 +616,15 @@ def enable_modules(env, modules, debug=False):
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
         ok = False
-        if sys.platform.startswith("linux") or sys.platform == "cygwin":
+        if env['PLATFORM'] == "posix" or env['PLATFORM'] == "msys":
             ok = enable_module_linux(env, module, debug)
-        if sys.platform == "win32":
-            ok = enable_module_win(env, module, debug)
-        if sys.platform == "darwin":
+        if env['PLATFORM'] == "darwin":
             ok = enable_module_osx(env, module, debug)
+# Unused at moment.
+#        if sys.platform == "win32":
+#            ok = enable_module_win(env, module, debug)
         onefailed = onefailed or not ok
+
     return onefailed
 
 
@@ -719,7 +720,7 @@ def enable_module_linux(env, module, debug=False):
         # On MSYS2 pkg-config is returning C: in the path, which scons then
         # adds a prefix (e.g. "plotlib/" in aeros).  Replace C: with /c,
         # but only on msys.
-        if sys.platform == "cygwin":
+        if env['PLATFORM'] == "msys":
             replace_drive_specs(env['CPPPATH'])
             replace_drive_specs(env.get('LIBPATH', []))
 
