@@ -51,19 +51,19 @@ libQt6<Module>.
 
 # MacOS - w/ Homebrew on x86_64
 #
-# pkg-config does not work.
+# pkg-config works.
 #   Qt .pc files exist in non-standard location that is not searched.
 #   /usr/local/opt/qt6/libexec/lib/pkgconfig
 #
 # qmake avaiable in standard qt path /usr/local/opt/qt6/bin - in PATH
 # All other binaries (moc & uic) are in /usr/local/opt/qt/share/qt6/libexec/
 
-# MacOS - w/ Homebrew on M2
+# MacOS - w/ Homebrew on ARM
 #
-# pkg-config does not work.
+# pkg-config works.
 #   /opt/homebrew/opt/qt/libexec/lib/pkgconfig
 #
-# qmake available in /opt/homebrew/opt/qt/bin - in PATH
+# qmake, lupdate, lrelease available in /opt/homebrew/opt/qt/bin - in PATH
 # All other binaries (moc & uic) are in /opt/homebrew/opt/qt/share/qt/libexec
 #
 
