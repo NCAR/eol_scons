@@ -334,7 +334,8 @@ def Doxyfile_Emitter(target, source, env):
     if ddebug():
         dprint("leaving doxyfile_emitter: targets=(%s), sources=(%s)" %
                (",".join([str(t) for t in target]),
-                ",".join([hashlib.md5(str(s)).hexdigest() for s in source])))
+                ",".join([hashlib.md5(str(s).encode()).hexdigest()
+                          for s in source])))
     return target, source
 
 
