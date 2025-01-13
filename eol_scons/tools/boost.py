@@ -32,6 +32,8 @@ def boost_libflags(env):
 def _append_boost_library(env, libname):
     if env['PLATFORM'] == 'msys':
         env.Append(LIBS=[libname + "-mt"])
+    elif env['PLATFORM'] == 'win32':
+        env.Append(LIBS=[libname + "-vc143-mt-x64-1_87"])
     else:
         env.Append(LIBS=[libname])
 
