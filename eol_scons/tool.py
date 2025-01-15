@@ -330,6 +330,10 @@ def generate(env, **_kw):
     env.LogDebug("Generating eol defaults for Environment(%s) @ %s" % 
                  (name, env.Dir('#').get_abspath()))
 
+    # Add homebrew tool if we are on a Mac.
+    if env['PLATFORM'] == 'darwin':
+      env.Tool('homebrew')
+
     # Internal includes need to be setup *before* OptPrefixSetup or any
     # other includes, so that scons will scan for headers locally first.
     # Otherwise it looks in the opt prefix include first, and it notices
