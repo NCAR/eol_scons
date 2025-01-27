@@ -2,7 +2,6 @@
 #
 # This source code is licensed under the MIT license found in the LICENSE
 # file in the root directory of this source tree.
-import sys
 
 def generate(env):
     env.AppendUnique(DEPLOY_SHARED_LIBS=['Quarter'])
@@ -10,7 +9,7 @@ def generate(env):
     env.Require('coin')
     env.Require(['qtgui', 'qtcore', 'qtwidgets', 'qtopengl', 'qwt'])
 
-    if sys.platform == 'cygwin':
+    if env['PLATFORM'] in ['msys', 'win32']:
         env.AppendUnique(CXXFLAGS=["-DQUARTER_NOT_DLL"])
 
 def exists(env):

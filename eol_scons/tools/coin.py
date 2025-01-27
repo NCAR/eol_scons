@@ -7,7 +7,7 @@ import eol_scons.parseconfig as pc
 
 
 def generate(env):
-    if env['PLATFORM'] == 'msys':
+    if env['PLATFORM'] in ['msys', 'win32']:
 # Latest msys2/mingw/ucrt provides coin & quarter.  Yeah!  So it's a DLL now.
 # I'm just going to comment this out for now.	cjw 11/2024
 #        env.AppendUnique(CXXFLAGS=["-DCOIN_NOT_DLL"])
@@ -24,7 +24,7 @@ def generate(env):
 #        env.Append(LIBS=["X11"])
 
     # msys/ucrt coin pkg-config does not drag these in.  Do it manually here.
-    if env['PLATFORM'] == 'msys':
+    if env['PLATFORM'] in ['msys', 'win32']:
         env.Append(LIBS=['opengl32'])
         env.Append(LIBS=['glu32'])
         env.Append(LIBS=['gdi32'])

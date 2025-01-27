@@ -18,7 +18,6 @@ Example usage (OSX):
 """
 
 import os
-import sys
 import subprocess
 from SCons.Script import *
 
@@ -35,11 +34,11 @@ def _find_bitrock(env):
     except KeyError:
         pass
 
-    if sys.platform == 'win32' or sys.platform == 'cygwin':
+    if env['PLATFORM'] in  ['msys', 'win32']:
         node = env.FindFile('builder-cli.exe', ['/c/Tools/BitRock/bin/'])
         return node
 
-    if sys.platform == 'darwin':
+    if env['PLATFORM'] == 'darwin':
         node = env.FindFile(
             'installbuilder.sh',
             ['/Applications/BitRock/bin/Builder.app/Contents/MacOS/'])
