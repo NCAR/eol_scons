@@ -19,14 +19,13 @@ def generate(env):
       qwtpcname = 'Qt5Qwt6'
 
     if env['PLATFORM'] == 'darwin':
-      brewPath = subprocess.run(['brew', '--prefix'], capture_output=True, text=True).stdout.strip()
-      qwtPcPath = brewPath + '/opt/qwt/lib/pkgconfig'
-      qtPcPath = brewPath + '/opt/qt/libexec/lib/pkgconfig'
+      qwtPcPath = env['BREW_PREFIX'] + '/opt/qwt/lib/pkgconfig'
+      qtPcPath = env['BREW_PREFIX'] + '/opt/qt/libexec/lib/pkgconfig'
 
       env.PrependENVPath('PKG_CONFIG_PATH', qtPcPath)
       env.PrependENVPath('PKG_CONFIG_PATH', qwtPcPath)
       # I feel we shouldn't need to add this, but pkg-config is not returning it.
-      env.AppendUnique(CPPPATH=brewPath+'/opt/qwt/lib/qwt.framework/Headers')
+      env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt/lib/qwt.framework/Headers')
 
 
     pc.ParseConfig(env, 'pkg-config --cflags --libs ' + qwtpcname)
