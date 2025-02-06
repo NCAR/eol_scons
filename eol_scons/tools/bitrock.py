@@ -35,7 +35,7 @@ def _find_bitrock(env):
         pass
 
     if env['PLATFORM'] in  ['msys', 'win32']:
-        node = env.FindFile('builder-cli.exe', ['/c/Tools/BitRock/bin/'])
+        node = env.FindFile('builder-cli.exe', ['/c/Tools/InstallBuilder/bin/'])
         return node
 
     if env['PLATFORM'] == 'darwin':
