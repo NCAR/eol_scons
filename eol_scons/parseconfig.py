@@ -146,9 +146,13 @@ def _get_config(env: Environment, search_paths, config_script, args):
         try:
             child = sp.Popen([config] + args, stdout=sp.PIPE, env=psenv,
                              universal_newlines=True)
-            result = child.communicate()[0]
+            result, error = child.communicate()
             result = result.strip()
             result = (child.returncode, result)
+            if _debug:
+                print("child.returncode is: %s" % str(child.returncode))
+                if (child.returncode == 1):
+                    print("Popen returned error: %s" % str(error))
             cache[name] = result
         except OSError:
             # If the config script cannot be found, then the package must
