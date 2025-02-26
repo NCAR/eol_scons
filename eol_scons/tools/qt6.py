@@ -436,10 +436,6 @@ def generate(env):
     # MacOS specifics.  Qt6 pkg-config files are in a non-standard location.
     if env['PLATFORM'] == "darwin":
       env.PrependENVPath('PKG_CONFIG_PATH', env['BREW_PREFIX'] + '/opt/qt/libexec/lib/pkgconfig')
-    # Windows specifics.  Qt6 pkg-config files are in a non-standard location.
-    if env['PLATFORM'] in ['msys','win32']:
-      env.PrependENVPath('PKG_CONFIG_PATH', '/ucrt64/lib/pkgconfig')
-
 
     # Try to find the Qt6 installation location, trying in order:
     #    o command line QT6DIR option
