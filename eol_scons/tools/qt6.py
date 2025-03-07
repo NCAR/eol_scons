@@ -618,7 +618,7 @@ def enable_modules(env, modules, debug=False):
         if env['PLATFORM'] == "darwin":
             ok = enable_module_osx(env, module, debug)
 # Unused at moment.
-#        if env['PLATFORM'] in ['msys', 'win32']:
+#        if env['PLATFORM'] == 'win32':
 #            ok = enable_module_win(env, module, debug)
         onefailed = onefailed or not ok
 
@@ -640,7 +640,8 @@ def replace_drive_specs(pathlist):
     path starts with a drive specifier like C:, replace it with a string
     path with the drive specifier replaced with an absolute path like /c.
     This preserves any list elements as nodes if their path does not need
-    to be fixed.  Returns None.
+    to be fixed.  This was used for scons3.  Scons4 does not use it.
+    Returns None.
     """
     for i, node in enumerate(pathlist):
         path = str(node)
@@ -716,8 +717,8 @@ def enable_module_linux(env, module, debug=False):
 
         # On MSYS2 pkg-config is returning C: in the path, which scons then
         # adds a prefix (e.g. "plotlib/" in aeros).  Replace C: with /c,
-        # but only on msys.
-        if env['PLATFORM'] in ['msys']:
+        # but only on msys (scons3).
+        if env['PLATFORM'] == 'msys':
             replace_drive_specs(env['CPPPATH'])
             replace_drive_specs(env.get('LIBPATH', []))
 
