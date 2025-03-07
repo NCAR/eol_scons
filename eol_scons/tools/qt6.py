@@ -717,7 +717,7 @@ def enable_module_linux(env, module, debug=False):
         # On MSYS2 pkg-config is returning C: in the path, which scons then
         # adds a prefix (e.g. "plotlib/" in aeros).  Replace C: with /c,
         # but only on msys.
-        if env['PLATFORM'] in ['msys', 'win32']:
+        if env['PLATFORM'] in ['msys']:
             replace_drive_specs(env['CPPPATH'])
             replace_drive_specs(env.get('LIBPATH', []))
 
