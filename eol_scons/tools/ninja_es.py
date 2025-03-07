@@ -109,6 +109,9 @@ options.
 
 import os
 import SCons
+from eol_scons.debug import Debug
+
+Debug("loading ninja tool")
 
 variables = None
 
@@ -303,15 +306,6 @@ def SeparateNodes(env, targets, ninjanodes, sconsnodes):
     return ninjanodes, sconsnodes
 
 
-def generate(env):
-    global variables
-    if variables is None:
-        variables = env.GlobalVariables()
-        variables.AddVariables((
-            'ninja', 'Write ninja build rules into the given file.', None))
-    env.AddMethod(NinjaCheck)
-
-
 def NinjaCheck(env):
     variables.Update(env)
     ninjapath = env.get('ninja')
@@ -338,5 +332,18 @@ def NinjaCheck(env):
     WriteFile(ninjapath, ninjanodes)
 
 
+def generate(env):
+    env.LogDebug("ninja generate()")
+    global variables
+    if variables is None:
+        variables = env.GlobalVariables()
+        variables.AddVariables((
+            'ninja', 'Write ninja build rules into the given file.', None))
+    env.AddMethod(NinjaCheck)
+
+
 def exists(env):
     return True
+
+
+Debug("ninja tool loaded.")

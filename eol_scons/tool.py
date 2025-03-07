@@ -32,6 +32,13 @@ _tool_matches = None
 _global_tools = {}
 
 
+# For tools whose original names conflict with standard SCons tools or
+# modules, this dictionary maps the original name to the new tool file.
+TOOL_ALIASES = {
+    'ninja': 'ninja_es'
+}
+
+
 def _setup_global_tools(env):
     """
     Make sure the global tools list exists for this Environment.  Generate
@@ -258,8 +265,11 @@ def Tool(env, tool, toolpath=None, **kw):
             if toolpath is None:
                 toolpath = env.get('toolpath', [])
             toolpath = [env._find_toolpath_dir(tool) for tool in toolpath]
-            tool = SCons.Tool.Tool(*(name, toolpath), **kw)
-            env.LogDebug("Tool loaded: %s" % name)
+            env.LogDebug("toolpath=%s" % toolpath)
+            env.LogDebug("DefaultToolPath=%s" % SCons.Tool.DefaultToolpath)
+            alias = TOOL_ALIASES.get(name, name)
+            tool = SCons.Tool.Tool(alias, toolpath, **kw)
+            env.LogDebug("Tool loaded: %s: %s" % (name, tool))
             # If the tool is not specialized with keywords, then we can
             # stash this particular instance and avoid reloading it.
             if tool and not kw:

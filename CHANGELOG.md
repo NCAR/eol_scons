@@ -4,6 +4,9 @@
 
 ## [4.3] - Pending
 
+- Fix `ninja` tool conflict which started with SCons 4.9.0, causing error
+  messages like `no attribute 'NinjaCheck'`.  The `ninja` tool name is now an
+  alias for the renamed tool file `ninja_es.py`.
 - fix boost_thread tool to cache libs after first configure check
 - try to optimize how added methods are called to improve speed and debug
   tracing
