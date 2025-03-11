@@ -151,6 +151,8 @@ def _get_config(env: Environment, search_paths, config_script, args):
             result = (child.returncode, result)
             if _debug:
                 print("child.returncode is: %s" % str(child.returncode))
+                if (child.returncode == 0):
+                    print("Success getting config")
                 if (child.returncode == 1):
                     print("Popen returned error: %s" % str(error))
             cache[name] = result
