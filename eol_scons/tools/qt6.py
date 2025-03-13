@@ -94,10 +94,10 @@ _options = None
 USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT6"
 
-# Known paths for executables -- other than qmake
-libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',
-		'/opt/homebrew/opt/qt/share/qt/libexec',
-		'/usr/lib64/qt6/libexec']
+# Known paths for executables -- other than qmake, lupdate, lrelease
+libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',    # x86_64 Mac
+                '/opt/homebrew/opt/qt/share/qt/libexec', # ARM Mac
+                '/usr/lib64/qt6/libexec']                # Linux / Alma 9
 
 class ToolQt6Warning(SCons.Warnings.WarningOnByDefault):
     pass
@@ -316,7 +316,7 @@ def _locateQt6Command(env, command):
         Debug("qt6: checking path for commands: %s" % (cmds))
         result = env.Detect(cmds)
 
-    # Check know paths for Qt6 on all OS's
+    # Check known paths for Qt6 on all OS's
     if not result:
         for dir in libexecPaths:
             for cmd in cmds:
