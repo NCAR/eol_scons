@@ -25,7 +25,10 @@ def generate(env):
       env.PrependENVPath('PKG_CONFIG_PATH', qtPcPath)
       env.PrependENVPath('PKG_CONFIG_PATH', qwtPcPath)
       # I feel we shouldn't need to add this, but pkg-config is not returning it.
-      env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt/lib/qwt.framework/Headers')
+      if env.get('QT_VERSION') == 6:
+        env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt/lib/qwt.framework/Headers')
+      if env.get('QT_VERSION') == 5:
+        env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt-qt5/lib/qwt.framework/Headers')
 
 
     pc.ParseConfig(env, 'pkg-config --cflags --libs ' + qwtpcname)
