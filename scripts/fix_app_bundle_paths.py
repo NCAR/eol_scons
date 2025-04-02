@@ -1,8 +1,7 @@
-#! /opt/local/anaconda3/bin/python
-# check for library paths missed by macdeployqt in Aspen installers
-# usage: check_installer.py <path to .app bundle>
-import sys
+#! /usr/bin/env python3
+# check for library paths missed by macdeployqt in installers
 import os
+import argparse
 import glob
 import subprocess
 import shutil
@@ -10,8 +9,11 @@ import shutil
 
 class AppBundleChecker:
 
-    def __init__(self, app_path):
-        self.app_path = app_path
+    def __init__(self):
+        # Get command line arguments
+        args = self.parse_args()
+
+        self.app_path = os.path.join(os.getcwd(), args.app)
         self.aspen_path = os.path.join(self.app_path, "Contents/MacOS/aspen")
         if "Batch" in self.app_path:
             self.aspen_path = os.path.join(self.app_path,
@@ -21,6 +23,22 @@ class AppBundleChecker:
         self.homebrew_path = "/opt/homebrew/opt"
         if not (os.path.exists(self.homebrew_path)):
             self.homebrew_path = "/usr/local/opt"
+
+    def parse_args(self):
+        """ Instantiate a command line argument parser """
+
+        # Define command line arguments which can be provided
+        parser = argparse.ArgumentParser(
+            description="Check for Library paths missed by macdeployqt in" +
+            "MAC .app bundles")
+        parser.add_argument(
+            '--app', type=str, required=True,
+            help='relative path to .app bundle')
+
+        # Parse the command line arguments
+        args = parser.parse_args()
+
+        return args
 
     def check(self):
         self.check_executable(self.aspen_path)
@@ -81,8 +99,7 @@ class AppBundleChecker:
 
 
 def main():
-    app_path = os.path.join(os.getcwd(), sys.argv[1])
-    checker = AppBundleChecker(app_path)
+    checker = AppBundleChecker()
     checker.check()
 
 
