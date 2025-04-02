@@ -15,7 +15,7 @@ class AppBundleChecker:
         self.app_path = os.path.join(os.getcwd(), args.app)
 
         # Determine the exectutable to check
-        files = os.listdir(os.path.join(self.app_path,'Contents/MacOS'))
+        files = os.listdir(os.path.join(self.app_path, 'Contents/MacOS'))
         if len(files) == 1:
             self.executable_path = os.path.join(self.app_path,
                                                 'Contents/MacOS', files[0])
@@ -27,8 +27,8 @@ class AppBundleChecker:
             self.executable_path = os.path.join(self.app_path,
                                                 "Contents/MacOS/aspen")
             if "Batch" in self.app_path:
-                self.executable_path = os.path.join(self.app_path,
-                                               "Contents/MacOS/batch-aspen")
+                self.executable_path = os.path.join(
+                        self.app_path, "Contents/MacOS/batch-aspen")
 
         # Set the frameworks path
         self.frameworks_path = os.path.join(self.app_path,
@@ -62,6 +62,11 @@ class AppBundleChecker:
         for d in dylibs:
             self.check_executable(d)
 
+        # Check if QtDBus exists in frameworks dir and warn user (for now)
+        if not (self.exists_in_app("QtDBus.framework")):
+            print("\n**Warning: QtDBus.framework does not exist. If you are " +
+                  "codesigning this app you will need to manually add it.**\n")
+
     def check_executable(self, path):
         # run otool; find and fix any bad library paths
         result = subprocess.run(["otool", "-L", path], capture_output=True,
@@ -76,7 +81,8 @@ class AppBundleChecker:
             if not (line.startswith("@executable_path")
                     or line.startswith("/usr/lib")
                     or line.startswith("/System/Library/Frameworks")):
-                print("found bad library path", line, "referenced from:", path)
+                print("\nfound bad library path", line,
+                      "referenced from:", path)
                 self.fix_library_path(line, path)
 
     def fix_library_path(self, library_path, referenced_from):
@@ -85,6 +91,7 @@ class AppBundleChecker:
             # need to add library file and update its self references
             self.add_library_to_app(library_name)
         # always need to update reference
+        print("Updating reference: ", library_name)
         subprocess.run(["install_name_tool", "-change", library_path,
                         "@executable_path/../Frameworks/" + library_name,
                         referenced_from])
@@ -95,7 +102,7 @@ class AppBundleChecker:
 
     def add_library_to_app(self, library_name):
         # first have to find where file is in system - assume in homebrew
-        print("adding missing library to app bundle:", library_name)
+        print("adding missing library to app bundle: ", library_name)
         res = glob.glob("**/" + library_name, root_dir=self.homebrew_path,
                         recursive=True)
         # assume first result is fine
