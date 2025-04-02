@@ -20,9 +20,11 @@ class AppBundleChecker:
                                            "Contents/MacOS/batch-aspen")
         self.frameworks_path = os.path.join(self.app_path,
                                             "Contents/Frameworks")
-        self.homebrew_path = "/opt/homebrew/opt"
-        if not (os.path.exists(self.homebrew_path)):
-            self.homebrew_path = "/usr/local/opt"
+
+        # Find the homebrew path
+        brewPrefix = subprocess.run(['brew', '--prefix'], capture_output=True,
+                                    text=True).stdout.strip()
+        self.homebrew_path = brewPrefix + '/opt'
 
     def parse_args(self):
         """ Instantiate a command line argument parser """
