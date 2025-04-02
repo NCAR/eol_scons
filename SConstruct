@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-sys.path.append(Path('.').absolute().joinpath('eol_scons'))
+sys.path.append(str(Path('.').absolute().joinpath('eol_scons')))
 
 import eol_scons
 
