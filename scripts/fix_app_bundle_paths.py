@@ -12,12 +12,25 @@ class AppBundleChecker:
     def __init__(self):
         # Get command line arguments
         args = self.parse_args()
-
         self.app_path = os.path.join(os.getcwd(), args.app)
-        self.aspen_path = os.path.join(self.app_path, "Contents/MacOS/aspen")
-        if "Batch" in self.app_path:
-            self.aspen_path = os.path.join(self.app_path,
-                                           "Contents/MacOS/batch-aspen")
+
+        # Determine the exectutable to check
+        files = os.listdir(os.path.join(self.app_path,'Contents/MacOS'))
+        if len(files) == 1:
+            self.executable_path = os.path.join(self.app_path,
+                                                'Contents/MacOS', files[0])
+        else:
+            # Isabel, we need some logic to choose here. I am not sure how
+            # aspen sets things up so I am not sure how to resolve this.
+            # aeros just has a single executable in Contents/MacOS, so I used
+            # that do differentiate for now.
+            self.executable_path = os.path.join(self.app_path,
+                                                "Contents/MacOS/aspen")
+            if "Batch" in self.app_path:
+                self.executable_path = os.path.join(self.app_path,
+                                               "Contents/MacOS/batch-aspen")
+
+        # Set the frameworks path
         self.frameworks_path = os.path.join(self.app_path,
                                             "Contents/Frameworks")
 
@@ -43,7 +56,7 @@ class AppBundleChecker:
         return args
 
     def check(self):
-        self.check_executable(self.aspen_path)
+        self.check_executable(self.executable_path)
         # check all dylibs in frameworks path
         dylibs = glob.glob(self.frameworks_path + "/*.dylib")
         for d in dylibs:
