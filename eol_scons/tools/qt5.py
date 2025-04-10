@@ -565,10 +565,8 @@ def enable_modules(env, modules, debug=False):
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
         ok = False
-        if sys.platform.startswith("linux") or sys.platform == "cygwin":
+        if env['PLATFORM'] in ['posix', 'msys', 'win32']:
             ok = enable_module_linux(env, module, debug)
-        if sys.platform == "win32":
-            ok = enable_module_win(env, module, debug)
         if sys.platform == "darwin":
             ok = enable_module_osx(env, module, debug)
         onefailed = onefailed or not ok
