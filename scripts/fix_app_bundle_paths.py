@@ -16,20 +16,10 @@ class AppBundleChecker:
 
         # Determine the exectutable to check
         files = os.listdir(os.path.join(self.app_path, 'Contents/MacOS'))
-        if len(files) == 1:
-            self.executable_path = os.path.join(self.app_path,
-                                                'Contents/MacOS', files[0])
-        else:
-            # Isabel, we need some logic to choose here. I am not sure how
-            # aspen sets things up so I am not sure how to resolve this.
-            # aeros just has a single executable in Contents/MacOS, so I used
-            # that do differentiate for now.
-            self.executable_path = os.path.join(self.app_path,
-                                                "Contents/MacOS/aspen")
-            if "Batch" in self.app_path:
-                self.executable_path = os.path.join(
-                        self.app_path, "Contents/MacOS/batch-aspen")
-
+        # assumes only one executable in MacOS dir, which I think is standard
+        # for mac apps
+        self.executable_path = os.path.join(self.app_path, 'Contents/MacOS',
+                                            files[0])
         # Set the frameworks path
         self.frameworks_path = os.path.join(self.app_path,
                                             "Contents/Frameworks")
