@@ -25,9 +25,12 @@ class AppBundleChecker:
                                             "Contents/Frameworks")
 
         # Find the homebrew path
-        brewPrefix = subprocess.run(['brew', '--prefix'], capture_output=True,
-                                    text=True).stdout.strip()
-        self.homebrew_path = brewPrefix + '/opt'
+        brew_prefix = args.brew_prefix
+        if not brew_prefix:
+            brew_prefix = "/opt/homebrew"
+            if not (os.path.exists(brew_prefix)):
+                brew_prefix = "/usr/local"
+        self.homebrew_path = brew_prefix + '/opt'
 
     def parse_args(self):
         """ Instantiate a command line argument parser """
@@ -39,6 +42,7 @@ class AppBundleChecker:
         parser.add_argument(
             '--app', type=str, required=True,
             help='relative path to .app bundle')
+        parser.add_argument('--brew_prefix', type=str, default=None, help="homebrew prefix")
 
         # Parse the command line arguments
         args = parser.parse_args()
