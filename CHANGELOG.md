@@ -4,6 +4,10 @@
 
 ## [4.3] - Pending
 
+- The path to the `eol_scons/scripts` directory is now available as
+  `EOL_SCONS_SCRIPTS_DIR` in the `Environment` or by calling
+  `eol_scons.ScriptsDir()`.  This makes it easier to call scripts in that
+  directory independent of where or how `eol_scons` is installed.
 - Fix `ninja` tool conflict which started with SCons 4.9.0, causing error
   messages like `no attribute 'NinjaCheck'`.  The `ninja` tool name is now an
   alias for the renamed tool file `ninja_es.py`.

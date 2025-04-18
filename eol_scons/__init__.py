@@ -67,12 +67,14 @@ from eol_scons.tool import DefineQtTools
 from eol_scons.methods import EnableInstallAlias
 from eol_scons.methods import PrintProgress
 
+# import this here so it can be called as eol_scons.ScriptsDir()
+from eol_scons.tool import ScriptsDir
+
 
 def _run_script(argname, name=None):
     if name is None:
         name = argname
-    script = Path(__file__).parent.joinpath("../scripts").joinpath(name)
-    script = script.resolve()
+    script = str(Path(ScriptsDir()) / name)
     args = [script] + sys.argv[sys.argv.index(argname)+1:]
     PrintProgress("Executing: %s" % (" ".join(map(str, args))))
     os.execv(script, args)

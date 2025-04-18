@@ -187,6 +187,11 @@ def test_7_load_all_tools():
             assert error(result)
 
 
+def test_scripts_dir():
+    pscripts = Path(env.subst('${EOL_SCONS_SCRIPTS_DIR}'))
+    assert (pscripts / 'build_rpm.sh').exists()
+
+
 # I tried to find a way to run the test functions with pytest while also
 # running scons to setup all the environments for the tests, but I failed.  So
 # this just replicates the previous unittest implementation except using the
