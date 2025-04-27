@@ -16,12 +16,8 @@ import os
 
 
 def generate(env):
-    slib = '/usr/lib/libboost_unit_test_framework.a'
-    env.Require('boost')
-    if False and os.path.exists(slib):
-        env.Append(LIBS=[env.File(slib)])
-    else:
-        env.Append(LIBS=['boost_unit_test_framework'])
+    env.Tool('boost')
+    env.AppendBoostLibrary('boost_unit_test_framework')
 
 
 def exists(env):
