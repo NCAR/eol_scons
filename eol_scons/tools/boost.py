@@ -30,7 +30,7 @@ def boost_libflags(env):
 
 
 def _append_boost_library(env, libname):
-    if env['PLATFORM'] == 'win32':
+    if env['PLATFORM'] in ['win32', 'cygwin']:
         env.Append(LIBS=[libname + "-mt"])
     else:
         env.Append(LIBS=[libname])
