@@ -10,6 +10,7 @@ Tool to add Qwt
 import subprocess
 import eol_scons.parseconfig as pc
 
+_variables = None
 
 def generate(env):
     qwtpcname = 'qwt'
@@ -30,6 +31,16 @@ def generate(env):
       if env.get('QT_VERSION') == 5:
         env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt-qt5/lib/qwt.framework/Headers')
 
+    # on redhat9 qwt-qt6 currently still needs to be built from source, so add
+    # ability to set path to pkgconfig file for it
+    global _variables
+    if not _variables:
+        _variables = env.GlobalVariables()
+        _variables.Add('QWT_PKG_CONFIG_PATH', 'Path to qwt pkg-config files')
+    _variables.Update(env)
+
+    if env.get('QWT_PKG_CONFIG_PATH'):
+        env.PrependENVPath('PKG_CONFIG_PATH', env['QWT_PKG_CONFIG_PATH'])
 
     pc.ParseConfig(env, 'pkg-config --cflags --libs ' + qwtpcname)
 
