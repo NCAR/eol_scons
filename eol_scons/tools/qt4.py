@@ -481,7 +481,7 @@ def _checkQtCore(env):
     if 'QT4_CORE_CHECK' in env:
         return env['QT4_CORE_CHECK']
     conf = env.Clone(LIBS=[]).Configure()
-    hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', 'c++')
+    hasQt = conf.CheckLibWithHeader('QtCore', 'QtCore/Qt', language='c++')
     conf.Finish()
     if not hasQt:
         Debug('QtCore/Qt header file not found. '

@@ -570,7 +570,7 @@ def _checkQtCore(env):
     # library explicitly provided to the check method.
     conf = env.Clone().Configure()
     conf.env['LIBS'] = list()
-    hasqt = conf.CheckLibWithHeader('Qt6Core', 'QtCore/Qt', 'c++')
+    hasqt = conf.CheckLibWithHeader('Qt6Core', 'QtCore/Qt', language='c++')
     conf.Finish()
     if not hasqt:
         Debug('QtCore/Qt header file not found. '
