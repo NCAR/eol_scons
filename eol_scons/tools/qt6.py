@@ -830,7 +830,7 @@ def deploy_linux(env):
     - copy Qt6DBus, Qt6XcbQpa, xcb-icccm, and xcb-render-util to
       (application)/lib
     """
-    shared_libs = ['Qt6DBus', 'Qt6XcbQpa', 'xcb-icccm',
+    shared_libs = ['Qt6DBus', 'Qt6XcbQpa', 'xcb-cursor', 'xcb-icccm',
                    'xcb-render-util', 'xcb-image', 'xcb-keysyms']
     env.AppendUnique(DEPLOY_SHARED_LIBS=shared_libs)
     xcbpath = ""
