@@ -75,6 +75,7 @@ class DataFileCache(object):
         self._enable_download = True
         # full rsync command last run
         self.rsync_command = None
+        self.curl_command = None
         # echo rsync command instead of executing it
         self.echo = False
 
@@ -159,11 +160,13 @@ class DataFileCache(object):
         # The prefix is still needed, esp if it specifies the remote host.
         if not self._remote_prefix:
             raise Exception("Need a remote prefix to download data file.")
+        http = (self._remote_prefix.startswith('http://') or
+                self._remote_prefix.startswith('https://'))
         if not os.path.isdir(destdir):
             os.makedirs(destdir)
         filepath = os.path.join(self._remote_prefix, filepath)
         (host, colon, lpath) = filepath.partition(':')
-        if colon and os.path.exists(lpath):
+        if not http and colon and os.path.exists(lpath):
             filepath = lpath
             print("Using local datafile as source: %s" % (filepath))
             colon = None
@@ -171,7 +174,9 @@ class DataFileCache(object):
         # we must rsync, otherwise we link.  It is also possible there is
         # no host specifier but the source file does not exist, in which
         # case we fail saying just that.
-        if colon:
+        if http:
+            destpath = self._curl(filepath, destpath)
+        elif colon:
             destpath = self._rsync(filepath, destpath)
         elif not os.path.exists(filepath):
             print("*** Datafile source path does not exist: %s ***"
@@ -180,9 +185,7 @@ class DataFileCache(object):
         else:
             destpath = self._link(filepath, destpath)
         if not destpath and colon:
-            print("*** Check that host %s is configured in ssh/config."
-                  % (host))
-            print("*** Is remote host is accessible. Is VPN enabled?")
+            print("*** Download failed: %s" % (filepath))
         return destpath
 
     def _rsync(self, filepath, destpath):
@@ -194,6 +197,18 @@ class DataFileCache(object):
             if retcode == 0 and os.path.isfile(destpath):
                 return destpath
             print("*** rsync failed to download: %s" % (filepath))
+        return None
+
+    def _curl(self, filepath, destpath):
+        args = ['curl', '--remote-time', '-C', '-', '--output', destpath,
+                '-L', filepath]
+        self.curl_command = " ".join(args)
+        print(self.curl_command)
+        if not self.echo:
+            retcode = sp.call(args, shell=False)
+            if retcode == 0 and os.path.isfile(destpath):
+                return destpath
+            print("*** curl failed to download: %s" % (filepath))
         return None
 
     def _link(self, filepath, destpath):

@@ -4,6 +4,13 @@
 
 ## [4.3] - Pending
 
+- In the `datafilecache` module, if the remote prefix looks like a URL, then
+  data files are downloaded with `curl` instead of `rsync`:
+  ```python
+  env = Environment(tools=['default', 'datafilecache'])
+  dfcache = env.DataFileCache()
+  dfcache.setRemotePrefix('https://archive.eol.ucar.edu/software/test_data/profiler_test_data')
+  ```
 - The path to the `eol_scons/scripts` directory is now available as
   `EOL_SCONS_SCRIPTS_DIR` in the `Environment` or by calling
   `eol_scons.ScriptsDir()`.  This makes it easier to call scripts in that
