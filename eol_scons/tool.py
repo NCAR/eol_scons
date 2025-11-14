@@ -359,7 +359,7 @@ def generate(env, **_kw):
 
     # Add homebrew tool if we are on a Mac.
     if env['PLATFORM'] == 'darwin':
-      env.Tool('homebrew')
+      env.Tool('macos')
 
     # Internal includes need to be setup *before* OptPrefixSetup or any
     # other includes, so that scons will scan for headers locally first.

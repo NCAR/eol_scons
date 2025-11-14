@@ -27,7 +27,7 @@ def generate(env):
         sys.exit()
 
 
-    env['BREW_PREFIX'] = macPrefix
+    env['MACOS_PREFIX'] = macPrefix
     env.PrependENVPath('PATH', macPrefix + '/bin')
     env.AppendUnique(FRAMEWORKPATH=[macPrefix + '/Frameworks',])
 
