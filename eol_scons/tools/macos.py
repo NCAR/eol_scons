@@ -29,6 +29,13 @@ def generate(env):
 
     env['MACOS_PREFIX'] = macPrefix
     env.PrependENVPath('PATH', macPrefix + '/bin')
+
+    # Since a number of packages didn't have a pkg-config file under homebrew
+    # only (e.g. xerces-c and netcdf-cxx4), at least cover the default location
+    # Only really needed for ARM64
+    env.Prepend(CPPPATH=[macPrefix + '/include'])
+    env.Prepend(LIBPATH=[macPrefix + '/lib']) 
+
     env.AppendUnique(FRAMEWORKPATH=[macPrefix + '/Frameworks',])
 
 
