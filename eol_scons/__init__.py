@@ -9,27 +9,25 @@ This package extends SCons in three ways: it overrides or adds methods for
 the SCons Environment class.  See the methods.py module to see
 the full list.
 
-Second, this package adds the eol_scons/tools directory to the SCons tool path.
-Most of the tools for configuring and building against third-party software
-packages.
+Second, this package adds the eol_scons/tools directory to the SCons tool
+path. Most of the tools for configuring and building against third-party
+software packages.
 
 Lastly, this module itself provides an interface of a few functions, for
 configuring and controlling the eol_scons framework outside of the
 Environment methods.  These are the public functions:
 
-GlobalVariables(): Returns the global set of variables (formerly known as
-options) available in this source tree.
+eol_scons.GlobalVariables(): Returns the global set of variables (formerly
+known as options) available in this source tree.
 
-SetDebug(enable): set the global debugging flag to 'enable'.
+eol_scons.SetDebug(enable): set the global debugging flag to 'enable'.
 
-Debug(msg): Print a debug message if the global debugging flag is true.
+eol_scons.Debug(msg): Print a debug message if the global debugging flag is
+true.
 
-LookupDebug(tool): Some tools use this to see if their tool name appears in
-the debug key list, meaning the tool should print extra debugging messages.
-
-Nothing else in this module should be called from outside the package.  In
-particular, all the symbols starting with an underscore are meant to be
-private.  See the README file for the documentation for this module.
+eol_scons.LookupDebug(tool): Some tools use this to see if their tool name
+appears in the debug key list, meaning the tool should print extra debugging
+messages.
 """
 
 from SCons.Script import EnsurePythonVersion

@@ -1,145 +1,55 @@
-/**
+# User Guide for eol_scons
 
-@page config-page Software Configuration Framework
+## Overview
 
-@section toc Table of Contents
+This `eol_scons` software configuration package is an extension to
+[SCons](https://scons.org) for modularizing the commands and configuration
+required to build software. Libraries and executables can be compiled and
+shared across the whole tree, without knowing whether dependencies are
+internal or external to the tree. Likewise options for configuring the build
+can be defined in one place but shared across all modules which use need those
+options.
 
-@li @ref overview
-@li @ref implementation
-@li @ref eolsconspackage
-@li @ref globalvariables
-@li @ref globaltools
-@li @ref debugging
-@li @ref eolsconsdetails
-@li @ref configuration
-@li @ref doxygen
-@li @ref optimization
-@li @ref subsets
-
-@section overview Overview
-
-This software configuration framework is an extension to SCons for
-modularizing software source trees into logical and reusable modules.
-Libraries and executables can be compiled and shared across the whole tree
-transparent to whether dependencies are internal or external to the tree.
-Likewise options for configuring the build can be defined in one place but
-shared across all modules which use that option.
-
-The main objective is a modular, flexible, and portable build system.
-Given various libraries and executables in the source tree, where each
-builds against some subset of the libraries and some subset of external
-packages, the build for a program in the source tree should only need to
-name its required packages without regard for the location of those
-packages.  For example, a program needing the 'util' library specifies
-'util' as a package requirement which causes the proper libraries and
-include paths to be added to the environment.  The 'util' library itself
-may require other libraries, and those libraries should also be added to
-the environment automatically.  A program which builds against the 'util'
-library should not need to know that the util library must also link
-against library 'tools'.  Each module is responsible for publishing (or
-exporting) the build setup information which other modules would need to
-compile and link against that module, thus isolating the build
+The main objective is a modular, flexible, and portable build system. Given
+various libraries and executables in the source tree, where each builds
+against some subset of the libraries and some subset of external packages, the
+build for a program in the source tree should only need to name its required
+packages without regard for the location of those packages.  For example, a
+program needing the _util_ library specifies _util_ as a package requirement
+which causes the proper libraries and include paths to be added to the
+environment.  The _util_ library itself may require other libraries, and those
+libraries should also be added to the environment automatically.  A program
+which builds against the _util_ library should not need to know that the util
+library must also link against library _tools_.  Each module is responsible
+for publishing (or exporting) the build setup information which other modules
+would need to compile and link against that module, thus isolating the build
 configuration in each source directory from changes in the location or
 configuration of its dependencies.
 
-In the source tree, each module resides in its own directory, either
-directly under the top-level directory or under subdirectories.  The
-convention is that each module represents a namespace, so that as much as
-possible the directory partitioning can match the namespace partitioning,
-and header files can be included with the namespace in the path.  For
-example, if a dataspace library is defined in the 'dataspace' C++
-namespace, so all public headers are included with "dataspace/" in the
-header path.  One consequence of this convention is that if new modules are
-attached to the source tree with their namespace name, then their header
-files will be accessible without any change to the default include paths in
-the build configuration.  Keeping namespace and source module in sync also
-helps in navigating the source.
+## Implementation
 
-@section implementation SCons Implementation
-
-This build framework is based on SCons (https://www.scons.org) and called
-eol_scons.  It is mostly a python package called eol_scons and a set of
-scons tools which extends the standard SCons tools.  Every component within
-the source tree as well as external components have a particular tool which
-configures a scons Environment for building against that component.  The
-eol_scons package provides a table of global targets that SConscript files
-throughout the source tree can use to find dependencies, without knowing
-where those dependencies are built or installed.  For example, the tool for
-a library like netcdf, whether installed on the system or built within the
+The implementation is a python package called `eol_scons` and a set of `SCons`
+tools which extends the standard `SCons` tools.  Every component within the
+source tree as well as external components have a particular tool which
+configures a scons `Environment` for building against that component.  The
+`eol_scons` package provides a table of global targets that `SConscript` files
+throughout the source tree can use to find dependencies, without knowing where
+those dependencies are built or installed.  For example, the tool for a
+library like `netcdf`, whether installed on the system or built within the
 source tree, defines a function for configuring the build environment.
 Sometimes the tools are loaded from a tool file from the common
 `site_scons/site_tools` directory, sometimes via a Python script named
 `tool_{toolname}.py`, and other times the tool is a function defined within
-the SConscript file which builds the library or dependency.  Either way,
-the tools are genuine scons tools, so they can be applied to an Environment
-by the usual means.  In particular, they can be applied with the Tool()
-method or passed in the tools list when the Environment is constructed.
+the `SConscript` file which builds the library or dependency.  Either way, the
+tools are genuine scons tools, so they can be applied to an `Environment` like
+any other tool.  In particular, they can be applied with the `Tool()` method or
+passed in the tools list when the Environment is constructed.
 
-@subsection installation Installation
+### Installation
 
-The usual technique for extending SCons is to install custom tools and
-packages under a directory called site_scons.  Prior to SCons version 2.3,
-the site_scons directory had to be in the same directory as the top-level
-SConstruct file, or else it had to be specified on the command-line with
-the --site-dir option.
+See [README.md](README.md) for installation.
 
-Starting with version 2.3, Scons searches for the following site_scons
-directories in the order shown:
-
-    -# /usr/share/scons/site_scons
-    -# $HOME/.scons/site_scons
-    -# ./site_scons
-
-SCons adds each site_scons directory found to the python search path.  The
-last found in the list above appears first on the path and has the highest
-precedence.  Likewise, each site_tools directory under site_scons is added
-to the tool path, and the site_init.py file is loaded.
-
-Since eol_scons is a regular python package (and not a scons tool package),
-it needs to be imported from the standard python path or from one of the
-site_scons directories searched by scons.
-
-The eol_scons RPM installs eol_scons to `/usr/share/scons/site_scons`. If
-that RPM is installed, and you're using scons version 2.3 or later, then
-`import eol_scons` should just work.  Otherwise, you need to install
-eol_scons under one of the site_scons directories above searched by your
-particular version of SCons.
-
-The example below installs it under $HOME/.scons/site_scons where it can be
-used it for all your scons builds.  This is also useful for developing eol_scons
-and testing changes.
-
-@code
-mkdir -p $HOME/.scons/site_scons
-cd $HOME/.scons/site_scons
-git clone http://github.com/ncar/eol_scons
-@endcode
-
-If you're using a scons version before 2.3, then you can install eol_scons
-under the directory containing SConstruct:
-
-@code
-mkdir site_scons
-cd site_scons
-git clone http://github.com/ncar/eol_scons
-@endcode
-
-Finally, eol_scons can be installed on the standard python search path.
-Then it can be imported like any other python package.  To ensure a
-recreatable build environment, SCons does not propagate the PYTHONPATH
-setting, so it does not work to install eol_scons just anywhere and then
-add it to PYTHONPATH.  If you want to use eol_scons from a non-standard
-location, you can either modify sys.path directly in the SConstruct file or
-link to eol_scons in one of the searched site_scons directories.
-
-Note that the eol_scons package is not a 'tool package': the package does
-not provide the generate() or exists() methods required in scons tools.  So
-there is no point to installing the eol_scons package under one of the
-site_tools directories searched by SCons.  Instead, eol_scons is meant to
-be installed as a python package, as described above.  There is still a way
-to load eol_scons as if it were a tool, described in @ref activation.
-
-@subsection activation Activating eol_scons
+### Activating eol_scons
 
 There are two parts to extending SCons with eol_scons.  The first part is
 inserting eol_scons into the scons tool path so that eol_scons can override
@@ -156,18 +66,18 @@ The first part happens when eol_scons is imported, when it automatically
 inserts the eol_scons tools directory into the scons tool path.  It also
 inserts a second tools directory containing a default.py tool module to
 override the scons default tool.  By overriding the default tool, eol_scons
-can apply itself to every Environment created by scons to which the
-'default' tool is applied, which usually is every Environment in a source
-tree.  This is the usual way to activate eol_scons in a scons build
-framework, since it avoids explicitly applying eol_scons to every
-Environment constructor call.  To activate eol_scons this way, import
-eol_scons at the top of the SConstruct file, before any tools are loaded:
+can apply itself to every Environment created by scons to which the 'default'
+tool is applied, which usually is every Environment in a source tree.  This is
+the usual way to activate eol_scons in a scons build, since it avoids
+explicitly applying eol_scons to every Environment constructor call.  To
+activate eol_scons this way, import eol_scons at the top of the SConstruct
+file, before any tools are loaded:
 
-@code
+```python
 import eol_scons
 ...
 env = Environment(tools=['default'])
-@endcode
+```
 
 The overridden default tool first applies the standard scons default tools
 before applying eol_scons.  In theory the insertion of the eol_scons
@@ -185,11 +95,11 @@ path already, but the default tool override will also be on the path.  So
 the default tool can be removed from the tool path using the
 RemoveDefaultHook() function:
 
-@code
+```python
 import eol_scons
 eol_scons.RemoveDefaultHook()
 env = Environment(tools=['default', 'eol_scons_tool', 'prefixoptions', 'netcdf'])
-@endcode
+```
 
 If someone wants to load the tool without an explicit import in the
 SConstruct file, then eol_scons_tool.py can be copied or linked into one of
@@ -201,10 +111,10 @@ override the default tool and does not require an explicit import.  It just
 requires that the eol_scons_tool.py tool module be installed (or linked)
 somewhere in the scons tool path.
 
-@code
+```python
 env = Environment(tools=['default', 'eol_scons_tool', 'prefixoptions', 'netcdf'])
 variables = env.GlobalVariables()
-@endcode
+```
 
 Unfortunately, `scons` does not have a command-line option to modify the
 tool path.  Maybe the eol_scons/tools directory should be renamed to
@@ -212,18 +122,18 @@ site_tools, then eol_scons_tool.py could be added to the tool path by
 specifying eol_scons as the site directory.  For this to work the eol_scons
 package must still be on the python path.
 
-@code
+```python
 scons --site-dir=/usr/share/scons/site_scons/eol_scons
-@endcode
+```
 
-@subsection externaltools External Tools
+### External Tools
 
 Below is an example of a very simple tool from eol_scons for building against
 the fftw library.  The `fftw` tool is a tool file in the `eol_scons/tools`
 directory under the top directory of the project source tree.  It's a shared
 tool file because it's always an external dependency.
 
-@code
+```python
 def generate(env):
   # Hardcode the selection of the threaded fftw3, and assume it's installed
   # somewhere already on the include path, ie, in a system path.
@@ -231,16 +141,16 @@ def generate(env):
 
 def exists(env):
     return True
-@endcode
+```
 
 A source module which depends on `fftw` could include this tool in
 a SConscript Environment file like so:
 
-@code
+```python
 env = Environment(tools = ['default', 'fftw'])
-@endcode
+```
 
-@subsection internaltools Internal Tools
+### Internal Tools
 
 Tools can also be defined locally, to extend beyond the tools which are
 defined in `site_scons/site_tools`.  This is as simple as `def`-ing and
@@ -254,7 +164,7 @@ there's no need to explicitly load a specific `SConscript` file before
 requesting the tool.  Here's an example tool definition from the ELDORA tree,
 where a tool named `ddslib` is defined in file `ddslib/tool_ddslib.py`:
 
-@code
+```python
 #
 # Rules to build ddslib and export it as a SCons tool
 #
@@ -274,7 +184,7 @@ libEldoraDds, sources, headers = env.DdsLibrary('EldoraDds.idl', env)
 html = env.Apidocs(sources + headers, DOXYFILE_FILE = "#/Doxyfile")
 
 Default(libEldoraDds)
-@endcode
+```
 
 Creation of a tool requires only that a function be `def`-ed and
 `Export`-ed.  Everything else shown above is the details for actually
@@ -298,10 +208,10 @@ link successfully.
 
 Here's how a `SConscript` might show that it requires 'ddslib':
 
-@code
+```python
 tools = ['ddslib', 'qt4']
 env = Environment(tools = ['default'] + tools)
-@endcode
+```
 
 The above excerpt creates an Environment which loads a tool called 'ddslib'
 (along with 'qt4').  If the tool 'ddslib' had not been found in the global
@@ -325,7 +235,7 @@ modify an environment.  The generate() module function serves the same
 purpose as the python tool function defined in a `SConscript` or
 `tool_*.py` file.
 
-@code
+```python
 def generate(env):
     env.AppendLibrary ("logx")
     if env.GetGlobalTarget("liblogx"):
@@ -333,7 +243,7 @@ def generate(env):
     else:
           env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
     env.Tool ('log4cpp')
-@endcode
+```
 
 Since the logx library requires log4cpp, the logx tool automatically sets
 up the log4cpp dependencies with the 'env.Tool()' call.
@@ -355,24 +265,25 @@ library should be linked from within the source tree or from some external
 installation, and then modify the environment accordingly.  The source
 module which depends upon the logx library need not change either way.
 
-@section eolsconspackage The eol_scons Package
+## The eol_scons Package
 
 The eol_scons package extends the standard SCons framework for EOL
 software developments.
 
-@subsection sitesconsdirectory site_scons Directory
+### site_scons Directory
 
-The eol_scons modules and tools reside in a directory meant to be shared
-among software projects.  The idea is that this directory should hold the
-files for a project build framework which are not specific to a particular
-project.  The directoy can be linked into a source tree, checked out
-separately, or referenced using 'svn:extnerals'.  SCons automatically
-checks for a directory called 'site_scons' in the top directory, where the
-SConstruct file is located.  So by checking out the eol_scons directory
-tree into a directory called 'site_scons', the integration and extension of
-SCons happens automatically.  See also @ref installation.
+The eol_scons modules and tools reside in a directory meant to be shared among
+software projects.  The idea is that this directory should hold the files for
+a project build framework which are not specific to a particular project.  The
+directoy can be linked into a source tree, checked out separately, or
+referenced using 'svn:extnerals'.  SCons automatically checks for a directory
+called 'site_scons' in the top directory, where the SConstruct file is
+located.  So by checking out the eol_scons directory tree into a directory
+called 'site_scons', the integration and extension of SCons happens
+automatically.  See also the installation information in
+[README.md](README.md).
 
-@subsection extensions SCons Extensions
+### extensions SCons Extensions
 
 This package extends SCons in three ways.  First of all, it overrides or
 adds methods in the SCons Environment class.  See the
@@ -386,7 +297,7 @@ Lastly, this module itself provides an interface for configuring and
 controlling the eol_scons framework outside of the Environment methods.  The
 following sections cover the public functions.
 
-@subsection examples Examples
+### Examples
 
 Below are some examples of projects which use eol_scons:
 
@@ -410,31 +321,32 @@ good example of a few techniques:
 - Variant builds derived from target OS and architecture.
 - Separating config from build to enable `-Werror` on compile.
 
-@section globalvariables GlobalVariables()
+## GlobalVariables()
 
-The GlobalVariables() function returns the global set of variables
+The `GlobalVariables()` function returns the global set of variables
 (formerly known as options) available in this source tree.  Recent versions
-of SCons provide a global Variables singleton by default, but this method
-supplies a default config file path.  The first Variables instance to be
-constructed with @p is_global=1 (the default) becomes the singleton
+of SCons provide a global `Variables` singleton by default, but this method
+supplies a default config file path.  The first `Variables` instance to be
+constructed with `is_global=1` (the default) becomes the singleton
 instance, and only that constructor's settings (for config files and
-arguments) take effect.  All other Variables() constructors will return the
+arguments) take effect.  All other `Variables()` constructors will return the
 singleton instance, and any constructor parameters will be ignored.  So if
 a particular source tree wants to set its own config file name, it can
-specify that path in a Variables() constructor in the top-level SConstruct,
+specify that path in a `Variables()` constructor in the top-level SConstruct,
 so that instance is created before the default created by eol_scons:
 
 SConstruct:
-@code
+
+```python
 variables = Variables("my_settings.py")
-@endcode
+```
 
 If no singleton instance is created explicitly by the project SConsctruct
 file, then the default created by eol_scons will take effect.  The default
-eol_scons Variables() instance specifies a config file called 'config.py'
+`eol_scons` `Variables()` instance specifies a config file called `config.py`
 in the top directory.
 
-@section globaltools Global Tools
+## Global Tools
 
 The eol_scons environment adds the notion of global tools, or tools which
 can be specified in root environments which will be applied to all
@@ -464,17 +376,17 @@ one of two ways.
 The global tools can be extended by passing the list of tools in the
 GLOBAL_TOOLS construction variable when creating an Environment:
 
-@code
+```python
   env = Environment(tools = ['default'],
                     GLOBAL_TOOLS = ['svninfo', 'qtdir', 'doxygen', Aeros])
-@endcode
+```
 
 Or, for an environment has already been created, the global tool list can
 be modified like below:
 
-@code
+```python
   env.GlobalTools().extend([Aeros, "doxygen"])
-@endcode
+```
 
 However, in the above method, the new tools will *not* be applied to the
 Environment.  The tools *are* applied when passed in the GLOBAL_TOOLS
@@ -484,17 +396,17 @@ Global tools are never applied retroactively to existing environments, only
 when environments are created.  Once an Environment has been created, tools
 must be applied using the Tool() or Require() methods.
 
-@section debugging Debugging
+## Debugging
 
-Debug(msg) prints a debug message if the global debugging flag is true.
+`Debug(msg)` prints a debug message if the global debugging flag is true.
 
-SetDebug(enable) sets the global debugging flag to @p enable.
+`SetDebug(enable)` sets the global debugging flag to `enable`.
 
-The debugging flag in eol_scons can also be set using the SCons Variable
-eolsconsdebug, either passing eolsconsdebug=1 on the scons command line or
-setting it in the config.py file like any other variable.
+The debugging flag in `eol_scons` can also be set using the SCons Variable
+`eolsconsdebug`, either passing `eolsconsdebug=1` on the scons command line or
+setting it in the `config.py` file like any other variable.
 
-@section eolsconsdetails Technical Details on Tools and eol_scons
+## Technical Details on Tools and eol_scons
 
 The eol_scons package overrides the standard Tool() method of the SCons
 Environment class to customize the way tools are loaded.  First of all, the
@@ -538,7 +450,7 @@ not.  This makes it possible to use Require() similarly to past usage,
 where it returns the list of tools which should be applied to environments
 built against the component:
 
-@code
+```python
 env = Environment(tools = ['default'])
 tools = env.Require(Split("doxygen qt"))
 
@@ -546,7 +458,7 @@ def this_component_tool(env):
     env.Require(tools)
 
 Export('this_component_tool')
-@endcode
+```
 
 It should be possible to make tools robust enough to only execute certain
 code once even when loaded multiple times, but that hasn't been explored
@@ -560,11 +472,11 @@ symbols are not available in the global namespace as they are in SConscript
 files.  The symbols available globally in a SConscript file can be imported
 by a tool from the `SCons.Script` package.  Here's an example:
 
-@code
+```python
     import SCons.Script
     SCons.Script.Export('gtest')
     from SCons.Script import BUILD_TARGETS
-@endcode
+```
 
 To refer to tools defined in SConscript files in other directories within a
 source tree, Export() the tool function in the SConscript file, then just
@@ -573,167 +485,114 @@ such as in the `tools` argument to `Environment()` or in the `Require()` or
 `Tool()` methods.  See the examples section for projects which demonstrate
 this.
 
-@section configuration Configuration
+## Configuration
 
 The eol_scons framework contains a tool called 'prefixoptions'.  It
 used to be part of the environment by default, but now it is a separate
 tool.  However, the tool is still loaded by default unless the
 GlobalTools() list is modified first.  The tool adds build options called
-@p OPT_PREFIX and @p INSTALL_PREFIX.  @p OPT_PREFIX defaults to
-'$DEFAULT_OPT_PREFIX', which in turn defaults to '/opt/local'.  A source
-tree can modify the default by setting DEFAULT_OPT_PREFIX in the
-environment in the global tool.  Run 'scons -h' to see the help information
+`OPT_PREFIX` and `INSTALL_PREFIX`.  `OPT_PREFIX` defaults to
+`$DEFAULT_OPT_PREFIX`, which in turn defaults to `/opt/local`.  A source
+tree can modify the default by setting `DEFAULT_OPT_PREFIX` in the
+environment in the global tool.  Run `scons -h` to see the help information
 for all of the local options.  You can set an option on the command line
 like this:
 
-@code
+```python
 scons -u OPT_PREFIX=/opt
-@endcode
+```
 
 Or you can set it for good in a file called `config.py` in the top
 directory:
 
-@code
+```python
 # toplevel config.py
 OPT_PREFIX="/opt"
-@endcode
+```
 
-The @p OPT_PREFIX path is automatically included in the appropriate
+The `OPT_PREFIX` path is automatically included in the appropriate
 compiler options.  Several of the smaller packages expect to be found there
 by default (eg, netcdf), and so they don't add any paths to the environment
 themselves.
 
-The @p INSTALL_PREFIX option is the path prefix used by the installation
+The `INSTALL_PREFIX` option is the path prefix used by the installation
 methods of the Pkg_Environment class:
 
-@code
+```python
 InstallLibrary(source)
 InstallProgram(source)
 InstallHeaders(subdir, source)
-@endcode
+```
 
 Therefore the above methods do not exist in the environment instance until
 the prefixoptions tool has been loaded.
 
-The @p INSTALL_PREFIX defaults to the value of @p OPT_PREFIX.
+The `INSTALL_PREFIX` defaults to the value of `OPT_PREFIX`.
 
 It is also possible for any package script or SConscript to add more
-configuration options to the build framework.  The eol_scons package
-creates a single instance of the SCons Variables class, and that is the
-instance to which the @p OPT_PREFIX and @p INSTALL_PREFIX options are
-added.  The eol_scons function GlobalVariables() returns a reference to the
-global Variables instance, so further options can be added at any time by
-adding them to that instance.
+configuration options to the build framework.  The eol_scons package creates a
+single instance of the SCons Variables class, and that is the instance to
+which the `OPT_PREFIX` and `INSTALL_PREFIX` options are added.  The eol_scons
+function `GlobalVariables()` returns a reference to the global Variables
+instance, so further options can be added at any time by adding them to that
+instance.
 
-For example, the spol package script adds an option SPOL_PREFIX:
+For example, the spol package script adds an option `SPOL_PREFIX`:
 
-@code
+```python
 print "Adding SPOL_PREFIX to options."
 eol_scons.GlobalVariables().AddVariables (
     PathVariable('SPOL_PREFIX', 'Installation prefix for SPOL software.',
            '/opt/spol'))
-@endcode
+```
 
-The option is only added once, the first time the spol.py tool is loaded.
+The option is only added once, the first time the `spol.py` tool is loaded.
 After that, every time the spol tool is applied it calls Update() on the
 target environment to make sure the spol configuration options are setup in
 that environment.
 
-@code
+```python
     eol_scons.GlobalVariables().Update(env)
-@endcode
+```
 
-Finally, the end of the top-level SConstruct file should contain a call to
-the SCons Help() function using the help text from the GlobalVariables()
+Finally, the end of the top-level SConstruct file should contain a call to the
+SCons `Help()` function using the help text from the `GlobalVariables()`
 instance.  This ensures that any options added by any of the modules in the
-build tree will appear in the output of 'scons -h'.
+build tree will appear in the output of `scons -h`.
 
-@code
+```python
 options = env.GlobalVariables()
 options.Update(env)
 Help(options.GenerateHelpText(env))
-@endcode
+```
 
-@section doxygen SCons Doxygen
+## SCons Doxygen
 
-See the documentation in the doxygen.py tool.
+See the documentation in the [doxygen.py](eol_scons/tools/doxygen.py) tool.
 
-@section optimization Speeding Up SCons
+## Speeding Up Builds
 
 There are a few ways to speed up iterative scons builds using eol_scons.  See
-these tools for ideas: @ref ninja.py, @ref rerun.py, and @ref dump_trace.py.
+these tools for ideas: ninja_es ([ninja_es.py](eol_scons/tools/ninja_es.py)),
+rerun ([rerun.py](eol_scons/tools/rerun.py)), and dump_trace
+([dump_trace.py](eol_scons/tools/dump_trace.py)).
 
-@section subsets Building Subsets of the Source Tree
+## Building Subsets of the Source Tree
 
-With large source trees, scons can be very slow to read all of the
-subsidiary SConscript files and scan all of the source files and implicit
-dependencies.  It is not like hierarchical makes, where the build only
-proceeds down from the current subdirectory.  Instead, scons builds always
-start from the top.  So to speed up iterative compiles with scons, here are
-a few ways to build only subsets of the source tree.
+Individual SConscript files do not always need to import a root environment
+from which to create their own environment.  Instead they use the normal
+SConscript convention of creating their own `Environment` with the `default`
+tool, which may or may not need to be modified by a global tool.  For example,
+it is possible to build the `logx` library separately from the rest of the
+source tree with something like below.  If `eol_scons` is not in one of the
+default `site_scons` search locations, then the location can be added with
+`--site-dir`.
 
-The most obvious way is to eliminate subdirectories from the source tree.  The
-SConstruct file can actually check for the existence of each SConscript
-subdirectory and skip the ones that do not exist.
-
-Some EOL SConstruct files support a SUBDIRS option.  The SUBDIRS option
-contains the specific list of subdirectories whose SConscript files should
-be loaded.  When working on a particular subset of the raddx tree, say
-spol, it is possible to limit builds to the current subdirectory and any
-modules on which it depends.  Unfortunately, for the moment those modules
-need to be known in advance and explicitly included in SUBDIRS.  For
-example, if working in the dataspace directory, this command builds only
-the dataspace library and the logx and domx libraries which it requires:
-
-@code
-scons -u SUBDIRS="logx domx dataspace"
-@endcode
-
-Note this is different than running this command:
-
-@code
-scons -u .
-@endcode
-
-The above command only builds the current directory, but it first loads and
-scans all of the SConscript files in the entire project.  The SUBDIRS
-version only loads SConscript files from three subdirectories, so it is
-much faster.
-
-Like other options, SUBDIRS can be specified on the command-line or in the
-configuration file, config.py.
-
-Some components define their tool function within the SConscript file in
-their source directory, rather than in the site_scons directory.  To build
-any modules which depend on such packages, the package's subdirectory must
-be included in the SUBDIRS list.  Otherwise the package's tool function
-will never be defined.
-
-Help on the SUBDIRS option shows up in the -h output from scons:
-
-@code
-SUBDIRS: The list of subdirectories from which to load SConscript files.
-    default:
-  rtfcommon logx acex domx inix dorade dbx rtf_disp
-  eldora/eldora
-  radd eldora rdow acex/RingBuf spol
-  lidar
-@endcode
-
-With eol_scons, individual SConscript files do not need to import a
-root environment from which to create their own environment.  Instead they
-use normal SConscript conventions, except the underlying environment
-instance is modified by the 'default' tool.  So it is possible to build
-`logx` completely separately from the rest of the source tree with
-something like this:
-
-@code
+```python
 cd logx
 scons -f SConscript --site-dir ../site_scons
-@endcode
+```
 
-With a few tweaks to the SConscript file, it is possible for many of the
-shared packages to use the same SConscript file to build both within a
-source tree and standalone.
-
-**/
+With a few tweaks to the `SConscript` file, many library source directories
+use the same `SConscript` file to build both within a source tree and
+standalone.
