@@ -20,8 +20,8 @@ variables.Update(env)
 
 # Someday this would be a good place to set the PROJECT_NUMBER in the Doxyfile
 # to the current version...
-docsources = ['doxy/Doxyfile', 'doxy/mainpage.dox', 'eol_scons/README',
-              'doxy/eol_scons']
+docsources = ['doxy/Doxyfile', 'README.md', 'UserGuide.md', 'doxy/eol_scons',
+              'eol_scons/tools']
 docs = env.Command(env.Dir('doxy/html'), docsources, 'cd doxy && doxygen')
 env.AlwaysBuild(docs)
 env.Alias('docs', docs)
@@ -31,7 +31,11 @@ env.Alias('docs', docs)
 # install a copy of the eol_scons package under the doxy directory for doxygen
 # to scan.  This must be always built when needed for the doxygen target,
 # since scons does not compare all the individual files in the install.
-env.AlwaysBuild(env.Install("#/doxy", ["eol_scons"]))
+linksources = env.Glob('eol_scons/*.py') + env.Glob('eol_scons/postgres')
+env['PKGLINKS'] = ['../../eol_scons/' + f.name for f in linksources]
+links = env.Command('doxy/eol_scons', linksources,
+                    "mkdir -p ${TARGET} && ln -sf ${PKGLINKS} doxy/eol_scons")
+env.AlwaysBuild(links)
 
 # For now, install the package in the same layout as in the repository, so the
 # top-level __init__.py can keep the main package eol_scons/__init__.py from
@@ -53,7 +57,8 @@ env.Alias('install', install)
 if env.GetOption('clean'):
     env.Execute(Delete(["build", "rpms.txt", "tests/.sconf_temp",
                         "tests/config.log", "tests/.sconsign.dblite",
-                        "tests/test_site_scons", "doxy/html"]))
+                        "tests/test_site_scons", "doxy/html",
+                        "doxy/eol_scons"]))
 
 # for the test script, look for scons and pytest executables in the same place
 # as the python executable running this SConstruct.

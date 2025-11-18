@@ -35,7 +35,7 @@ build_rpms()
         (set -x; rm -rf "$TOPDIR/RPMS"; rm -rf "$TOPDIR/SRPMS")
     fi
     # this conveniently creates a list of built rpm files in rpms.txt.
-    (set -x; scons build_rpm scripts/eol_scons.spec build)
+    (set -x; scons build_rpm scripts/eol_scons.spec snapshot)
 }
 
 
