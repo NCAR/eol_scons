@@ -173,7 +173,6 @@ env = Environment(tools = ['default'] + tools)
 
 def ddslib(env):
     env.AppendLibrary('EldoraDds')
-    env.AppendDoxref('EldoraDds')
     env.AppendUnique(CPPPATH = ['#/ddslib',])
     env.Require(tools)
 
@@ -238,10 +237,6 @@ purpose as the python tool function defined in a `SConscript` or
 ```python
 def generate(env):
     env.AppendLibrary ("logx")
-    if env.GetGlobalTarget("liblogx"):
-          env.AppendDoxref("logx")
-    else:
-          env.AppendDoxref("logx:/net/www/software/raddx/apidocs/logx/html")
     env.Tool ('log4cpp')
 ```
 
