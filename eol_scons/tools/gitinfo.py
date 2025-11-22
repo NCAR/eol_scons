@@ -259,7 +259,7 @@ def LoadGitInfo(env, source, target=None):
     instead.
     """
     workdir = _get_workdir(env, source)
-    gitinfo = _load_gitinfo(env, workdir, target)
+    _load_gitinfo(env, workdir, target)
 
 
 def exists(env):

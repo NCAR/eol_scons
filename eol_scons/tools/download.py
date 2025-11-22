@@ -24,27 +24,23 @@ import sys
 import SCons
 import os
 
-try:
-    # Python 3 form
-    from urllib.request import urlretrieve
-except ImportError:
-    # Python 2
-    from urllib import urlretrieve
+from urllib.request import urlretrieve
+
 
 class URLNode(SCons.Node.Python.Value):
 
-    def __init__ (self, url):
+    def __init__(self, url):
         SCons.Node.Python.Value.__init__(self, url)
-        
+
     def target_from_source(self, pre, suf, splitext):
         env = SCons.Defaults.DefaultEnvironment()
         return env.File("#"+os.path.basename(str(self).strip("'")))
-    
 
-def download_emitter (target, source, env):
+
+def download_emitter(target, source, env):
     "Add the download URL to the package file if necessary."
     url = str(source[0]).strip("'")
-    if not "/" in url:
+    if "/" not in url:
         url = '$DOWNLOAD_DIRECTORY/%s' % url
     source = [URLNode(env.subst(url))]
     if env.get('eolsconsdebug'):
@@ -57,7 +53,7 @@ def download_emitter (target, source, env):
 def download(target, source, env):
 
     def download_report(blocks, blocksize, totalsize):
-        sys.stdout.write("\r%s/%s" %((blocks*blocksize),totalsize))
+        sys.stdout.write("\r%s/%s" % ((blocks*blocksize), totalsize))
 
     url = str(source[0]).strip("'")
     file = target[0].get_abspath()
@@ -67,10 +63,10 @@ def download(target, source, env):
 
 
 download_action = SCons.Action.Action(download, None)
-download_builder = SCons.Builder.Builder(action = download_action,
-                                         emitter = download_emitter,
-                                         single_source = True,
-                                         source_factory = URLNode)
+download_builder = SCons.Builder.Builder(action=download_action,
+                                         emitter=download_emitter,
+                                         single_source=True,
+                                         source_factory=URLNode)
 
 
 def generate(env):
@@ -83,4 +79,3 @@ def generate(env):
 
 def exists(env):
     return True
-

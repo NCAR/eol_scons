@@ -65,6 +65,7 @@ if any do not:
 import SCons
 from SCons.Variables import EnumVariable
 
+
 def _sync_file(target, source, env):
     dfcache = env.DataFileCache()
     if dfcache.download(str(source[0])):
@@ -74,24 +75,29 @@ def _sync_file(target, source, env):
         msg = "datasync failed, download disabled."
     raise SCons.Errors.StopError(msg)
 
+
 def _sync_file_message(target, source, env):
     return "Downloading %s to %s:" % (str(source[0]), str(target[0]))
+
 
 def _download_data_file(env, filepath):
     # Create a scons builder which downloads the source file into the cache.
     dfcache = env.DataFileCache()
-    dfcache.enableDownload(env.get('download', 'auto') in ['auto', 'force'])
+    dfcache.enableDownload(env.get("download", "auto") in ["auto", "force"])
     syncfile = env.Action(_sync_file, _sync_file_message)
-    target = env.Command(dfcache.getFile(filepath),
-                         env.Value(filepath), syncfile)
-    if env.get('download', 'auto') == 'force':
+    target = env.Command(
+        dfcache.getFile(filepath), env.Value(filepath), syncfile
+    )
+    if env.get("download", "auto") == "force":
         env.AlwaysBuild(target)
     # Do not allow scons to erase the data file before re-synchronizing it,
     # nor remove the file when cleaning.
     env.Precious(target)
     env.NoClean(target)
-    env.LogDebug("created command builder to download %s to %s" %
-                 (filepath, target[0].abspath))
+    env.LogDebug(
+        "created command builder to download %s to %s"
+        % (filepath, target[0].abspath)
+    )
     # Add the target to the datasync alias, so one alias can be used to
     # update all the cache files and also the scons dependencies cache.
     # However, the syncs do not happen if the file already appears updated,
@@ -99,49 +105,56 @@ def _download_data_file(env, filepath):
     # targets to be built, then the datafile targets themselves need to be
     # forced with AlwaysBuild().  Rather than force it here, rely on the
     # download setting above to force downloads.
-    env.AlwaysBuild(env.Alias('datasync', target))
-    if False and 'datasync' in SCons.Script.BUILD_TARGETS:
+    env.AlwaysBuild(env.Alias("datasync", target))
+    if False and "datasync" in SCons.Script.BUILD_TARGETS:
         env.AlwaysBuild(target)
     # Return just the single node rather than the list that a builder would
     # actually return, so it can be substitued easily for a file path.
     return target[0]
 
+
 def _get_cache_instance(env):
     import eol_scons.datafilecache as datafilecache
-    import os
-    dfcache = env.get('DATA_FILE_CACHE')
+
+    dfcache = env.get("DATA_FILE_CACHE")
     if not dfcache:
-        path = str(env.Dir('#/DataCache'))
+        path = str(env.Dir("#/DataCache"))
         # I don't think it's necessary to create the directory.  DataFileCache
         # will create it if it is needed.
         #
-        #if not os.path.isdir(path):
+        # if not os.path.isdir(path):
         #    os.makedirs(path)
         dfcache = datafilecache.DataFileCache()
         # Provide fallback cache directory for scons environments.
         dfcache.appendCachePath(path)
-        env['DATA_FILE_CACHE'] = dfcache
+        env["DATA_FILE_CACHE"] = dfcache
         # No point downloading anything for clean and help options.
-        if env.GetOption('clean') or env.GetOption('help'):
+        if env.GetOption("clean") or env.GetOption("help"):
             dfcache.enableDownload(False)
     return dfcache
 
+
 _options = None
+
 
 def generate(env):
     global _options
     if not _options:
         _options = env.GlobalVariables()
-        _options.Add(EnumVariable('download',
-                                  "Set whether data file downloading is forced, "
-                                  "automatic, or completely disabled.", 'auto',
-                                  allowed_values=('force', 'auto', 'off'),
-                                  ignorecase=2))
+        _options.Add(
+            EnumVariable(
+                "download",
+                "Set whether data file downloading is forced, "
+                "automatic, or completely disabled.",
+                "auto",
+                allowed_values=("force", "auto", "off"),
+                ignorecase=2,
+            )
+        )
     _options.Update(env)
     env.AddMethod(_get_cache_instance, "DataFileCache")
     env.AddMethod(_download_data_file, "DownloadDataFile")
 
+
 def exists(env):
     return True
-
-

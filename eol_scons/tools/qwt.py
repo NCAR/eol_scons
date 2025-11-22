@@ -6,30 +6,30 @@
 Tool to add Qwt
 """
 
-
-import subprocess
 import eol_scons.parseconfig as pc
 
 _variables = None
 
+
 def generate(env):
     qwtpcname = 'qwt'
     if env.get('QT_VERSION') == 6:
-      qwtpcname = 'Qt6Qwt6'
+        qwtpcname = 'Qt6Qwt6'
     if env.get('QT_VERSION') == 5:
-      qwtpcname = 'Qt5Qwt6'
+        qwtpcname = 'Qt5Qwt6'
 
     if env['PLATFORM'] == 'darwin':
-      qwtPcPath = env['BREW_PREFIX'] + '/opt/qwt/lib/pkgconfig'
-      qtPcPath = env['BREW_PREFIX'] + '/opt/qt/libexec/lib/pkgconfig'
+        qwtPcPath = env['BREW_PREFIX'] + '/opt/qwt/lib/pkgconfig'
+        qtPcPath = env['BREW_PREFIX'] + '/opt/qt/libexec/lib/pkgconfig'
 
-      env.PrependENVPath('PKG_CONFIG_PATH', qtPcPath)
-      env.PrependENVPath('PKG_CONFIG_PATH', qwtPcPath)
-      # I feel we shouldn't need to add this, but pkg-config is not returning it.
-      if env.get('QT_VERSION') == 6:
-        env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt/lib/qwt.framework/Headers')
-      if env.get('QT_VERSION') == 5:
-        env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt-qt5/lib/qwt.framework/Headers')
+        env.PrependENVPath('PKG_CONFIG_PATH', qtPcPath)
+        env.PrependENVPath('PKG_CONFIG_PATH', qwtPcPath)
+        # I feel we shouldn't need to add this, but pkg-config is not
+        # returning it.
+        if env.get('QT_VERSION') == 6:
+            env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt/lib/qwt.framework/Headers')
+        if env.get('QT_VERSION') == 5:
+            env.AppendUnique(CPPPATH=env['BREW_PREFIX']+'/opt/qwt-qt5/lib/qwt.framework/Headers')
 
     # on redhat9 qwt-qt6 currently still needs to be built from source, so add
     # ability to set path to pkgconfig file for it

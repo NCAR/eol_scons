@@ -76,7 +76,6 @@ libQt6<Module>.
 
 import re
 import os
-import subprocess
 import textwrap
 
 import SCons.Defaults
@@ -95,9 +94,10 @@ USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT6"
 
 # Known paths for executables -- other than qmake, lupdate, lrelease
-libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',    # x86_64 Mac
-                '/opt/homebrew/opt/qt/share/qt/libexec', # ARM Mac
-                '/usr/lib64/qt6/libexec']                # Linux / Alma 9
+libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',     # x86_64 Mac
+                '/opt/homebrew/opt/qt/share/qt/libexec',  # ARM Mac
+                '/usr/lib64/qt6/libexec']                 # Linux / Alma 9
+
 
 class ToolQt6Warning(SCons.Warnings.WarningOnByDefault):
     pass
@@ -162,8 +162,8 @@ q_object_search = re.compile(r'\bQ_OBJECT\b')
 
 class _Automoc:
     """
-    Callable class, which works as an emitter for Programs, SharedLibraries and
-    StaticLibraries.
+    Callable class, which works as an emitter for Programs, SharedLibraries
+    and StaticLibraries.
     """
 
     def __init__(self, objBuilderName):
@@ -219,7 +219,7 @@ class _Automoc:
                 continue
 
             cpp = obj.sources[0]
-            if not SCons.Util.splitext(str(cpp))[1] in cxx_suffixes:
+            if SCons.Util.splitext(str(cpp))[1] not in cxx_suffixes:
                 Debug("scons: qt6: '%s' is not a C++ file. Discarded." %
                       str(cpp), env)
                 # c or fortran source
@@ -295,7 +295,8 @@ def _locateQt6Command(env, command):
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if env['QT6DIR'] == USE_PKG_CONFIG:
-            qtprefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt6Core')
+            qtprefix = pc.RunConfig(env,
+                                    'pkg-config --variable=prefix Qt6Core')
             qtbindir = os.path.join(qtprefix, 'bin')
         # Otherwise, look for Qt6 binaries in <QT6DIR>/bin
         else:
@@ -321,7 +322,6 @@ def _locateQt6Command(env, command):
         for dir in libexecPaths:
             for cmd in cmds:
                 result = result or env.WhereIs(cmd, [dir])
-
 
     if not result:
         msg = "Qt6 command " + qtcommand + " (" + command + ")"
@@ -432,10 +432,11 @@ def generate(env):
                                            PathVariable.PathAccept))
     _options.Update(env)
 
-
     # MacOS specifics.  Qt6 pkg-config files are in a non-standard location.
     if env['PLATFORM'] == "darwin":
-      env.PrependENVPath('PKG_CONFIG_PATH', env['BREW_PREFIX'] + '/opt/qt/libexec/lib/pkgconfig')
+        env.PrependENVPath(
+            'PKG_CONFIG_PATH',
+            env['BREW_PREFIX'] + '/opt/qt/libexec/lib/pkgconfig')
 
     # Try to find the Qt6 installation location, trying in order:
     #    o command line QT6DIR option
@@ -706,7 +707,7 @@ def enable_module_linux(env, module, debug=False):
                          (cflags, esd.Watches(env)))
         else:
             # warn if we haven't already
-            if not (module in no_pkgconfig_warned):
+            if module not in no_pkgconfig_warned:
                 print("Warning: No pkgconfig package " + modpackage +
                       " for Qt6/" + module + ", doing what I can...")
                 no_pkgconfig_warned.append(module)

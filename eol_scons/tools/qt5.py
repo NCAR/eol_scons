@@ -181,7 +181,7 @@ class _Automoc:
                 continue
 
             cpp = obj.sources[0]
-            if not SCons.Util.splitext(str(cpp))[1] in cxx_suffixes:
+            if SCons.Util.splitext(str(cpp))[1] not in cxx_suffixes:
                 Debug("scons: qt5: '%s' is not a C++ file. Discarded." %
                       str(cpp), env)
                 # c or fortran source
@@ -653,7 +653,7 @@ def enable_module_linux(env, module, debug=False):
                          (cflags, esd.Watches(env)))
         else:
             # warn if we haven't already
-            if not (module in no_pkgconfig_warned):
+            if module not in no_pkgconfig_warned:
                 print("Warning: No pkgconfig package " + modpackage +
                       " for Qt5/" + module + ", doing what I can...")
                 no_pkgconfig_warned.append(module)

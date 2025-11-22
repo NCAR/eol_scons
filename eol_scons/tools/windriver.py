@@ -15,10 +15,10 @@ API library.
 
 import os
 import re
-from eol_scons import parseconfig
 import SCons
 
 _options = None
+
 
 # Get the base directory for WinDriver, trying the value of WINDRIVER_DIR
 # (if any) first, then for the last directory which matches the glob 
@@ -43,7 +43,7 @@ def generate(env):
                      'The WinDriver top directory. If this is not set, SCons will look\n' + 
                      'for WinDriver under OPT_PREFIX ($OPT_PREFIX)', 
                      None)
-        
+
     _options.Update(env)
     basedir = getBasedir(env)
     if (not basedir):
@@ -58,47 +58,46 @@ def generate(env):
             return
         else:
             raise SCons.Errors.StopError
-        
+
         return
 
-    # We need to get the WinDriver version number from the base directory string.
-    # By default, WinDriver installation is under a directory named 
-    # WinDriver<version>, e.g., WinDriver1031. We need the numeric portion,
-    # or '1031' in this example. We test both the given pathname and its canonical 
-    # version, in case someone is using a symbolic link like /opt/WinDriver ->
-    # /opt/WinDriver1031.
+    # We need to get the WinDriver version number from the base directory
+    # string. By default, WinDriver installation is under a directory named
+    # WinDriver<version>, e.g., WinDriver1031. We need the numeric portion, or
+    # '1031' in this example. We test both the given pathname and its
+    # canonical version, in case someone is using a symbolic link like
+    # /opt/WinDriver -> /opt/WinDriver1031.
     versionString = None
     testpaths = [basedir, os.path.realpath(basedir)]
     for path in testpaths:
         try:
             # Look for the string 'WinDriver' immediately followed by digits
             # in the pathname. Set versionString to the series of digits if
-            # we found them 
-            versionString = re.search('.*WinDriver(?P<version>\d+)', path).groupdict()['version']
+            # we found them.
+            versionString = re.search(r'.*WinDriver(?P<version>\d+)', path).groupdict()['version']
             break
         except:
             continue
-        
+
     if (not versionString):
-        errmsg = 'No WinDriver version number found in tested path names:', testpaths
-        # If the user specified -h, return and let them see the help message 
+        errmsg = f'No WinDriver version number found in tested path names: {testpaths}'
+        # If the user specified -h, return and let them see the help message
         # they asked for. Otherwise exit with an error now.
         if (SCons.Script.GetOption('help')):
             return
         else:
-            raise SCons.Errors.StopError
+            raise SCons.Errors.StopError(errmsg)
 
-
-    # Headers are sometimes requested relative to <basedir>/include and sometimes 
-    # relative to <basedir>
+    # Headers are sometimes requested relative to <basedir>/include and
+    # sometimes relative to <basedir>
     env.AppendUnique(CPPPATH=[os.path.join(basedir, 'include'), basedir])
-    
-    # The WinDriver library includes the version number in the name, e.g., 
-    # libwdapi1031.so. It is installed into a system default location, so
-    # we don't need to worry about adding a -L search path.
+
+    # The WinDriver library includes the version number in the name, e.g.,
+    # libwdapi1031.so. It is installed into a system default location, so we
+    # don't need to worry about adding a -L search path.
     libname = 'wdapi' + versionString
     env.AppendLibrary(libname)
 
+
 def exists(env):
     return True
-

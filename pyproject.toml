@@ -34,3 +34,22 @@ eol_scons = "."
 
 [tool.setuptools.package-data]
 eol_scons = ['scripts/build_rpm.sh', 'eol_scons/tools/pylintrc']
+
+[tool.ruff]
+# Set the maximum line length to 79.
+line-length = 79
+
+[tool.ruff.lint]
+# When a formatter like ruff or black is used more regularly, then this rule
+# can be removed.
+# extend-select = ["E501"]
+# ignore F401:  module imported but unused, because eol_scons needs to be
+# imported even though it isn't used.  Perhaps a better convention is needed
+# so that activating eol_scons does not require an import that looks unused.
+ignore = ["F401"]
+# never fix unused imports
+unfixable = ["F401"]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore `E402` (import violations) in all `__init__.py` files
+"__init__.py" = ["E402"]

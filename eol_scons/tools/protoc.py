@@ -26,11 +26,9 @@ __author__ = "Scott Stafford"
 
 import SCons.Action
 import SCons.Builder
-import SCons.Defaults
-import SCons.Node.FS
 import SCons.Util
 
-from SCons.Script import File, Dir
+from SCons.Script import Dir
 
 import os.path
 

@@ -41,7 +41,7 @@ def text2cc(text, vname):
     # intext.close()
     code = StringIO()
     code.write("/***** DO NOT EDIT *****/\n")
-    code.write("const char* %s = \n" % (vname));
+    code.write("const char* %s = \n" % (vname))
     code.write(_escape(text))
     code.write(";\n")
     text = code.getvalue()
@@ -51,26 +51,29 @@ def text2cc(text, vname):
 
 def _embedded_text_emitter(target, source, env):
     if str(target[0]) == str(source[0]):
-        target = [ str(source[0]) + '.cc' ]
+        target = [ str(source[0]) + '.cc']
     return target, source
+
 
 def _embedded_text_builder(target, source, env):
     text = source[0].get_text_contents()
     with open(str(target[0]), "w") as outfile:
         outfile.write(text2cc(text, env['TEXT_DATA_VARIABLE_NAME']))
 
+
 def _message(target, source, env):
     return "Embedding text file '%s' in '%s'" % (source[0], target[0])
+
 
 _embedded_builder = None
 _have_embedded_builder = False
 
+
 def _get_builder():
     global _embedded_builder
     global _have_embedded_builder
-    
+
     if not _have_embedded_builder:
-        import SCons
         from SCons.Script import Builder
         from SCons.Script import Action
         etaction = Action(_embedded_text_builder, _message, 
@@ -83,7 +86,8 @@ def _get_builder():
 
 
 def _EmbedTextCC(env, target, source, variable):
-    return env.EmbeddedTextCC(target, source, TEXT_DATA_VARIABLE_NAME = variable)
+    return env.EmbeddedTextCC(target, source,
+                              TEXT_DATA_VARIABLE_NAME=variable)
 
 
 def generate(env):

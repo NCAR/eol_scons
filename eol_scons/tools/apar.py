@@ -6,7 +6,6 @@
 import os
 import os.path
 import platform
-import string
 import SCons
 
 # APAR requires LROSE

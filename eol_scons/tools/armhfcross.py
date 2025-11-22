@@ -12,7 +12,7 @@ armhf: arm-linux-gnueabihf-*
 import os
 import eol_scons.utils
 
-prefix = 'arm-linux-gnueabihf'
+prefix = "arm-linux-gnueabihf"
 
 
 def generate(env, **kw):
@@ -20,22 +20,26 @@ def generate(env, **kw):
     Add construction variables for C compilers to an Environment.
     """
 
-    env.Replace(AR=prefix + '-ar')
-    env.Replace(AS=prefix + '-as')
-    env.Replace(CC=prefix + '-gcc')
-    env.Replace(LD=prefix + '-ld')
-    env.Replace(CXX=prefix + '-g++')
-    env.Replace(LINK=prefix + '-g++')
-    env.Replace(RANLIB=prefix + '-ranlib')
+    env.Replace(AR=prefix + "-ar")
+    env.Replace(AS=prefix + "-as")
+    env.Replace(CC=prefix + "-gcc")
+    env.Replace(LD=prefix + "-ld")
+    env.Replace(CXX=prefix + "-g++")
+    env.Replace(LINK=prefix + "-g++")
+    env.Replace(RANLIB=prefix + "-ranlib")
     env.Replace(
-        KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=' + prefix + '-')
+        KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE='
+        + prefix
+        + "-"
+    )
 
     # if a multiarch pkgconfig path exists, add it to PKG_CONFIG_PATH
     pkgpath = os.path.join("/usr", "lib", prefix, "pkgconfig")
     if os.path.isdir(pkgpath):
         env.PrependENVPath("PKG_CONFIG_PATH", pkgpath)
-        print("armhfcross: PKG_CONFIG_PATH=%s" %
-              (env['ENV']['PKG_CONFIG_PATH']))
+        print(
+            "armhfcross: PKG_CONFIG_PATH=%s" % (env["ENV"]["PKG_CONFIG_PATH"])
+        )
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if arm-linux-gcc is
@@ -48,17 +52,20 @@ def generate(env, **kw):
     # fails.
 
     if not exists(env):
-        print("*** %s not found on path: %s" %
-              (env['CC'], env['ENV']['PATH']))
+        print("*** %s not found on path: %s" % (env["CC"], env["ENV"]["PATH"]))
         return
 
-    print("armhfcross: found %s and %s" %
-          (env.WhereIs(env['CC']), env.WhereIs(env['CXX'])))
+    print(
+        "armhfcross: found %s and %s"
+        % (env.WhereIs(env["CC"]), env.WhereIs(env["CXX"]))
+    )
 
     cxxrev = eol_scons.utils.get_cxxversion(env)
-    if cxxrev != None:
+    if cxxrev is not None:
         env.Replace(CXXVERSION=cxxrev)
 
 
 def exists(env):
-    return bool(env.Detect(prefix + '-gcc')) and bool(env.Detect(prefix + '-g++'))
+    return bool(env.Detect(prefix + "-gcc")) and bool(
+        env.Detect(prefix + "-g++")
+    )

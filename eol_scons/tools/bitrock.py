@@ -5,8 +5,8 @@
 """
 SCons.Tool.osxqtapp
 
-Create a BitRock installer from an application and a BitRock configuration. Currently
-only runs on Windows and OSX.
+Create a BitRock installer from an application and a BitRock configuration.
+Currently only runs on Windows and OSX.
 
 See BitRock() for the parameter descriptions.
 
@@ -17,13 +17,12 @@ Example usage (OSX):
 
 """
 
-import os
 import subprocess
-from SCons.Script import *
+from SCons.Script import Builder
 
 
 def _find_bitrock(env):
-    """ 
+    """
     Look for the BitRock command line application.
 
     Returns the path to the executable, if found. Otherwise
@@ -34,8 +33,9 @@ def _find_bitrock(env):
     except KeyError:
         pass
 
-    if env['PLATFORM'] in  ['msys', 'win32']:
-        node = env.FindFile('builder-cli.exe', ['/c/Tools/InstallBuilder/bin/'])
+    if env['PLATFORM'] in ['msys', 'win32']:
+        node = env.FindFile('builder-cli.exe',
+                            ['/c/Tools/InstallBuilder/bin/'])
         return node
 
     if env['PLATFORM'] == 'darwin':
@@ -64,7 +64,7 @@ def _bitrock(target, source, env):
     """
 
     sources = source
-    if type(sources) != type(list()):
+    if type(sources) is not type(list()):
         sources = [source]
 
     bitrock = str(env['BITROCK'])
@@ -73,30 +73,30 @@ def _bitrock(target, source, env):
     xml = str(sources[0])
 
     # Run bitrock.
-    subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+version,],
+    subprocess.check_call([bitrock, 'build', xml, '--setvars',
+                           'svnversion='+version,],
                           stderr=subprocess.STDOUT, bufsize=1)
 
 
 def BitRock(env, destfile, bitrockxml, source, version, *args, **kw):
     """
-    A psuedo-builder for creating BitRock installers. 
+    A psuedo-builder for creating BitRock installers.
 
-    The recipe for creating the installer is provided in BitRock xml 
-    specification file. In general this file is edited using the BitRock GUI 
-    application, although some modification is possible with a text editor. But
-    if you break it, you get to keep the pieces.
+    The recipe for creating the installer is provided in BitRock xml
+    specification file. In general this file is edited using the BitRock GUI
+    application, although some modification is possible with a text editor.
+    But if you break it, you get to keep the pieces.
 
-    The bitrock xml configuration has an explicitly named output file,
-    and many source files. We will always run bitrock, since it would be hard to
-    account for all of these dependencies. Perhaps in the future we can
-    come up with a scheme to allow this routine to specify the output 
-    file path for bitrock; this will involve modifying the bitrock xml
-    file. 
+    The bitrock xml configuration has an explicitly named output file, and
+    many source files. We will always run bitrock, since it would be hard to
+    account for all of these dependencies. Perhaps in the future we can come
+    up with a scheme to allow this routine to specify the output file path for
+    bitrock; this will involve modifying the bitrock xml file.
 
     The git version value is passed to bitrock as the version variable.
 
         Parameters:
-        destfile   -- The target generated installer file. This should be 
+        destfile   -- The target generated installer file. This should be
                       the same as the output file specified in the xml file.
         bitrockxml -- The bitrock configuration
         sources    -- Other dependencies that should trigger a rebuild.
@@ -105,7 +105,7 @@ def BitRock(env, destfile, bitrockxml, source, version, *args, **kw):
     """
 
     sources = source
-    if type(sources) != type(list()):
+    if type(sources) is not type(list()):
         sources = [source]
 
     # Create the installer dependencies and actions.

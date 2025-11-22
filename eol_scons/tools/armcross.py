@@ -16,16 +16,17 @@ def generate(env, **kw):
     Add construction variables for C compilers to an Environment.
     """
 
-    env.Replace(AR='arm-linux-ar')
-    env.Replace(AS='arm-linux-as')
-    env.Replace(CC='arm-linux-gcc')
-    env.Replace(LD='arm-linux-ld')
-    env.Replace(CXX='arm-linux-g++')
-    env.Replace(LINK='arm-linux-g++')
-    env.Replace(RANLIB='arm-linux-ranlib')
-    env.Replace(LEX='arm-linux-flex')
+    env.Replace(AR="arm-linux-ar")
+    env.Replace(AS="arm-linux-as")
+    env.Replace(CC="arm-linux-gcc")
+    env.Replace(LD="arm-linux-ld")
+    env.Replace(CXX="arm-linux-g++")
+    env.Replace(LINK="arm-linux-g++")
+    env.Replace(RANLIB="arm-linux-ranlib")
+    env.Replace(LEX="arm-linux-flex")
     env.Replace(
-        KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=arm-linux-')
+        KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=arm-linux-'
+    )
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if arm-linux-gcc is
@@ -38,14 +39,18 @@ def generate(env, **kw):
     # fails.
 
     if not exists(env):
-        env.AppendENVPath('PATH', '/opt/arcom/bin')
+        env.AppendENVPath("PATH", "/opt/arcom/bin")
         if not exists(env):
-            print("*** arm-linux-gcc and arm-linux-g++ not found on path: %s" %
-                  env['ENV']['PATH'])
+            print(
+                "*** arm-linux-gcc and arm-linux-g++ not found on path: %s"
+                % env["ENV"]["PATH"]
+            )
             return
 
-    print("armcross: found %s and %s" %
-          (env.WhereIs('arm-linux-gcc'), env.WhereIs('arm-linux-g++')))
+    print(
+        "armcross: found %s and %s"
+        % (env.WhereIs("arm-linux-gcc"), env.WhereIs("arm-linux-g++"))
+    )
 
     cxxrev = eol_scons.utils.get_cxxversion(env)
     if cxxrev is not None:
@@ -53,4 +58,6 @@ def generate(env, **kw):
 
 
 def exists(env):
-    return bool(env.Detect('arm-linux-gcc')) and bool(env.Detect('arm-linux-g++'))
+    return bool(env.Detect("arm-linux-gcc")) and bool(
+        env.Detect("arm-linux-g++")
+    )

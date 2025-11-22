@@ -16,16 +16,17 @@ def generate(env, **kw):
     Add construction variables for C compilers to an Environment.
     """
 
-    env.Replace(AR='armbe-linux-ar')
-    env.Replace(AS='armbe-linux-as')
-    env.Replace(CC='armbe-linux-gcc')
-    env.Replace(LD='armbe-linux-ld')
-    env.Replace(CXX='armbe-linux-g++')
-    env.Replace(LINK='armbe-linux-g++')
-    env.Replace(RANLIB='armbe-linux-ranlib')
-    env.Replace(LEX='armbe-linux-flex')
+    env.Replace(AR="armbe-linux-ar")
+    env.Replace(AS="armbe-linux-as")
+    env.Replace(CC="armbe-linux-gcc")
+    env.Replace(LD="armbe-linux-ld")
+    env.Replace(CXX="armbe-linux-g++")
+    env.Replace(LINK="armbe-linux-g++")
+    env.Replace(RANLIB="armbe-linux-ranlib")
+    env.Replace(LEX="armbe-linux-flex")
     env.Replace(
-        KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=armbe-linux-')
+        KMAKE='make KERNELDIR=$KERNELDIR KCFLAGS="$KCFLAGS" ARCH=arm CROSS_COMPILE=armbe-linux-'
+    )
 
     # Append /opt/arcom/bin to env['ENV']['PATH'],
     # so that it is the fallback if armbe-linux-gcc is
@@ -38,19 +39,25 @@ def generate(env, **kw):
     # fails.
 
     if not exists(env):
-        env.AppendENVPath('PATH', '/opt/arcom/bin')
+        env.AppendENVPath("PATH", "/opt/arcom/bin")
         if not exists(env):
-            print("*** armbe-linux-gcc, armbe-linux-g++ not found on path: %s" %
-                  env['ENV']['PATH'])
+            print(
+                "*** armbe-linux-gcc, armbe-linux-g++ not found on path: %s"
+                % env["ENV"]["PATH"]
+            )
             return
 
-    print("armbecross: found %s and %s" %
-          (env.WhereIs('armbe-linux-gcc'), env.WhereIs('armbe-linux-g++')))
+    print(
+        "armbecross: found %s and %s"
+        % (env.WhereIs("armbe-linux-gcc"), env.WhereIs("armbe-linux-g++"))
+    )
 
     cxxrev = eol_scons.utils.get_cxxversion(env)
-    if cxxrev != None:
+    if cxxrev is not None:
         env.Replace(CXXVERSION=cxxrev)
 
 
 def exists(env):
-    return bool(env.Detect('armbe-linux-gcc')) and bool(env.Detect('armbe-linux-g++'))
+    return bool(env.Detect("armbe-linux-gcc")) and bool(
+        env.Detect("armbe-linux-g++")
+    )
