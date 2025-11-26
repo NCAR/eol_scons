@@ -37,8 +37,6 @@ ignore_tools = ['gcc', 'msvc',
                 'netcdf',
                 'netcdfcxx',
                 'netcdfcxx4',
-                # No point testing this tool since it is defunct.
-                'qt4'
                 ]
 for it in ignore_tools:
     toolnames.remove(it)

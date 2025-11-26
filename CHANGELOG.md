@@ -4,6 +4,7 @@
 
 ## [4.3] - Pending
 
+- The `qt4.py` tool has been removed.
 - In the `datafilecache` module, if the remote prefix looks like a URL, then
   data files are downloaded with `curl` instead of `rsync`:
   ```python

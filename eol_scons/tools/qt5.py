@@ -3,11 +3,10 @@
 # This source code is licensed under the MIT license found in the LICENSE
 # file in the root directory of this source tree.
 """
-This tool adds Qt5 include paths and libraries to the build
-environment.  Qt5 is similar to Qt4 in that it is divided into many
-different modules, and the modules can be applied to the environment
-individually using either the EnableQtModules() method or by listing the
-module as a tool.  For example, these are equivalent:
+This tool adds Qt5 include paths and libraries to the build environment.  Qt5
+is divided into many different modules, and the modules can be applied to the
+environment individually using either the EnableQtModules() method or by
+listing the module as a tool.  For example, these are equivalent:
 
     qtmods = ['QtSvg', 'QtCore', 'QtGui', 'QtNetwork', 'QtSql', 'QtOpenGL']
     env.EnableQtModules(qtmods)
@@ -34,10 +33,9 @@ is with pkg-config, since Qt5 settings may be found with pkg-config, but
 then a particular module may not be installed and pkg-config for it will
 fail.
 
-The qt5 tool must be included first to force all the subsequent qt modules
-to be applied as qt5 modules instead of qt4.  The biggest difference is the
-location of the header files and the version-qualified library names like
-libQt5<Module>.
+The qt5 tool must be included first to force all the subsequent qt modules to
+be applied as qt5 modules.  The distintions are in the location of the header
+files and the version-qualified library names like libQt5<Module>.
 """
 
 import sys
@@ -543,9 +541,9 @@ def enable_modules(env, modules, debug=False):
     main entry point enforces a few things before calling the
     platform-specific code:
 
-    The module name must be a Qt module name that is not qualified by the
-    Qt version.  So QtCore is the module name in both Qt4 and Qt5.  This
-    function specifically rejects module names starting with Qt4 or Qt5.
+    The module name must be a Qt module name that is not qualified by the Qt
+    version, so this function specifically rejects module names starting with
+    Qt5.
 
     QT5DIR must be set in the Environment.  If not, then the Qt5 setup in
     generate() above did not succeed, and therefore no Qt5 modules can be
@@ -560,7 +558,7 @@ def enable_modules(env, modules, debug=False):
 
     onefailed = False
     for module in modules:
-        if module.startswith('Qt5') or module.startswith('Qt4'):
+        if module.startswith('Qt5'):
             raise SCons.Errors.StopError(
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))

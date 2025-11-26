@@ -6,12 +6,16 @@
 scons="scons --site-dir=`realpath $(dirname $0)/..`"
 config="--config=force"
 projects=""
+do_tests=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
         clean)
             scons="$scons -c"
             config=""
+            ;;
+        test)
+            do_tests=1
             ;;
         *)
             projects="$projects $1"
@@ -33,18 +37,22 @@ build_project() # name
     vars="PYTHONWARNINGS=default PYTHONTRACEMALLOC=10"
     vars="PYTHONWARNINGS=default"
     dir=""
+    tests=""
     case $name in
         aspen)
-            args="-C Aspen -D apidocs diff-bufr utest"
+            args="-C Aspen -D apidocs"
             dir="aspen"
+            tests="diff-bufr utest"
             ;;
         nidas*)
-            args="-C src -D test"
+            args="-C src -D"
             dir="nidas-master"
+            tests="test"
             ;;
         aeros)
-            args="-C source -D apidocs datastore/tests/xtest"
+            args="-C source -D apidocs"
             dir="aeros"
+            tests="datastore/tests/xtest"
             ;;
         *nc_compare)
             args="-f SConscript ."
@@ -60,10 +68,13 @@ build_project() # name
             ;;
     esac
     dir=$HOME/code/$dir
+    if [ $do_tests -ne 1 ]; then
+        tests=""
+    fi
     echo "Building in $dir..."
     (set -x
      export $vars
-     cd $dir && $scons -j4 $args) || exit 1
+     cd $dir && $scons -j4 $args $tests) || exit 1
 }
 
 
