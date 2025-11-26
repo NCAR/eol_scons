@@ -14,7 +14,6 @@ the default environment is not recursive because this function is not
 called (via _update_variables) until global Variables have been added.
 """
 
-import SCons.Variables
 import SCons.Script
 from SCons.Script import Variables
 from SCons.Script import DefaultEnvironment

@@ -25,8 +25,6 @@ it is applied when it is loaded.
 
 from SCons.Script import ListVariable
 
-import eol_scons
-
 
 def generate(env):
     env.SetDefault(BUILDMODE_DEFAULT='debug,warnings,optimize')
@@ -64,7 +62,7 @@ Default for this project: %s.""" % (env['BUILDMODE_DEFAULT']),
                 env.AppendUnique(CCFLAGS=['-Werror'])
             else:
                 env.Tool(mode)
-        except:
+        except AttributeError:
             print("No '%s' buildmode settings for this platform." % (mode))
 
 

@@ -70,14 +70,14 @@ def generate(env):
     versionString = None
     testpaths = [basedir, os.path.realpath(basedir)]
     for path in testpaths:
-        try:
-            # Look for the string 'WinDriver' immediately followed by digits
-            # in the pathname. Set versionString to the series of digits if
-            # we found them.
-            versionString = re.search(r'.*WinDriver(?P<version>\d+)', path).groupdict()['version']
+        # Look for the string 'WinDriver' immediately followed by digits
+        # in the pathname. Set versionString to the series of digits if
+        # we found them.
+        rx = re.search(r'.*WinDriver(?P<version>\d+)', path)
+        if rx:
+            versionString = rx.groupdict().get('version')
+        if versionString:
             break
-        except:
-            continue
 
     if (not versionString):
         errmsg = f'No WinDriver version number found in tested path names: {testpaths}'

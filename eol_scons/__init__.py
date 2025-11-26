@@ -30,24 +30,6 @@ appears in the debug key list, meaning the tool should print extra debugging
 messages.
 """
 
-from SCons.Script import EnsurePythonVersion
-
-EnsurePythonVersion(3, 6)
-
-# We are trying to migrate away from checking out eol_scons as the site_scons
-# directory.  Instead eol_scons should be a subdirectory of site_scons.  So
-# warn when this file is not being executed from the __init__.py in the parent
-# directory.
-
-_execmsg = """
-*** Importing from site_scons/eol_scons has been deprecated.
-*** The repository should be a subdirectory of site_scons named eol_scons.
-"""
-
-if bool("__eol_scons_init_exec__" not in globals() and
-        __file__.endswith("site_scons/eol_scons/__init__.py")):
-    print(_execmsg)
-
 import os
 import sys
 from pathlib import Path
@@ -67,6 +49,34 @@ from eol_scons.methods import PrintProgress
 
 # import this here so it can be called as eol_scons.ScriptsDir()
 from eol_scons.tool import ScriptsDir
+
+# make it explicit what is meant for export
+__all__ = [
+    'Debug',
+    'LookupDebug',
+    'GlobalVariables',
+    'PathToAbsolute',
+    'EnableInstallAlias',
+    'PrintProgress',
+    'ScriptsDir',
+    'RunScripts',
+    'RemoveDefaultHook',
+]
+
+
+# Checking out eol_scons as the site_scons directory has been deprecated.
+# Instead the eol_scons repo should be a subdirectory of site_scons.  So warn
+# when this file is not being executed from the __init__.py in the parent
+# directory.
+
+_execmsg = """
+*** Importing from site_scons/eol_scons has been deprecated.
+*** The repository should be a subdirectory of site_scons named eol_scons.
+"""
+
+if bool("__eol_scons_init_exec__" not in globals() and
+        __file__.endswith("site_scons/eol_scons/__init__.py")):
+    print(_execmsg)
 
 
 def _run_script(argname, name=None):
@@ -107,13 +117,13 @@ PrintProgress("Loading eol_scons from %s..." %
               (Path(__file__).parent.parent.resolve()))
 
 
-def InstallToolsPath():
+def _InstallToolsPath():
     "Add the eol_scons/tools dir to the tool path."
     Debug("Using site_tools: %s" % (tools_dir))
     SCons.Tool.DefaultToolpath.insert(0, tools_dir)
 
 
-def InstallDefaultHook():
+def _InstallDefaultHook():
     "Add the hooks dir to the tool path to override the default tool."
     SCons.Tool.DefaultToolpath.insert(0, hooks_dir)
 
@@ -132,7 +142,7 @@ _eolsconsdir = os.path.abspath(os.path.dirname(__file__))
 tools_dir = os.path.normpath(os.path.join(_eolsconsdir, "tools"))
 hooks_dir = os.path.normpath(os.path.join(_eolsconsdir, "hooks"))
 
-InstallToolsPath()
+_InstallToolsPath()
 DefineQtTools()
 
 # Create the DefaultEnvironment which is used for SCons.Script
@@ -143,5 +153,5 @@ DefineQtTools()
 # recursion.
 Debug("Creating DefaultEnvironment()...")
 SCons.Defaults.DefaultEnvironment()
-InstallDefaultHook()
+_InstallDefaultHook()
 Debug("eol_scons.__init__ loaded: %s." % (__file__))
