@@ -4,6 +4,24 @@
 
 ## [4.3] - Pending
 
+- `GlobalVariables()` now returns an instance of `BriefVariables`, a subclass
+  of `Variables` which supports a briefer form of the help output.  Enable the
+  brief output for the most commonly needed variables by adding their names to
+  the `BriefVariables` member. Code which needs to support older versions of
+  `eol_scons` can test for the existence of the member first:
+
+  ```python
+  opts = eol_scons.GlobalVariables('nidas.conf')
+  if getattr(opts, 'BriefVariables', None) is not None:
+    opts.BriefVariables = ['PREFIX', 'BUILD', 'LINUX_MODULES',
+                           'PKG_CONFIG_PATH']
+  ```
+
+  The help output includes a message to use `-h --help-all` to see the full
+  help text.  For projects with lots of global variables, this can be helpful
+  to show just the most useful variables.  `scons -h -Q` gives an even cleaner
+  and more compact summary.
+
 - The `qt4.py` tool has been removed.
 - In the `datafilecache` module, if the remote prefix looks like a URL, then
   data files are downloaded with `curl` instead of `rsync`:

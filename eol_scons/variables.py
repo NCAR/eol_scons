@@ -11,11 +11,15 @@ this function implicitly creates an environment if one is not passed in,
 so the cfile path can be resolved with the usual SCons notation, which by
 default is the directory containing the SConstruct file.  The creation of
 the default environment is not recursive because this function is not
-called (via _update_variables) until global Variables have been added.
+called (via update_variables) until global Variables have been added.
 """
 
+from optparse import OptionConflictError
+import textwrap
+
 import SCons.Script
-from SCons.Script import Variables
+from SCons.Variables import Variables
+from SCons.Script import AddOption
 from SCons.Script import DefaultEnvironment
 
 import eol_scons.debug
@@ -24,6 +28,56 @@ from eol_scons.methods import PrintProgress
 _global_variables = None
 _cache_variables = None
 _default_cfile = "#/config.py"
+
+
+class BriefVariables(Variables):
+    """
+    Variables subclass that provides brief help text for selected variables,
+    and otherwise reverts to the help formatter in the base class.
+    """
+    _help_all_option_added = False
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.BriefVariables = []
+
+    def BriefHelpEnabled(self, env) -> bool:
+        """Return True if brief help text is enabled."""
+        # do not add the --help-all option unless variables have been
+        # specified for brief help.  it may not hurt to always add it, but it
+        # seems safer to avoid it in projects which were not using it.
+        if not self.BriefVariables:
+            return False
+        if not self._help_all_option_added:
+            self._help_all_option_added = True
+            # some projects may have added it already
+            try:
+                AddOption("--help-all", dest="helpall", action="store_true")
+            except OptionConflictError:
+                pass
+        return not env.GetOption("helpall")
+
+    def FormatVariableHelpText(
+        self,
+        env,
+        key: str,
+        help: str,
+        default,
+        actual,
+        aliases: list[str | None] = None,
+    ) -> str:
+        if not self.BriefHelpEnabled(env):
+            return super().FormatVariableHelpText(
+                env, key, help, default, actual, aliases)
+        if key not in self.BriefVariables:
+            return ''
+        brief = help or ''
+        (first, dot, _) = brief.partition('. ')
+        brief = (first + '.') if dot else first
+        brief = textwrap.shorten(brief, width=60, placeholder='...')
+        brief = f'  {brief}\n' if brief else brief
+        text = "%s [%s]\n%s" % (key, actual, brief)
+        return text
 
 
 def _GlobalVariables(cfile=None, env=None):
@@ -35,7 +89,7 @@ def _GlobalVariables(cfile=None, env=None):
         if not cfile:
             cfile = _default_cfile
         cfile = env.File(cfile).get_abspath()
-        _global_variables = Variables(cfile)
+        _global_variables = BriefVariables(cfile)
         eol_scons.debug.AddVariables(_global_variables)
         PrintProgress("Config files: %s" % (_global_variables.files))
     return _global_variables
@@ -242,7 +296,7 @@ def AddHelp(env, text=None):
     SCons.Script.help_text = SCons.Script.help_text + text
 
 
-def _update_variables(env):
+def update_variables(env):
 
     # Add our variables methods to this Environment.
     env.AddMethod(GlobalVariables)

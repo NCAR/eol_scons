@@ -119,7 +119,7 @@ def RequireGlobal(env, tools):
 def _findToolFile(env, name):
     global _tool_matches
     # Need to know if the cache is enabled or not.
-    esv._update_variables(env)
+    esv.update_variables(env)
     cache = esv.ToolCacheVariables(env)
     if _tool_matches is None:
         cvalue = cache.lookup(env, '_tool_matches')
@@ -351,7 +351,7 @@ def generate(env, **_kw):
     env.AddMethod(Tool)
     env.AddMethod(Require)
 
-    eol_scons.variables._update_variables(env)
+    eol_scons.variables.update_variables(env)
 
     name = env.Dir('.').get_path(env.Dir('#'))
     env.LogDebug("Generating eol defaults for Environment(%s) @ %s" % 
