@@ -37,8 +37,12 @@ class BriefVariables(Variables):
     """
     _help_all_option_added = False
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    # Use the same signature as the SCons.Script.Variables() function, so the
+    # same defaults are passed to the SCons.Variables.Variables() constructor,
+    # especially the ARGUMENTS dictionary.  Otherwise variables will not be
+    # set from command line arguments.
+    def __init__(self, files=None, args=SCons.Script.ARGUMENTS):
+        super().__init__(files, args)
         self.BriefVariables = []
 
     def BriefHelpEnabled(self, env) -> bool:
