@@ -68,7 +68,7 @@ class BriefVariables(Variables):
         help: str,
         default,
         actual,
-        aliases: list[str | None] = None,
+        aliases: list = None,
     ) -> str:
         if not self.BriefHelpEnabled(env):
             return super().FormatVariableHelpText(
