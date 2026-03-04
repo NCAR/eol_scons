@@ -17,7 +17,7 @@ Example usage (OSX):
 
 """
 
-import os
+import glob, os
 import subprocess
 from SCons.Script import *
 
@@ -35,8 +35,12 @@ def _find_bitrock(env):
         pass
 
     if env['PLATFORM'] in  ['msys', 'win32']:
-        node = env.FindFile('builder-cli.exe', ['/c/Tools/InstallBuilder/bin/'])
-        return node
+        for path in glob.glob('/c/Tools/InstallBuilder/bin/builder-cli.exe') + \
+                    glob.glob('/c/Program Files/InstallBuilder*/bin/builder-cli.exe') + \
+                    glob.glob('C:/Program Files/InstallBuilder*/bin/builder-cli.exe'):
+            if os.path.isfile(path):
+                return path
+        return None
 
     if env['PLATFORM'] == 'darwin':
         node = env.FindFile(
