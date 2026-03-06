@@ -1,0 +1,12 @@
+<folder>
+<description>Program Files</description>
+<destination>${installdir}</destination>
+<name>programfileswindowsdeps</name>
+<platforms>windows-x64</platforms>
+<distributionFileList>
+<distributionDirectory>
+    <origin>C:/msys64/ucrt64/share/qt6/plugins/platforms</origin>
+</distributionDirectory>
+<!-- add windows dependencies here -->
+</distributionFileList>
+</folder>
