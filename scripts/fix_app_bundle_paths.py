@@ -10,48 +10,37 @@ from pathlib import Path
 
 class AppBundleChecker:
 
-    def __init__(self):
-        # Get command line arguments
-        args = self.parse_args()
-        self.app_path = os.path.join(os.getcwd(), args.app)
-
-        # Determine the exectutable to check
-        files = os.listdir(os.path.join(self.app_path, 'Contents/MacOS'))
-        # assumes only one executable in MacOS dir, which I think is standard
-        # for mac apps
-        self.executable_path = os.path.join(self.app_path, 'Contents/MacOS',
-                                            files[0])
-        # Set the frameworks path
-        self.frameworks_path = os.path.join(self.app_path,
-                                            "Contents/Frameworks")
-        # Set the plugins path
-        self.plugins_path = os.path.join(self.app_path,
-                                         "Contents/PlugIns")
+    def __init__(self, app, brew_prefix=None, app_path_override=False):
+        if app_path_override:
+            # supply exact app path to check, and use its directory directly
+            # for all dependencies.
+            app_path = os.path.dirname(app)
+            self.app_path = app_path
+            self.frameworks_path = app_path
+            self.plugins_path = app_path
+            # assuming only file present yet is the executable
+            self.executable_path = app
+        else:
+            self.app_path = os.path.join(os.getcwd(), app)
+            # Determine the exectutable to check
+            files = os.listdir(os.path.join(self.app_path, 'Contents/MacOS'))
+            # assumes only one executable in MacOS dir, which I think is standard
+            # for mac apps
+            self.executable_path = os.path.join(self.app_path, 'Contents/MacOS',
+                                                files[0])
+            # Set the frameworks path
+            self.frameworks_path = os.path.join(self.app_path,
+                                                "Contents/Frameworks")
+            # Set the plugins path
+            self.plugins_path = os.path.join(self.app_path,
+                                            "Contents/PlugIns")
 
         # Find the homebrew path
-        brew_prefix = args.brew_prefix
         if not brew_prefix:
             brew_prefix = "/opt/homebrew"
             if not (os.path.exists(brew_prefix)):
                 brew_prefix = "/usr/local"
         self.homebrew_path = brew_prefix + '/opt'
-
-    def parse_args(self):
-        """ Instantiate a command line argument parser """
-
-        # Define command line arguments which can be provided
-        parser = argparse.ArgumentParser(
-            description="Check for Library paths missed by macdeployqt in" +
-            "MAC .app bundles")
-        parser.add_argument(
-            '--app', type=str, required=True,
-            help='relative path to .app bundle')
-        parser.add_argument('--brew_prefix', type=str, default=None, help="homebrew prefix")
-
-        # Parse the command line arguments
-        args = parser.parse_args()
-
-        return args
 
     def check(self):
         # check app itself
@@ -122,8 +111,11 @@ class AppBundleChecker:
                 self.add_library_to_app(library_name)
         # always need to update reference
         print("Updating reference: ", library_name)
+        new_library_path = self.get_new_library_path()
+        if self.frameworks_path == self.app_path:  # no app bundle structure
+            new_library_path = "@executable_path/"
         subprocess.run(["install_name_tool", "-change", library_path,
-                        "@executable_path/../Frameworks/" + library_name,
+                        new_library_path + library_name,
                         referenced_from])
 
     def exists_in_app(self, lib):
@@ -167,17 +159,42 @@ class AppBundleChecker:
         # update ID and self-reference of a file that has just been added to
         # the app bundle
         # update ID of file just copied
+        new_library_path = self.get_new_library_path()
         subprocess.run(["install_name_tool", "-id",
-                        "@executable_path/../Frameworks/" + name,
+                        new_library_path + name,
                         new_path])
         # update self-reference of file just copied
         subprocess.run(["install_name_tool", "-change", old_path,
-                        "@executable_path/../Frameworks/" + name,
+                        new_library_path + name,
                         new_path])
+                        
+    def get_new_library_path(self):
+        new_library_path = "@executable_path/../Frameworks/"
+        if self.frameworks_path == self.app_path:  # no app bundle structure
+            new_library_path = "@executable_path/"
+        return new_library_path
+
+def parse_args():
+    """ Instantiate a command line argument parser """
+
+    # Define command line arguments which can be provided
+    parser = argparse.ArgumentParser(
+        description="Check for Library paths missed by macdeployqt in" +
+        "MAC .app bundles")
+    parser.add_argument(
+        '--app', type=str, required=True,
+        help='relative path to .app bundle')
+    parser.add_argument('--brew_prefix', type=str, default=None, help="homebrew prefix")
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+
+    return args
 
 
 def main():
-    checker = AppBundleChecker()
+    args = parse_args()
+    checker = AppBundleChecker(args.app, args.brew_prefix)
     checker.check()
 
 
