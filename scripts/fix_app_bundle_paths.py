@@ -133,6 +133,8 @@ class AppBundleChecker:
             print(src, " is a framework")
         new_library_path = self.frameworks_path + "/" + library_name
         self.update_self_references(library_name, new_library_path, src)
+        # if this library just got added, run check_executable on it too
+        self.check_executable(new_library_path)
 
     def add_framework_to_app(self, framework_name):
         framework_dir = Path(framework_name).parts[0]
