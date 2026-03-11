@@ -20,15 +20,15 @@ import eol_scons.chdir as chdir
 
 _global_targets = {}
 
-""" Custom methods for the SCons Environment class.
+"""
+Custom methods for SCons Environment instances.
 
-    These are eol_scons internal functions which should only be called as
-    methods through an Environment instance.  The methods are added to the
-    built-in Environment class directly, so they are available to all
-    environment instances once the eol_scons package has been imported.  Other
-    methods are added to an environment instance only when a particular tool
-    has been applied; see prefixoptions.py for an example using
-    InstallLibrary() and related methods.
+These are eol_scons internal functions which should only be called as methods
+on an Environment instance.  The methods are added to an Environment when
+eol_scons.tool.generate() calls AddMethods() on the environment.  Other
+methods are added to an environment instance only when a particular tool has
+been applied; see prefixoptions.py for an example using InstallLibrary() and
+related methods.
 """
 
 _enable_install_alias = True
