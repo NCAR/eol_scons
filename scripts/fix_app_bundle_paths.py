@@ -112,8 +112,6 @@ class AppBundleChecker:
         # always need to update reference
         print("Updating reference: ", library_name)
         new_library_path = self.get_new_library_path()
-        if self.frameworks_path == self.app_path:  # no app bundle structure
-            new_library_path = "@executable_path/"
         subprocess.run(["install_name_tool", "-change", library_path,
                         new_library_path + library_name,
                         referenced_from])
