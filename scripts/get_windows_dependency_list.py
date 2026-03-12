@@ -50,7 +50,7 @@ def main():
     distribution_files = ""
     for d in deps:
         depfile = parse_dependency_location(d)
-        if depfile.startswith("/c/Windows"):
+        if depfile.lower().startswith("/c/windows"):
             # assume dependencies in here are normal windows files
             continue
         # don't add duplicates
