@@ -192,9 +192,14 @@ def GenerateHelpText(env):
     from all the global variables, a list of aliases, and also a list of
     the default targets if the --list-defaults option is set.
     """
+    variables: BriefVariables
     variables = env.GlobalVariables()
     variables.Update(env)
     text = variables.GenerateHelpText(env)
+
+    if variables.BriefHelpEnabled(env):
+        text += ("\nUse '-h --help-all' to see all "
+                 "variables with full help info.")
 
     try:
         # In case this has been done before, ignore any exceptions.
