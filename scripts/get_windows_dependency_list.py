@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # script to query windows dependencies from an executable and add them as entries to the installbuilder xml
 
+import glob
 import os
 import subprocess
 
@@ -35,6 +36,8 @@ def main():
     parser.add_argument('--exe2', type=str, required=False, help="path to second executable to scan")
     parser.add_argument('--template', type=str, required=True, help="path to template dependencies xml file")
     parser.add_argument('--output', type=str, required=True, help="file to save template xml to")
+    parser.add_argument('--openssl-dir', type=str, default=None,
+                        help="directory to search for OpenSSL DLLs (libssl-*.dll, libcrypto-*.dll)")
     args = parser.parse_args()
     
     exe1_path = os.path.join(os.getcwd(), args.exe1)
@@ -47,6 +50,13 @@ def main():
         exe2_path = os.path.join(os.getcwd(), args.exe2)
         deps += get_dependencies(exe2_path)
 
+    # Find OpenSSL DLLs by glob — they are loaded dynamically by qopensslbackend.dll
+    # and do not appear in ldd output, so we search explicitly by pattern.
+    openssl_dlls = []
+    if args.openssl_dir:
+        for pattern in ['libssl-*.dll', 'libcrypto-*.dll']:
+            openssl_dlls += glob.glob(os.path.join(args.openssl_dir, pattern))
+
     distribution_files = ""
     for d in deps:
         depfile = parse_dependency_location(d)
@@ -56,6 +66,13 @@ def main():
         # don't add duplicates
         if not depfile in distribution_files:
             # msys paths start at /ucrt64 but windows paths (that installbuilder uses) are really c:/msys64/ucrt64
+            distribution_files += f"""<distributionFile>
+    <origin>/msys64{depfile}</origin>
+</distributionFile>"""
+    for dll in openssl_dlls:
+        # convert /ucrt64/bin/libssl-3-x64.dll -> /msys64/ucrt64/bin/libssl-3-x64.dll
+        depfile = dll.replace('\\', '/')
+        if not depfile in distribution_files:
             distribution_files += f"""<distributionFile>
     <origin>/msys64{depfile}</origin>
 </distributionFile>"""
