@@ -70,12 +70,17 @@ def main():
     <origin>/msys64{depfile}</origin>
 </distributionFile>"""
     for dll in openssl_dlls:
-        # Reconstruct using the original openssl_dir (MSYS2 path) + filename, since
-        # glob may return Windows-style absolute paths (e.g. C:/msys64/ucrt64/bin/...).
-        depfile = args.openssl_dir.rstrip('/') + '/' + os.path.basename(dll)
+        openssl_dir_xml = args.openssl_dir.rstrip('/')
+        # Strip windows drive letter if present (C:/msys64/ucrt64/bin -> /msys64/ucrt64/bin)
+        if len(openssl_dir_xml) > 1 and openssl_dir_xml[1] == ':':
+            openssl_dir_xml = openssl_dir_xml[2:]
+        depfile = openssl_dir_xml + '/' + os.path.basename(dll)
+        # Prepend /msys64 if path is a MSYS2 ucrt64-relative path (eg /ucrt64/...)
+        if not depfile.startswith('/msys64'):
+            depfile = '/msys64' + depfile
         if not depfile in distribution_files:
             distribution_files += f"""<distributionFile>
-    <origin>/msys64{depfile}</origin>
+    <origin>{depfile}</origin>
 </distributionFile>"""
     add_dependencies_to_xml(distribution_files, template_path, output_path)
     
