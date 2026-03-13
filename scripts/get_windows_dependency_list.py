@@ -70,8 +70,9 @@ def main():
     <origin>/msys64{depfile}</origin>
 </distributionFile>"""
     for dll in openssl_dlls:
-        # convert /ucrt64/bin/libssl-3-x64.dll -> /msys64/ucrt64/bin/libssl-3-x64.dll
-        depfile = dll.replace('\\', '/')
+        # Reconstruct using the original openssl_dir (MSYS2 path) + filename, since
+        # glob may return Windows-style absolute paths (e.g. C:/msys64/ucrt64/bin/...).
+        depfile = args.openssl_dir.rstrip('/') + '/' + os.path.basename(dll)
         if not depfile in distribution_files:
             distribution_files += f"""<distributionFile>
     <origin>/msys64{depfile}</origin>
