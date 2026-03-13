@@ -83,8 +83,6 @@ class AppBundleChecker:
             if not (line.startswith("@executable_path")
                     or line.startswith("/usr/lib")
                     or line.startswith("/System/Library/Frameworks")):
-                print("\nfound bad library path", line,
-                      "referenced from:", path)
                 self.fix_library_path(line, path)
 
     def check_framework(self, path):
@@ -103,18 +101,23 @@ class AppBundleChecker:
             library_name = str(Path(*Path(library_path).parts[-4:]))
         else:
             library_name = os.path.basename(library_path)
-        if not (self.exists_in_app(library_name)):
-            # need to add library file and update its self references
-            if '.framework' in library_name:
-                self.add_framework_to_app(library_name)
-            else:
-                self.add_library_to_app(library_name)
-        # always need to update reference
-        print("Updating reference: ", library_name)
-        new_library_path = self.get_new_library_path()
-        subprocess.run(["install_name_tool", "-change", library_path,
-                        new_library_path + library_name,
-                        referenced_from])
+        try:
+            if not (self.exists_in_app(library_name)):
+                # need to add library file and update its self references
+                if '.framework' in library_name:
+                    self.add_framework_to_app(library_name)
+                else:
+                    self.add_library_to_app(library_name)
+            # always need to update reference
+            print("Updating reference: ", library_name)
+            new_library_path = self.get_new_library_path()
+            self._install_name_tool("-change", library_path,
+                                    new_library_path + library_name,
+                                    referenced_from)
+        except Exception:
+            print("\nfound bad library path", library_path,
+                  "referenced from:", referenced_from)
+            raise
 
     def exists_in_app(self, lib):
         # check if dylib in frameworks path
@@ -140,10 +143,14 @@ class AppBundleChecker:
         # assume first result is fine
         src = self.find_file(framework_dir)
         # copy into frameworks dir
+        fw_dest = os.path.join(self.frameworks_path, framework_dir)
         try:
+            # Remove any existing flat-structured copy left by macdeployqt
+            # before copying the full Versions/A layout from Homebrew.
+            if os.path.exists(fw_dest):
+                shutil.rmtree(fw_dest)
             # preserve symlinks within framework
-            shutil.copytree(src, os.path.join(self.frameworks_path,
-                                              framework_dir), symlinks=True)
+            shutil.copytree(src, fw_dest, symlinks=True)
         except NotADirectoryError:
             print(src, " is not a framework")
         new_framework_path = os.path.join(self.frameworks_path, framework_name)
@@ -153,20 +160,36 @@ class AppBundleChecker:
         # find file in local homebrew installation
         res = glob.glob("**/" + name, root_dir=self.homebrew_path,
                         recursive=True)
+        # Prefer kegs without explicit version markers (e.g. 'qt' before
+        # 'qt@5', 'qt6') so the default generation is used.  glob returns
+        # results in alphabetical order and 'qt@5' sorts before 'qt', so
+        # without this sort the wrong Qt generation can be picked up, causing
+        # framework layout mismatches (Versions/5/ vs Versions/A/).
+        res.sort(key=lambda p:
+                 sum(1 for c in p.split('/')[0] if c == '@' or c.isdigit()))
         return os.path.join(self.homebrew_path, res[0])
+
+    @staticmethod
+    def _install_name_tool(*args):
+        # Suppress the "will invalidate the code signature" warning: it is
+        # always expected when rewriting load commands in deployed binaries,
+        # and the bundle will be re-signed as a separate step afterwards.
+        result = subprocess.run(["install_name_tool"] + list(args),
+                                capture_output=True, text=True)
+        filtered = [line for line in result.stderr.splitlines()
+                    if "invalidate the code signature" not in line]
+        if filtered:
+            print('\n'.join(filtered))
 
     def update_self_references(self, name, new_path, old_path):
         # update ID and self-reference of a file that has just been added to
         # the app bundle
         # update ID of file just copied
         new_library_path = self.get_new_library_path()
-        subprocess.run(["install_name_tool", "-id",
-                        new_library_path + name,
-                        new_path])
+        self._install_name_tool("-id", new_library_path + name, new_path)
         # update self-reference of file just copied
-        subprocess.run(["install_name_tool", "-change", old_path,
-                        new_library_path + name,
-                        new_path])
+        self._install_name_tool("-change", old_path,
+                                new_library_path + name, new_path)
                         
     def get_new_library_path(self):
         new_library_path = "@executable_path/../Frameworks/"
