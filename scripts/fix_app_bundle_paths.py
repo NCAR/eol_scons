@@ -153,6 +153,8 @@ class AppBundleChecker:
             shutil.copytree(src, fw_dest, symlinks=True)
         except NotADirectoryError:
             print(src, " is not a framework")
+        except FileExistsError:
+            print(framework_dir, " already in bundle, skipping copy")
         new_framework_path = os.path.join(self.frameworks_path, framework_name)
         self.update_self_references(framework_name, new_framework_path, src)
 
