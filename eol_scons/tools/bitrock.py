@@ -34,7 +34,7 @@ def _find_bitrock(env):
     except KeyError:
         pass
 
-    if env['PLATFORM'] in  ['msys', 'win32']:
+    if env['PLATFORM'] in  ['msys', 'win32', 'cygwin']:
         for path in glob.glob('/c/Tools/InstallBuilder/bin/builder-cli.exe') + \
                     glob.glob('/c/Program Files/InstallBuilder*/bin/builder-cli.exe') + \
                     glob.glob('C:/Program Files/InstallBuilder*/bin/builder-cli.exe'):
@@ -74,14 +74,15 @@ def _bitrock(target, source, env):
     bitrock = str(env['BITROCK'])
     version = env['REPO_REVISION']
     version = version.replace(':', '-')
+    osid  = env['OSID']
     xml = str(sources[0])
 
     # Run bitrock.
-    subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+version,],
+    subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
                           stderr=subprocess.STDOUT, bufsize=1)
 
 
-def BitRock(env, destfile, bitrockxml, source, version, *args, **kw):
+def BitRock(env, destfile, bitrockxml, source, version, osid='win',*args, **kw):
     """
     A psuedo-builder for creating BitRock installers. 
 
@@ -105,16 +106,16 @@ def BitRock(env, destfile, bitrockxml, source, version, *args, **kw):
         bitrockxml -- The bitrock configuration
         sources    -- Other dependencies that should trigger a rebuild.
         version    -- The version number that will be fed to bitrock.
+        osid       -- The operating system identifier that will be fed to bitrock
 
     """
-
     sources = source
     if type(sources) != type(list()):
         sources = [source]
 
     # Create the installer dependencies and actions.
     installer = env.RunBitRock(
-        destfile,  [bitrockxml] + sources, SVNVERSION=version)
+        destfile,  [bitrockxml] + sources, SVNVERSION=version, OSID=osid)
     env.AlwaysBuild(installer)
     env.Clean(installer, installer)
 
