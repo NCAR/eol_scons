@@ -15,7 +15,8 @@ def get_dependencies(exe_path):
 def parse_dependency_location(line):
     """ Return path to dependency file from line in ldd output """
     # format: libunistring-5.dll => /ucrt64/bin/libunistring-5.dll (0x7ffd71ba0000)
-    return line.split(" ")[2]
+    fields = line.split(" ")
+    return fields[2] if len(fields) >= 3 else None
 
 def add_dependencies_to_xml(distribution_files, template_path, output_path):
     contents = ""
@@ -60,7 +61,7 @@ def main():
     distribution_files = ""
     for d in deps:
         depfile = parse_dependency_location(d)
-        if depfile.lower().startswith("/c/windows"):
+        if not depfile or depfile.startswith("/c/Windows"):
             # assume dependencies in here are normal windows files
             continue
         # don't add duplicates
