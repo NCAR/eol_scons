@@ -12,7 +12,10 @@ import os
 import re
 from pathlib import Path
 import SCons.Tool
+import SCons.Errors
+import SCons.Util
 from SCons.Script.SConscript import global_exports
+import SCons.Script
 from SCons.Script import COMMAND_LINE_TARGETS
 
 # At least SCons 3.0.1 (CentOS 8 python3-scons-3.0.1-8) has
