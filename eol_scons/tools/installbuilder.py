@@ -5,15 +5,15 @@
 """
 SCons.Tool.osxqtapp
 
-Create a BitRock installer from an application and a BitRock configuration. Currently
+Create an InstallBuilder installer from an application and an InstallBuilder xml configuration. Currently
 only runs on Windows and OSX.
 
-See BitRock() for the parameter descriptions.
+See InstallBuilder() for the parameter descriptions.
 
 Example usage (OSX):
     installerdir = Dir('RIC-' + svnrevision + '.app')
     sources = Dir('#/installers/mac/RICProxy-' + svnrevision + '.app')
-    installer = env.BitRock(installerdir, bitrockxml, [sources], svnrevision)
+    installer = env.InstallBuilder(installerdir, builderxml, [sources], svnrevision)
 
 """
 
@@ -36,15 +36,15 @@ xml_template = """<folder>
 </folder>"""
 
 
-def _find_bitrock(env):
+def _find_installbuilder(env):
     """ 
-    Look for the BitRock command line application.
+    Look for the InstallBuilder command line application.
 
     Returns the path to the executable, if found. Otherwise
     returns None.
     """
     try:
-        return env['BITROCK']
+        return env['INSTALLBUILDER']
     except KeyError:
         pass
 
@@ -65,12 +65,12 @@ def _find_bitrock(env):
     return None
 
 #
-# Builder to run bitrock and create an installer.
+# Builder to generate windows dependencies and create an installer.
 #
 
 def _create_windows_dependencies_xml(env, sources):
     if env['PLATFORM'] == 'darwin':
-        # just save the empty template as a placeholder file, since mac doesn't use bitrock to get dependencies
+        # just save the empty template as a placeholder file, since mac doesn't use dependencies here
         with open('Installers/InstallBuilder/WindowsDependencies.xml', 'w') as f:
             f.write(xml_template)
     else:
@@ -80,23 +80,23 @@ def _create_windows_dependencies_xml(env, sources):
                                '--template', os.path.join(env['EOL_SCONS_SCRIPTS_DIR'], 'WindowsDependenciesTemplate.xml'),
                                '--output', 'Installers/InstallBuilder/WindowsDependencies.xml'])
 
-def _bitrock(target, source, env):
+def _installbuilder(target, source, env):
     """
     Parameters:
 
     target[0]   -- The generated installer path name. We don't use it.
-    source[0]   -- The bitrock xml definition.
+    source[0]   -- The installbuilder xml definition.
     source[1:]  -- Other source dependencies.
 
     Environment values:
-    env['SVNVERSION'] -- The version number to be passed to bitrock.
+    env['SVNVERSION'] -- The version number to be passed to installbuilder.
     """
 
     sources = source
     if type(sources) != type(list()):
         sources = [source]
 
-    bitrock = str(env['BITROCK'])
+    builder = str(env['INSTALLBUILDER'])
     version = env['REPO_REVISION']
     version = version.replace(':', '-')
     osid  = env['OSID']
@@ -105,36 +105,36 @@ def _bitrock(target, source, env):
     # create windows dependencies xml file
     _create_windows_dependencies_xml(env, sources[1:])
 
-    # Run bitrock.
-    subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
+    # Run InstallBuilder.
+    subprocess.check_call([builder, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
                           stderr=subprocess.STDOUT, bufsize=1)
 
 
-def BitRock(env, destfile, bitrockxml, source, version, osid='win',*args, **kw):
+def InstallBuilder(env, destfile, builderxml, source, version, osid='win',*args, **kw):
     """
-    A psuedo-builder for creating BitRock installers. 
+    A psuedo-builder for creating InstallBuilder installers. 
 
-    The recipe for creating the installer is provided in BitRock xml 
-    specification file. In general this file is edited using the BitRock GUI 
+    The recipe for creating the installer is provided in the InstallBuilder xml 
+    specification file. In general this file is edited using the InstallBuilder GUI 
     application, although some modification is possible with a text editor. But
     if you break it, you get to keep the pieces.
 
-    The bitrock xml configuration has an explicitly named output file,
-    and many source files. We will always run bitrock, since it would be hard to
+    The InstallBuilder xml configuration has an explicitly named output file,
+    and many source files. We will always run InstallBuilder, since it would be hard to
     account for all of these dependencies. Perhaps in the future we can
     come up with a scheme to allow this routine to specify the output 
-    file path for bitrock; this will involve modifying the bitrock xml
+    file path for InstallBuilder; this will involve modifying the InstallBuilder xml
     file. 
 
-    The git version value is passed to bitrock as the version variable.
+    The git version and os id values are passed to InstallBuilder as variables.
 
         Parameters:
         destfile   -- The target generated installer file. This should be 
                       the same as the output file specified in the xml file.
-        bitrockxml -- The bitrock configuration
+        builderxml -- The InstallBuilder xml configuration
         sources    -- Other dependencies that should trigger a rebuild.
-        version    -- The version number that will be fed to bitrock.
-        osid       -- The operating system identifier that will be fed to bitrock
+        version    -- The version number that will be fed to InstallBuilder.
+        osid       -- The operating system identifier that will be fed to InstallBuilder
 
     """
     sources = source
@@ -142,8 +142,8 @@ def BitRock(env, destfile, bitrockxml, source, version, osid='win',*args, **kw):
         sources = [source]
 
     # Create the installer dependencies and actions.
-    installer = env.RunBitRock(
-        destfile,  [bitrockxml] + sources, SVNVERSION=version, OSID=osid)
+    installer = env.RunInstallBuilder(
+        destfile,  [builderxml] + sources, SVNVERSION=version, OSID=osid)
     env.AlwaysBuild(installer)
     env.Clean(installer, installer)
 
@@ -153,15 +153,15 @@ def BitRock(env, destfile, bitrockxml, source, version, osid='win',*args, **kw):
 def generate(env):
     """Add Builders and construction variables to the Environment."""
 
-    # Define the BitRock builder.
-    bldr = Builder(action=_bitrock)
-    env.Append(BUILDERS={'RunBitRock': bldr})
+    # Define the InstallBuilder builder.
+    bldr = Builder(action=_installbuilder)
+    env.Append(BUILDERS={'RunInstallBuilder': bldr})
 
-    # find the BitRock command
-    env['BITROCK'] = _find_bitrock(env)
+    # find the InstallBuilder command
+    env['INSTALLBUILDER'] = _find_installbuilder(env)
 
     # Define that all important method.
-    env.AddMethod(BitRock, "BitRock")
+    env.AddMethod(InstallBuilder, "InstallBuilder")
 
 
 def exists(env):
