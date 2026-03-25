@@ -161,7 +161,7 @@ def _installbuilder(target, source, env):
     xml = str(sources[0])
     
     # create windows dependencies xml file
-    _create_windows_dependencies_xml(env, sources[1:], target[1], openssldir)
+    _create_windows_dependencies_xml(env, sources[1:], str(target[1]), openssldir)
 
     # Run InstallBuilder.
     subprocess.check_call([builder, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
