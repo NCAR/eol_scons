@@ -1,0 +1,22 @@
+# -*- python -*-
+
+# This is an example of a simple SConscript file which builds a library and
+# exports a tool to build against it.  This SConscript must be loaded by the
+# project before any of the source code which depends on it.
+
+from SCons.Script import Environment, Export
+
+env = Environment(tools=['default'])
+
+libinterp = env.Library('interpolate', ['Interpolate.cc'])
+
+
+def interpolate(env):
+    # SCons allows the library node to be appended, and the link commands will
+    # refer directly to the library file, without modifying LIBPATH. See
+    # tool_vector.py for a different approach.
+    env.Append(LIBS=libinterp)
+    env.Require('vector')
+
+
+Export('interpolate')
