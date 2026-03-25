@@ -2,7 +2,7 @@
 
 ## [Unreleased] - Unreleased
 
-## [4.3] - Pending
+## [4.3] - 2026-03-25
 
 - `GlobalVariables()` now returns an instance of `BriefVariables`, a subclass
   of `Variables` which supports a briefer form of the help output.  Enable the
