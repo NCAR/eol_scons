@@ -35,7 +35,6 @@ xml_template = """<folder>
 </distributionFileList>
 </folder>"""
 
-
 def _find_installbuilder(env):
     """ 
     Look for the InstallBuilder command line application.
@@ -68,17 +67,53 @@ def _find_installbuilder(env):
 # Builder to generate windows dependencies and create an installer.
 #
 
+
+def _get_dependencies(exe_path):
+    """ Return list of dependencies for executable """
+    result = subprocess.run(['ldd', exe_path], capture_output=True, text=True)
+    return result.stdout.splitlines()
+
+def _parse_dependency_location(line):
+    """ Return path to dependency file from line in ldd output """
+    # format: libunistring-5.dll => /ucrt64/bin/libunistring-5.dll (0x7ffd71ba0000)
+    fields = line.split(" ")
+    return fields[2] if len(fields) >= 3 else None
+
+def _create_xml_entry(line):
+    depfile = _parse_dependency_location(line)
+    if not depfile or depfile.startswith("/c/Windows"):
+        # assume dependencies in here are normal windows OS files
+        return ""
+    # msys paths start at /ucrt64 but windows paths (that installbuilder uses) are really c:/msys64/ucrt64
+    return f"""<distributionFile>
+    <origin>/msys64{depfile}</origin>
+</distributionFile>
+"""
+
+def _create_xml(distribution_files, output_path):
+    comment = "<!-- add windows dependencies here -->"
+    if comment in xml_template:
+        contents = xml_template.replace(comment, distribution_files)
+        with open(output_path, "w") as f:
+            f.write(contents)
+    else:
+        print("No comment placeholder in template to insert dependencies in.")
+
+
 def _create_windows_dependencies_xml(env, sources):
     if env['PLATFORM'] == 'darwin':
         # just save the empty template as a placeholder file, since mac doesn't use dependencies here
         with open('Installers/InstallBuilder/WindowsDependencies.xml', 'w') as f:
             f.write(xml_template)
     else:
-        # generate the windows dependencies xml file by running the get_windows_dependency_list script
-        subprocess.check_call(['python', os.path.join(env['EOL_SCONS_SCRIPTS_DIR'], 'get_windows_dependency_list.py'),
-                               '--exe1', sources[0], '--exe2', sources[2], # positions hardcoded for now, will rework
-                               '--template', os.path.join(env['EOL_SCONS_SCRIPTS_DIR'], 'WindowsDependenciesTemplate.xml'),
-                               '--output', 'Installers/InstallBuilder/WindowsDependencies.xml'])
+        deps = []
+        for s in sources:
+            deps += _get_dependencies(s)
+        deps = list(set(deps)) #remove duplicates
+        distribution_files = ""
+        for d in deps:
+            distribution_files += _create_xml_entry(d)
+        _create_xml(distribution_files, "Installers/InstallBuilder/WindowsDependencies.xml")
 
 def _installbuilder(target, source, env):
     """
