@@ -139,6 +139,7 @@ class SpawnerLogger:
                     sys.stdout.write('.')
             output = pipe.stdout.readline()
         pipe.wait()
+        pipe.stdout.close()
         if flines >= 50:
             sys.stdout.write("\n")
         return pipe.returncode

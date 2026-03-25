@@ -1,0 +1,42 @@
+# -*- python -*-
+
+from SCons.Script import Environment, SConscript
+import eol_scons
+
+env = Environment(tools=['default'])
+
+# Create the global variables and the top-level config file.
+variables = env.GlobalVariables()
+variables.AddVariables(('PREFIX', 'installation path',
+                        '/usr/local', None, eol_scons.PathToAbsolute))
+
+# specify which of the custom variables should be listed for brief help
+# output, usually the ones used most often.
+variables.BriefVariables = ['PREFIX']
+
+
+# Global tool to configure required compiler flags in all subdirectories.
+def global_flags(env: Environment):
+    # use the buildmode tool to setup compiler flags.
+    env.Require('buildmode')
+    # set a C++ standard for all source
+    env.AppendUnique(CXXFLAGS=['-std=c++11'])
+    # also add top directory to include path for qualified includes
+    env.AppendUnique(CPPPATH=['.'])
+
+
+# require the global tool so it is applied to all other environments created
+env.RequireGlobal(global_flags)
+
+# Start loading SConscript files in component subdirectories...
+SConscript("interpolate/SConscript")
+
+# Build a top-level program which depends on libinterpolate.
+env.Require(['interpolate'])
+interp = env.Program('interp.cc')
+
+# these just demonstrate the --list-defaults and --list-aliases help options.
+env.Alias('all', interp)
+env.Default(interp)
+
+env.SetHelp()

@@ -21,10 +21,6 @@ def generate(env):
 
     env.AppendUnique(DEPLOY_SHARED_LIBS=['Coin'])
 
-    env.SetDefault(COIN_DOXREF='${COIN_DOXDIR}/coin.tag:${COIN_DOXDIR}')
-    env.AppendDoxref('$COIN_DOXREF')
-
 
 def exists(env):
     return True
-

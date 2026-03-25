@@ -60,32 +60,33 @@ with definitions for those values.
 
 import os
 import re
-import string
+import subprocess as sp
 
 from SCons.Builder import Builder
 from SCons.Action import Action
 from SCons.Node import FS
 from SCons.Node.Python import Value
-from subprocess import *
 import SCons.Warnings
 
 _debug = 0
 
+
 def pdebug(msg):
-    if _debug: print(msg)
+    if _debug:
+        print(msg)
+
 
 class SubversionInfo:
-
     # Map construction variable name to the svn info keys.
     _variable_map = {
-        'SVNREVISION' : "Revision",
-        'SVNEXTERNALREVS' : "ExternalRevs",
-        'SVNLASTCHANGEDDATE' : "Last Changed Date",
-        'SVNURL' : "URL",
-        'SVNWORKDIRSPEC' : "Working Directory",
-        'SVNWORKDIR' : "workdir",
-        'SVNERROR' : "Subversion error"
-        }
+        "SVNREVISION": "Revision",
+        "SVNEXTERNALREVS": "ExternalRevs",
+        "SVNLASTCHANGEDDATE": "Last Changed Date",
+        "SVNURL": "URL",
+        "SVNWORKDIRSPEC": "Working Directory",
+        "SVNWORKDIR": "workdir",
+        "SVNERROR": "Subversion error",
+    }
 
     def __init__(self, env, workdir):
         self.workdir = workdir
@@ -94,14 +95,14 @@ class SubversionInfo:
         self.svnversioncmd = env.subst("$SVNVERSION")
         for k in self._variable_map.keys():
             self.values[k] = "unknown"
-        self.values['SVNERROR'] = ""
+        self.values["SVNERROR"] = ""
 
     def _get_output(self, cmd):
         "Get command output or stderr if it fails"
         output = ""
         try:
             pdebug("svninfo: running '%s'" % (" ".join(cmd)))
-            child = Popen(cmd, stdout=PIPE,stderr=PIPE)
+            child = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE)
             output = child.communicate()
             sout = output[0].decode().strip()
             eout = output[1].decode().strip()
@@ -122,60 +123,68 @@ class SubversionInfo:
         working directory.
         """
         workdir = self.workdir
-        svncmd = [self.svncmd, 'status', workdir]
-        svnstatus = self._get_output(svncmd).split('\n')
+        svncmd = [self.svncmd, "status", workdir]
+        svnstatus = self._get_output(svncmd).split("\n")
         externals = []
         for line in svnstatus:
             # 'svn status' lines which start with 'X' are externals
-            if re.match('^X', line):
-                subdir = re.sub('^X +', '', line)
+            if re.match("^X", line):
+                subdir = re.sub("^X +", "", line)
                 # remove the working directory from the subdir
-                relativeSubdir = subdir.replace(workdir, '', 1)
+                relativeSubdir = subdir.replace(workdir, "", 1)
                 # remove the trailing cr, found on windows systems
-                relativeSubdir = re.sub('\r','',relativeSubdir)
+                relativeSubdir = re.sub("\r", "", relativeSubdir)
                 # then remove leading directory separator character, if any
-                relativeSubdir = re.sub('^\\' + os.sep, '', relativeSubdir)
+                relativeSubdir = re.sub("^\\" + os.sep, "", relativeSubdir)
                 externals += [relativeSubdir]
         return externals
 
     def loadInfo(self):
         workdir = self.workdir
-        svncmd = [ self.svncmd, "info", workdir ]
-        svndict = { "Revision":None, "Last Changed Date":None, "URL":None, 
-                "ExternalRevs":None, "Subversion error":None }
-        svndict.update ( {"Working Directory":"Working Directory: %s" % workdir} )
+        svncmd = [self.svncmd, "info", workdir]
+        svndict = {
+            "Revision": None,
+            "Last Changed Date": None,
+            "URL": None,
+            "ExternalRevs": None,
+            "Subversion error": None,
+        }
+        svndict.update(
+            {"Working Directory": "Working Directory: %s" % workdir}
+        )
         svninfo = self._get_output(svncmd)
-        svnversioncmd = [ self.svnversioncmd, "-n", workdir ]
+        svnversioncmd = [self.svnversioncmd, "-n", workdir]
         svnversion = self._get_output(svnversioncmd)
         for k in svndict.keys():
             match = re.search(r"^%s: .*$" % (k), svninfo, re.M)
-            if (match):
+            if match:
                 svndict[k] = match.group()
-        svndict.update ( {'workdir':workdir} )
-        # Do not set the revision number if svnversioncommand returned an error.
-        if ('error' not in svnversion):
-        	svndict['Revision'] = svnversion
+        svndict.update({"workdir": workdir})
+        # Do not set the revision number if svnversioncommand returned an
+        # error.
+        if "error" not in svnversion:
+            svndict["Revision"] = svnversion
 
         externals = self.getExternals()
         svnExternRevs = ""
         for subdir in externals:
             subdirPath = os.path.join(workdir, subdir)
-            svnversioncmd = [ self.svnversioncmd, "-n", subdirPath ]
+            svnversioncmd = [self.svnversioncmd, "-n", subdirPath]
             svnversion = self._get_output(svnversioncmd)
             if subdir != externals[0]:
                 svnExternRevs += ","
             svnExternRevs += subdir + ":" + svnversion
             pdebug(svnExternRevs)
-        svndict['ExternalRevs'] = svnExternRevs
+        svndict["ExternalRevs"] = svnExternRevs
 
         # Normalize paths and urls.
         for k, v in svndict.items():
             if v:
-                svndict[k] = v.replace('\\', '/').strip()
+                svndict[k] = v.replace("\\", "/").strip()
 
         # Fill in the key variables from the svn info dictionary, but only
         # if there is a value there.
-        for k,v in self._variable_map.items():
+        for k, v in self._variable_map.items():
             if svndict[v]:
                 self.values[k] = svndict[v]
         return self
@@ -183,7 +192,7 @@ class SubversionInfo:
     def applyInfo(self, env):
         "Apply info values to the environment."
         pdebug("Applying svn info from %s..." % (self.workdir))
-        for k,v in self.values.items():
+        for k, v in self.values.items():
             env[k] = v
 
     def generateHeader(self):
@@ -203,22 +212,24 @@ class SubversionInfo:
         pdebug(svnheader)
         return svnheader
 
+
 def _get_workdir(env, source):
-    pdebug("_get_workdir source=" + str(['%s' % d for d in source]))
+    pdebug("_get_workdir source=" + str(["%s" % d for d in source]))
     workdir = source
-    if type(source) == type(""):
+    if type(source) is type(""):
         workdir = env.Dir(source)
-    elif type(source) == type([]):
+    elif type(source) is type([]):
         workdir = source[0]
     if workdir.isfile():
         workdir = workdir.get_dir()
-    if workdir.name in ['.svn', '_svn']:
+    if workdir.name in [".svn", "_svn"]:
         workdir = workdir.get_dir()
     pdebug("get_workdir(%s) ==> %s" % (str(source[0]), workdir.get_abspath()))
     return workdir.get_abspath()
 
 
 _svninfomap = {}
+
 
 def _load_svninfo(env, workdir):
     """Run svn info and svnversion and load the info into a dictionary."""
@@ -239,7 +250,7 @@ def svninfo_emitter_value(target, source, env):
     svninfo = _load_svninfo(env, workdir)
     # If the svn info command fails with an error, we don't
     # update the target it if exists.  Have to mark the
-    # target as Precious so that scons doesn't delete it 
+    # target as Precious so that scons doesn't delete it
     # before the check for existence in the action.
     # I suppose the correct thing to do if subversion fails
     # and the file exists, is to return a source Value
@@ -247,30 +258,35 @@ def svninfo_emitter_value(target, source, env):
     env.Precious(target)
     return target, [Value(svninfo.generateHeader())]
 
+
 def svninfo_do_update_target(target, source):
     # If a subversion error, don't overwrite existing file
     update = bool("Subversion error:" in source[0].get_text_contents())
     update = update or not os.path.exists(target[0].path)
     return update
 
+
 def svninfo_action_print(target, source, env):
-    if svninfo_do_update_target(target,source):
+    if svninfo_do_update_target(target, source):
         return "Generating %s" % target[0]
     else:
         return "Not updating %s" % target[0] + " due to subversion error"
 
+
 def svninfo_build_value(env, target, source):
     "Build header based on contents in the source."
-    if svninfo_do_update_target(target,source):
+    if svninfo_do_update_target(target, source):
         out = open(target[0].path, "w")
         out.write(source[0].get_text_contents())
         out.write("\n")
         out.close()
 
+
 svninfobuilder = Builder(
-    action = Action(svninfo_build_value, svninfo_action_print),
-    source_factory = FS.default_fs.Entry,
-    emitter = svninfo_emitter_value)
+    action=Action(svninfo_build_value, svninfo_action_print),
+    source_factory=FS.default_fs.Entry,
+    emitter=svninfo_emitter_value,
+)
 
 
 class SvnInfoWarning(SCons.Warnings.WarningOnByDefault):
@@ -290,12 +306,12 @@ def generate(env):
     # for a top-level header file.
 
     pdebug("svninfo: generate()")
-    env['BUILDERS']['SvnInfo'] = svninfobuilder
-    env['SVN'] = "svn"
-    env['SVNVERSION'] = "svnversion"
+    env["BUILDERS"]["SvnInfo"] = svninfobuilder
+    env["SVN"] = "svn"
+    env["SVNVERSION"] = "svnversion"
 
     env.AddMethod(LoadSvnInfo, "LoadSvnInfo")
-    env.LoadSvnInfo('#')
+    env.LoadSvnInfo("#")
 
 
 def LoadSvnInfo(env, source):
@@ -305,10 +321,11 @@ def LoadSvnInfo(env, source):
 
 
 def exists(env):
-    svn = env.WhereIs('svn')
+    svn = env.WhereIs("svn")
     if not svn:
         SCons.Warnings.warn(
             SvnInfoWarning,
-            "Could not find svn program.  svninfo tool not available.")
+            "Could not find svn program.  svninfo tool not available.",
+        )
         return False
     return True

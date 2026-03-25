@@ -12,7 +12,10 @@ import os
 import re
 from pathlib import Path
 import SCons.Tool
+import SCons.Errors
+import SCons.Util
 from SCons.Script.SConscript import global_exports
+import SCons.Script
 from SCons.Script import COMMAND_LINE_TARGETS
 
 # At least SCons 3.0.1 (CentOS 8 python3-scons-3.0.1-8) has
@@ -119,7 +122,7 @@ def RequireGlobal(env, tools):
 def _findToolFile(env, name):
     global _tool_matches
     # Need to know if the cache is enabled or not.
-    esv._update_variables(env)
+    esv.update_variables(env)
     cache = esv.ToolCacheVariables(env)
     if _tool_matches is None:
         cvalue = cache.lookup(env, '_tool_matches')
@@ -351,7 +354,7 @@ def generate(env, **_kw):
     env.AddMethod(Tool)
     env.AddMethod(Require)
 
-    eol_scons.variables._update_variables(env)
+    eol_scons.variables.update_variables(env)
 
     name = env.Dir('.').get_path(env.Dir('#'))
     env.LogDebug("Generating eol defaults for Environment(%s) @ %s" % 
@@ -359,7 +362,7 @@ def generate(env, **_kw):
 
     # Add homebrew tool if we are on a Mac.
     if env['PLATFORM'] == 'darwin':
-      env.Tool('macos')
+        env.Tool('macos')
 
     # Internal includes need to be setup *before* OptPrefixSetup or any
     # other includes, so that scons will scan for headers locally first.
@@ -411,7 +414,7 @@ def export_qt_module_tool(modules):
     This now also has a hook for loading the right Qt tool as specified by
     QT_VERSION.  If a project sets QT_VERSION in an Environment, and then
     requires a qt module tool, the module tool will load the corresponding
-    qt tool, qt4 or qt5.  If QT_VERSION is not set, then that's an error,
+    qt tool, qt5 or qt6.  If QT_VERSION is not set, then that's an error,
     because it means no qt version tool has been loaded yet and so the
     EnableQtModules() method will not even exist yet.  The idea is that the
     SCons files in a source directory can just specify what Qt modules are
@@ -430,16 +433,14 @@ def export_qt_module_tool(modules):
         if qtversion is None:
             raise SCons.Errors.StopError(
                 "Cannot load tool for Qt module %s without first setting "
-                "QT_VERSION or requiring the qt4 or qt5 tool." % modules[0])
+                "QT_VERSION or requiring the qt5 or qt6 tool." % modules[0])
         elif qtversion == 6:
             env.Require('qt6')
         elif qtversion == 5:
             env.Require('qt5')
-        elif qtversion == 4:
-            env.Require('qt4')
         else:
             raise SCons.Errors.StopError(
-                "QT_VERSION (%s) must be integer 4, 5, or 6" %
+                "QT_VERSION (%s) must be an integer 5 or 6" %
                 (repr(qtversion)))
         env.EnableQtModules(modules)
     kw = {}
@@ -453,15 +454,11 @@ def export_qt_module_tool(modules):
 # directly.
 
 _qtmodules = [
-    # Qt4 only modules (I think)
-    ('QtWebKit',),
-    ('QtScriptTools', 'QtScript'),
-    ('QtUiTools', 'QtGui'),
-
-    # Qt4 and Qt5 modules
+    # Qt5 modules
     ('QtCore',),
     ('QtSvg', 'QtCore'),
     ('QtGui', 'QtCore'),
+    ('QtUiTools', 'QtGui'),
     ('QtNetwork', 'QtCore'),
     ('QtXml', 'QtCore'),
     ('QtXmlPatterns', 'QtXml'),
@@ -474,8 +471,6 @@ _qtmodules = [
     ('QtDBus',),
     ('QtMultimedia',),
     ('QtScript',),
-
-    # Qt5 modules
     ('QtConcurrent',),
     ('QtWidgets', 'QtCore'),
     ('QtPrintSupport', 'QtCore'),

@@ -2,7 +2,8 @@
 #
 # This source code is licensed under the MIT license found in the LICENSE
 # file in the root directory of this source tree.
-import os, os.path
+import os
+import os.path
 import eol_scons
 from SCons.Variables import PathVariable
 

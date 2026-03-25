@@ -3,8 +3,6 @@
 # This source code is licensed under the MIT license found in the LICENSE
 # file in the root directory of this source tree.
 
-import os
-
 # boost::test as of 1.34 changes the interface for supplying the main()
 # function to test programs when the test library is dynamically linked,
 # and that doesn't work with our existing usage.  One fix is to link with

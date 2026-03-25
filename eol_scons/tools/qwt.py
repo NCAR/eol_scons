@@ -6,18 +6,17 @@
 Tool to add Qwt
 """
 
-
-import subprocess
 import eol_scons.parseconfig as pc
 
 _variables = None
 
+
 def generate(env):
     qwtpcname = 'qwt'
     if env.get('QT_VERSION') == 6:
-      qwtpcname = 'Qt6Qwt6'
+        qwtpcname = 'Qt6Qwt6'
     if env.get('QT_VERSION') == 5:
-      qwtpcname = 'Qt5Qwt6'
+        qwtpcname = 'Qt5Qwt6'
 
     if env['PLATFORM'] == 'darwin':
       qwtPcPath = env['MACOS_PREFIX'] + '/opt/qwt/lib/pkgconfig'

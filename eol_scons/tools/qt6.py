@@ -3,11 +3,10 @@
 # This source code is licensed under the MIT license found in the LICENSE
 # file in the root directory of this source tree.
 """
-This tool adds Qt6 include paths and libraries to the build
-environment.  Qt6 is similar to Qt4 in that it is divided into many
-different modules, and the modules can be applied to the environment
-individually using either the EnableQtModules() method or by listing the
-module as a tool.  For example, these are equivalent:
+This tool adds Qt6 include paths and libraries to the build environment.  Qt6
+is divided into many different modules, and the modules can be applied to the
+environment individually using either the EnableQtModules() method or by
+listing the module as a tool.  For example, these are equivalent:
 
     qtmods = ['QtSvg', 'QtCore', 'QtGui', 'QtNetwork', 'QtSql', 'QtOpenGL']
     env.EnableQtModules(qtmods)
@@ -35,9 +34,8 @@ then a particular module may not be installed and pkg-config for it will
 fail.
 
 The qt6 tool must be included first to force all the subsequent qt modules
-to be applied as qt6 modules instead of qt4.  The biggest difference is the
-location of the header files and the version-qualified library names like
-libQt6<Module>.
+to be applied as qt6 modules.  The biggest difference is the location of the
+header files and the version-qualified library names like libQt6<Module>.
 """
 
 # Notes on install locations for each environment
@@ -76,7 +74,6 @@ libQt6<Module>.
 
 import re
 import os
-import subprocess
 import textwrap
 
 import SCons.Defaults
@@ -95,9 +92,10 @@ USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT6"
 
 # Known paths for executables -- other than qmake, lupdate, lrelease
-libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',    # x86_64 Mac
-                '/opt/homebrew/opt/qt/share/qt/libexec', # ARM Mac
-                '/usr/lib64/qt6/libexec']                # Linux / Alma 9
+libexecPaths = ['/usr/local/opt/qt/share/qt/libexec',     # x86_64 Mac
+                '/opt/homebrew/opt/qt/share/qt/libexec',  # ARM Mac
+                '/usr/lib64/qt6/libexec']                 # Linux / Alma 9
+
 
 class ToolQt6Warning(SCons.Warnings.WarningOnByDefault):
     pass
@@ -162,8 +160,8 @@ q_object_search = re.compile(r'\bQ_OBJECT\b')
 
 class _Automoc:
     """
-    Callable class, which works as an emitter for Programs, SharedLibraries and
-    StaticLibraries.
+    Callable class, which works as an emitter for Programs, SharedLibraries
+    and StaticLibraries.
     """
 
     def __init__(self, objBuilderName):
@@ -219,7 +217,7 @@ class _Automoc:
                 continue
 
             cpp = obj.sources[0]
-            if not SCons.Util.splitext(str(cpp))[1] in cxx_suffixes:
+            if SCons.Util.splitext(str(cpp))[1] not in cxx_suffixes:
                 Debug("scons: qt6: '%s' is not a C++ file. Discarded." %
                       str(cpp), env)
                 # c or fortran source
@@ -295,7 +293,8 @@ def _locateQt6Command(env, command):
         # and the "prefix" variable appears to always be available (again,
         # so far...).
         if env['QT6DIR'] == USE_PKG_CONFIG:
-            qtprefix = pc.RunConfig(env, 'pkg-config --variable=prefix Qt6Core')
+            qtprefix = pc.RunConfig(env,
+                                    'pkg-config --variable=prefix Qt6Core')
             qtbindir = os.path.join(qtprefix, 'bin')
         # Otherwise, look for Qt6 binaries in <QT6DIR>/bin
         else:
@@ -321,7 +320,6 @@ def _locateQt6Command(env, command):
         for dir in libexecPaths:
             for cmd in cmds:
                 result = result or env.WhereIs(cmd, [dir])
-
 
     if not result:
         msg = "Qt6 command " + qtcommand + " (" + command + ")"
@@ -431,7 +429,6 @@ def generate(env):
                                            env.get('QT6INCDIR', None),
                                            PathVariable.PathAccept))
     _options.Update(env)
-
 
     # MacOS specifics.  Qt6 pkg-config files are in a non-standard location.
     if env['PLATFORM'] == "darwin":
@@ -591,9 +588,9 @@ def enable_modules(env, modules, debug=False):
     main entry point enforces a few things before calling the
     platform-specific code:
 
-    The module name must be a Qt module name that is not qualified by the
-    Qt version.  So QtCore is the module name in Qt4, Qt5 and Qt6.  This
-    function specifically rejects module names starting with Qt4, Qt5 or Qt6.
+    The module name must be a Qt module name that is not qualified by the Qt
+    version, so this function specifically rejects module names starting with
+    Qt6.
 
     QT6DIR must be set in the Environment.  If not, then the Qt6 setup in
     generate() above did not succeed, and therefore no Qt6 modules can be
@@ -608,7 +605,7 @@ def enable_modules(env, modules, debug=False):
 
     onefailed = False
     for module in modules:
-        if module.startswith('Qt6') or module.startswith('Qt5'):
+        if module.startswith('Qt6'):
             raise SCons.Errors.StopError(
                 "Qt module names should not be qualified with "
                 "the version: %s" % (module))
@@ -706,7 +703,7 @@ def enable_module_linux(env, module, debug=False):
                          (cflags, esd.Watches(env)))
         else:
             # warn if we haven't already
-            if not (module in no_pkgconfig_warned):
+            if module not in no_pkgconfig_warned:
                 print("Warning: No pkgconfig package " + modpackage +
                       " for Qt6/" + module + ", doing what I can...")
                 no_pkgconfig_warned.append(module)

@@ -18,9 +18,6 @@ WINDRIVERVERSION variable.
 
 
 import os
-import platform
-import sys
-import eol_scons
 import SCons
 
 # Readyflow is installed in /usr/local/ReadyFlow
@@ -33,35 +30,36 @@ prefix = '/usr/local/ReadyFlow'
 if not os.path.isdir(prefix):
     msg = "Unable to find ReadyFlow. Directory %s does not exist." % (prefix)
     raise SCons.Errors.StopError(msg)
-    
+
+
 # define the tool
 def generate(env):
 
     options = env.GlobalVariables()
     options.AddVariables(('WINDRIVERVERSION', 'WinDriver version string.'))
     options.Update(env)
-    
+
     # ReadyFlow requires LINUX to be defined
     env.AppendUnique(CPPDEFINES=['LINUX',])
-    
+
     # We are using the ReadyFlow distribution 7142_428, so
     # OPT_428 must be defined.
     env.AppendUnique(CPPDEFINES=['OPT_428',])
-    
+
     # Add include paths down in the ReadyFlow distribution
     env.AppendUnique(CPPPATH=[includedir])
-    
+
     # This is a shared object library that contains the windriver license
     env.AppendUnique(LIBPATH=[libdir])
     env.AppendUnique(RPATH=[libdir])
     env.AppendLibrary('ptk7142_428')
-    
+
     # This is the library containing the ReadyFlow API. We must
     # specify p7142_428.lib directly since it is does not follow
     # the standard library naming convention (lib*.a)
     p7142lib = env.File(os.path.join(libdir, 'p7142_428.lib'))
     env.Append(LIBS=[p7142lib])
-    
+
     # add the windriver library, which ReadyFlow depends upon.
     if 'WINDRIVERVERSION' in env: 
         windriverlib = 'wdapi' + env['WINDRIVERVERSION']
@@ -70,7 +68,7 @@ def generate(env):
         print('WARNING: WINDRIVERVERSION was not specified; defaulting to version 1150.')
         print('         WinDriver library set to', windriverlib)
     env.AppendLibrary(windriverlib)
-    
+
+
 def exists(env):
     return True
-

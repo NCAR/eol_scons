@@ -192,7 +192,7 @@ def InstallPrefixSetup(env):
     # work unless the install prefix variables have been set.  These
     # must be set only once, else infinite recursion ensues.
     try:
-        method = getattr(env, '_prefixoptions_StandardInstall')
+        getattr(env, '_prefixoptions_StandardInstall')
         return
     except AttributeError:
         pass

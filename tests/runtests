@@ -10,6 +10,9 @@
 # The first run with -v can be used to verify the versions of scons and the
 # python interpreter that are running.
 
+export PYTHONWARNINGS=default
+export PYTHONTRACEMALLOC=10
+
 # Setup our own isolated test site_scons directory.
 rm -rf test_site_scons
 mkdir -p test_site_scons/eol_scons
