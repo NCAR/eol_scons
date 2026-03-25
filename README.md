@@ -1,8 +1,45 @@
 # README eol_scons
 
-## Updates
+Following is an introduction to using and installing `eol_scons`. Also see the
+[CHANGELOG.md](CHANGELOG.md).
 
-See [CHANGELOG.md](CHANGELOG.md) for changes.
+## Quick Start
+
+In the `SConstruct` file, `import eol_scons`. The import adds
+`eol_scons/tools` to the `SCons` tool search path.
+
+```python
+import eol_scons
+env = Environment(tools=['default'])
+```
+
+In particular, every `Environment` created with the `default` tool, including
+in any subsequent `SConscript` calls, will automatically get the standard
+`eol_scons` extensions.
+
+The `eol_scons` tools are applied to an `Environment` instance like any other
+`SCons` tool.  Many of the `eol_scons` tools add methods to the instance
+related to their purpose.  For example, the `testing` tool
+([testing.py](eol_scons/tools/testing.py)) adds pseudo-builder methods
+`DefaultTest` and `TestLog` and the `Diff` builder.
+
+Generally, each subdirectory has its own `SConscript` file, and that file
+creates one or more `Environment` instances configured to build just the code
+in that directory.  This allows build dependencies to be isolated from the
+rest of the project.  Compile and link flags needed to build in one directory
+do not need to be added to the build environment for another directory.
+Environments do not need to be passed down to other `SConscript` files with
+`Export`.  This allows projects to be composed of smaller components, but
+because the components are added as dependencies using tools, the rest of the
+project does not need to know how that component is built or even where it is
+located, either in the tree or outside of it.
+
+Global tools can be applied to every `Environment` created, without requiring
+the tools be loaded explicitly everywhere.  There is also support for a global
+`Variables` instance, so a tool can add it's own variables once and use the
+same settings across all the `Environment` instances which apply that tool
+
+See the [UserGuide.md](UserGuide.md) for more information.
 
 ## Installing eol_scons
 
@@ -34,7 +71,7 @@ python package instead of under a `site_scons` directory, since it can be
 managed with all the common Python virtual environment tools, including `pip`
 and `pipenv`.
 
-Note that `eol_scons` is not a `SCons` _tool package_.  It does not provide
+Note that `eol_scons` is _not_ a `SCons` _tool package_.  It does not provide
 the `generate()` or `exists()` methods required in scons tools. So there is no
 point to installing the `eol_scons` package under one of the `site_tools`
 directories searched by `SCons`.  Instead, `eol_scons` is meant to be
@@ -183,40 +220,13 @@ source tree to add the `eol_scons` package to the Python path. However,
 This message can be avoided using one of the other options, or it can be
 safely ignored.
 
-## Using eol_scons
-
-In the `SConstruct` file, simply `import eol_scons`. The import adds
-`eol_scons/tools` to the `SCons` tool search path:
-
-```python
-import eol_scons
-env = Environment(tools=['default', 'boost_date_time'])
-```
-
-The import also modifies the `SCons` tool path so that every `Environment`
-created with the `default` tool will automatically get the standard
-`eol_scons` extensions.  A project can use that to make sure certain tools
-("global tools") are applied to every `Environment`, without requiring the
-tools be loaded explicitly everywhere.
-
-See the [UserGuide.md](UserGuide.md) for more information.
-
-## Documentation
-
-See [this README](eol_scons/README) for an overview of how it works, though
-that documentation is not necessarily up to date.
+## Python Documentation
 
 There is an attempt at generating HTML documentation from the python modules
-and README files using `doxygen`.  Run `doxygen` with the `docs` alias:
+using `doxygen`.  Run `doxygen` with the `docs` alias:
 
 ```shell
 scons docs
 ```
 
 The output is in `doxy/html/index.html`.
-
-## Todo
-
-Some useful extensions to basic features need to be documented, like how to
-add brief help for variables and how to use help to list alias and install
-targets.
