@@ -78,7 +78,7 @@ def _create_windows_dependencies_xml(env, sources):
         subprocess.check_call(['python', os.path.join(env['EOL_SCONS_SCRIPTS_DIR'], 'get_windows_dependency_list.py'),
                                '--exe1', sources[0], '--exe2', sources[2], # positions hardcoded for now, will rework
                                '--template', os.path.join(env['EOL_SCONS_SCRIPTS_DIR'], 'WindowsDependenciesTemplate.xml'),
-                               '--output', 'WindowsDependencies.xml'])
+                               '--output', 'Installers/InstallBuilder/WindowsDependencies.xml'])
 
 def _bitrock(target, source, env):
     """
