@@ -58,7 +58,8 @@ def _find_installbuilder(env):
     if env['PLATFORM'] == 'darwin':
         node = env.FindFile(
             'installbuilder.sh',
-            ['/Applications/BitRock/bin/Builder.app/Contents/MacOS/'])
+            [os.path.expanduser('~/Applications/InstallBuilder/bin/Builder.app/Contents/MacOS/'),
+                '/Applications/BitRock/bin/Builder.app/Contents/MacOS/'])
         return node
 
     return None
