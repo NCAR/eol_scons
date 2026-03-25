@@ -142,7 +142,6 @@ def _installbuilder(target, source, env):
     Parameters:
 
     target[0]   -- The generated installer path name. We don't use it.
-    target[1]   -- The generated windows dependencies xml file.
     source[0]   -- The installbuilder xml definition.
     source[1:]  -- Other source dependencies.
 
@@ -160,16 +159,17 @@ def _installbuilder(target, source, env):
     osid  = env['OSID']
     openssldir = env['OPENSSLDIR']
     xml = str(sources[0])
+    windeps = os.path.join(os.path.dirname(xml), "WindowsDependencies.xml")
     
     # create windows dependencies xml file
-    _create_windows_dependencies_xml(env, sources[1:], str(target[1]), openssldir)
+    _create_windows_dependencies_xml(env, sources[1:], windeps, openssldir)
 
     # Run InstallBuilder.
     subprocess.check_call([builder, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
                           stderr=subprocess.STDOUT, bufsize=1)
 
 
-def InstallBuilder(env, destfile, windeps, builderxml, source, version, osid='win', openssldir=None, *args, **kw):
+def InstallBuilder(env, destfile, builderxml, source, version, osid='win', openssldir=None, *args, **kw):
     """
     A psuedo-builder for creating InstallBuilder installers. 
 
@@ -190,7 +190,6 @@ def InstallBuilder(env, destfile, windeps, builderxml, source, version, osid='wi
         Parameters:
         destfile   -- The target generated installer file. This should be 
                       the same as the output file specified in the xml file.
-        windeps    -- The generated windows dependencies xml file (to be included by the builder xml)
         builderxml -- The InstallBuilder xml configuration
         sources    -- Other dependencies that should trigger a rebuild.
         version    -- The version number that will be fed to InstallBuilder.
@@ -204,7 +203,7 @@ def InstallBuilder(env, destfile, windeps, builderxml, source, version, osid='wi
 
     # Create the installer dependencies and actions.
     installer = env.RunInstallBuilder(
-        [destfile, windeps], [builderxml] + sources, SVNVERSION=version, OSID=osid, OPENSSLDIR=openssldir)
+        destfile, [builderxml] + sources, SVNVERSION=version, OSID=osid, OPENSSLDIR=openssldir)
     env.AlwaysBuild(installer)
     env.Clean(installer, installer)
 
