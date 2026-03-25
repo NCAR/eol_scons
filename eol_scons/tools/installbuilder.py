@@ -67,7 +67,6 @@ def _find_installbuilder(env):
 # Builder to generate windows dependencies and create an installer.
 #
 
-
 def _get_dependencies(exe_path):
     """ Return list of dependencies for executable """
     result = subprocess.run(['ldd', exe_path], capture_output=True, text=True)
@@ -90,6 +89,26 @@ def _create_xml_entry(line):
 </distributionFile>
 """
 
+def _add_openssl_deps(openssldir):
+    openssl_dlls = []
+    openssl_distribution_files = ""
+    for pattern in ['libssl-*.dll', 'libcrypto-*.dll']:
+        openssl_dlls += glob.glob(os.path.join(openssldir, pattern))
+    for dll in openssl_dlls:
+        openssl_dir_xml = openssldir.rstrip('/')
+        # Strip windows drive letter if present (C:/msys64/ucrt64/bin -> /msys64/ucrt64/bin)
+        if len(openssl_dir_xml) > 1 and openssl_dir_xml[1] == ':':
+            openssl_dir_xml = openssl_dir_xml[2:]
+        depfile = openssl_dir_xml + '/' + os.path.basename(dll)
+        # Prepend /msys64 if path is a MSYS2 ucrt64-relative path (eg /ucrt64/...)
+        if not depfile.startswith('/msys64'):
+            depfile = '/msys64' + depfile
+        if not depfile in openssl_distribution_files:
+            openssl_distribution_files += f"""<distributionFile>
+    <origin>{depfile}</origin>
+</distributionFile>"""
+    return openssl_distribution_files
+
 def _create_xml(distribution_files, output_path):
     comment = "<!-- add windows dependencies here -->"
     if comment in xml_template:
@@ -100,7 +119,7 @@ def _create_xml(distribution_files, output_path):
         print("No comment placeholder in template to insert dependencies in.")
 
 
-def _create_windows_dependencies_xml(env, sources):
+def _create_windows_dependencies_xml(env, sources, openssldir):
     if env['PLATFORM'] == 'darwin':
         # just save the empty template as a placeholder file, since mac doesn't use dependencies here
         with open('Installers/InstallBuilder/WindowsDependencies.xml', 'w') as f:
@@ -113,6 +132,8 @@ def _create_windows_dependencies_xml(env, sources):
         distribution_files = ""
         for d in deps:
             distribution_files += _create_xml_entry(d)
+        if openssldir:
+            distribution_files += _add_openssl_deps(openssldir)
         _create_xml(distribution_files, "Installers/InstallBuilder/WindowsDependencies.xml")
 
 def _installbuilder(target, source, env):
@@ -135,17 +156,18 @@ def _installbuilder(target, source, env):
     version = env['REPO_REVISION']
     version = version.replace(':', '-')
     osid  = env['OSID']
+    openssldir = env['OPENSSLDIR']
     xml = str(sources[0])
     
     # create windows dependencies xml file
-    _create_windows_dependencies_xml(env, sources[1:])
+    _create_windows_dependencies_xml(env, sources[1:], openssldir)
 
     # Run InstallBuilder.
     subprocess.check_call([builder, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
                           stderr=subprocess.STDOUT, bufsize=1)
 
 
-def InstallBuilder(env, destfile, builderxml, source, version, osid='win',*args, **kw):
+def InstallBuilder(env, destfile, builderxml, source, version, osid='win', openssldir=None, *args, **kw):
     """
     A psuedo-builder for creating InstallBuilder installers. 
 
@@ -161,7 +183,7 @@ def InstallBuilder(env, destfile, builderxml, source, version, osid='win',*args,
     file path for InstallBuilder; this will involve modifying the InstallBuilder xml
     file. 
 
-    The git version and os id values are passed to InstallBuilder as variables.
+    The git version and os id values are passed to InstallBuilder as variables. The openssldir value is used in creating the dependencies file.
 
         Parameters:
         destfile   -- The target generated installer file. This should be 
@@ -170,6 +192,7 @@ def InstallBuilder(env, destfile, builderxml, source, version, osid='win',*args,
         sources    -- Other dependencies that should trigger a rebuild.
         version    -- The version number that will be fed to InstallBuilder.
         osid       -- The operating system identifier that will be fed to InstallBuilder
+        openssldir -- The directory to find openssl dependencies in
 
     """
     sources = source
@@ -178,7 +201,7 @@ def InstallBuilder(env, destfile, builderxml, source, version, osid='win',*args,
 
     # Create the installer dependencies and actions.
     installer = env.RunInstallBuilder(
-        destfile,  [builderxml] + sources, SVNVERSION=version, OSID=osid)
+        destfile,  [builderxml] + sources, SVNVERSION=version, OSID=osid, OPENSSLDIR=openssldir)
     env.AlwaysBuild(installer)
     env.Clean(installer, installer)
 
