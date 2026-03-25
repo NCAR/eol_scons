@@ -1,7 +1,11 @@
 # README eol_scons
 
-Following is an introduction to using and installing `eol_scons`. Also see the
-[CHANGELOG.md](CHANGELOG.md).
+Following is the quick introduction to using and installing `eol_scons`. Also
+see the [CHANGELOG.md](CHANGELOG.md) and [UserGuide.md](UserGuide.md).
+
+An example project is included in the `templates` subdirectory to demonstrate
+basic eol_scons features and serve as a template for new projects. See
+[templates/Templates.md](templates/Templates.md) for an overview.
 
 ## Quick Start
 
