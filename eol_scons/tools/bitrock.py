@@ -22,6 +22,20 @@ import subprocess
 from SCons.Script import *
 
 
+xml_template = """<folder>
+<description>Program Files</description>
+<destination>${installdir}</destination>
+<name>programfileswindowsdeps</name>
+<platforms>windows-x64</platforms>
+<distributionFileList>
+<distributionDirectory>
+    <origin>C:/msys64/ucrt64/share/qt6/plugins/platforms</origin>
+</distributionDirectory>
+<!-- add windows dependencies here -->
+</distributionFileList>
+</folder>"""
+
+
 def _find_bitrock(env):
     """ 
     Look for the BitRock command line application.
@@ -54,6 +68,17 @@ def _find_bitrock(env):
 # Builder to run bitrock and create an installer.
 #
 
+def _create_windows_dependencies_xml(env, sources):
+    if env['PLATFORM'] == 'darwin':
+        # just save the empty template as a placeholder file, since mac doesn't use bitrock to get dependencies
+        with open('Installers/InstallBuilder/WindowsDependencies.xml', 'w') as f:
+            f.write(xml_template)
+    else:
+        # generate the windows dependencies xml file by running the get_windows_dependency_list script
+        subprocess.check_call(['python', os.path.join(env['EOL_SCONS_SCRIPTS_DIR'], 'get_windows_dependency_list.py'),
+                               '--exe1', sources[0], '--exe2', sources[2], # positions hardcoded for now, will rework
+                               '--template', os.path.join(env['EOL_SCONS_SCRIPTS_DIR'], 'WindowsDependenciesTemplate.xml'),
+                               '--output', 'WindowsDependencies.xml'])
 
 def _bitrock(target, source, env):
     """
@@ -76,6 +101,9 @@ def _bitrock(target, source, env):
     version = version.replace(':', '-')
     osid  = env['OSID']
     xml = str(sources[0])
+    
+    # create windows dependencies xml file
+    _create_windows_dependencies_xml(env, sources[1:])
 
     # Run bitrock.
     subprocess.check_call([bitrock, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
