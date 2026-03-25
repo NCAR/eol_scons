@@ -119,10 +119,10 @@ def _create_xml(distribution_files, output_path):
         print("No comment placeholder in template to insert dependencies in.")
 
 
-def _create_windows_dependencies_xml(env, sources, openssldir):
+def _create_windows_dependencies_xml(env, sources, dest, openssldir):
     if env['PLATFORM'] == 'darwin':
         # just save the empty template as a placeholder file, since mac doesn't use dependencies here
-        with open('Installers/InstallBuilder/WindowsDependencies.xml', 'w') as f:
+        with open(dest, 'w') as f:
             f.write(xml_template)
     else:
         deps = []
@@ -134,13 +134,14 @@ def _create_windows_dependencies_xml(env, sources, openssldir):
             distribution_files += _create_xml_entry(d)
         if openssldir:
             distribution_files += _add_openssl_deps(openssldir)
-        _create_xml(distribution_files, "Installers/InstallBuilder/WindowsDependencies.xml")
+        _create_xml(distribution_files, dest)
 
 def _installbuilder(target, source, env):
     """
     Parameters:
 
     target[0]   -- The generated installer path name. We don't use it.
+    target[1]   -- The generated windows dependencies xml file.
     source[0]   -- The installbuilder xml definition.
     source[1:]  -- Other source dependencies.
 
@@ -160,14 +161,14 @@ def _installbuilder(target, source, env):
     xml = str(sources[0])
     
     # create windows dependencies xml file
-    _create_windows_dependencies_xml(env, sources[1:], openssldir)
+    _create_windows_dependencies_xml(env, sources[1:], target[1], openssldir)
 
     # Run InstallBuilder.
     subprocess.check_call([builder, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
                           stderr=subprocess.STDOUT, bufsize=1)
 
 
-def InstallBuilder(env, destfile, builderxml, source, version, osid='win', openssldir=None, *args, **kw):
+def InstallBuilder(env, destfile, windeps, builderxml, source, version, osid='win', openssldir=None, *args, **kw):
     """
     A psuedo-builder for creating InstallBuilder installers. 
 
@@ -188,6 +189,7 @@ def InstallBuilder(env, destfile, builderxml, source, version, osid='win', opens
         Parameters:
         destfile   -- The target generated installer file. This should be 
                       the same as the output file specified in the xml file.
+        windeps    -- The generated windows dependencies xml file (to be included by the builder xml)
         builderxml -- The InstallBuilder xml configuration
         sources    -- Other dependencies that should trigger a rebuild.
         version    -- The version number that will be fed to InstallBuilder.
@@ -201,7 +203,7 @@ def InstallBuilder(env, destfile, builderxml, source, version, osid='win', opens
 
     # Create the installer dependencies and actions.
     installer = env.RunInstallBuilder(
-        destfile,  [builderxml] + sources, SVNVERSION=version, OSID=osid, OPENSSLDIR=openssldir)
+        [destfile, windeps], [builderxml] + sources, SVNVERSION=version, OSID=osid, OPENSSLDIR=openssldir)
     env.AlwaysBuild(installer)
     env.Clean(installer, installer)
 
