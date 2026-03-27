@@ -158,9 +158,7 @@ def _macdeployqt(target, source, env):
     # Run macdeployqt.
     # macdeployqt will give volume name of bundle, so cd to directory just
     # above.
-    Execute(env.ChdirActions([env['MACDEPLOYQT'] + " " + tmpbundle],
-                             os.path.dirname(bundle)))
-    # Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg -verbose=3',)
+    Execute([env['MACDEPLOYQT'] + " " + tmpbundle])
 
 
 #
@@ -208,7 +206,8 @@ def _create_bundle(target, source, env):
     Execute(Copy(macosdir, source[0]))
     Execute(Copy(resourcesdir, source[1]))
     if len(source) > 2:
-        Execute(Copy(contentsdir, source[2]))
+        # name needs to be exactly 'Info.plist'
+        Execute(Copy(os.path.join(contentsdir.path, 'Info.plist'), source[2]))
     else:
         info = _make_info_plist(
             bundle_name=appname,
@@ -258,24 +257,17 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *ar
     env.Clean(bundle, bundle)
 
     # Run macdeployqt on the bundle.
-    bogustarget = str(bundledir) + '_bogus'
-    mdqt = env.MacDeployQt(bogustarget, bundle)
-    env.AlwaysBuild(mdqt)
+    _macdeployqt(bundle, bundle, env)
     return bundle
 
 
 def generate(env):
     """Add Builders and construction variables to the Environment."""
 
-    # Define the bundle builder. It takes the executable and other aritifacts
+    # Define the bundle builder. It takes the executable and other artifacts
     # as sources, and populates a new bundle hierarchy.
     bldr = Builder(action=_create_bundle)
     env.Append(BUILDERS={'MakeBundle': bldr})
-
-    # Define the macqtdeploy builder. It takes a bundle directory
-    # as a source, and runs macdeployqt on it.
-    mdqt = Builder(action=_macdeployqt)
-    env.Append(BUILDERS={'MacDeployQt': mdqt})
 
     # find macdeployqt command
     env['MACDEPLOYQT'] = _find_mdqt(env)
