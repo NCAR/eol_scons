@@ -22,7 +22,6 @@ Process:
  - Remove the existing bundle, if present.
  - Populate the bundle directory tree with the executable and icon files.
  - create Info.plist and copy to Contents/
- - create the launch_app script and copy to Contents/
  - run macdeployqt on the bundle, which copies in needed frameworks
    and libraries.
 
@@ -35,7 +34,6 @@ apname.app/
          frameworks and libraries
       MacOS/
          executable
-         launch_app
       Resources/
          icon file
       Info.plist
@@ -112,36 +110,6 @@ def _make_info_plist(bundle_name, bundle_identifier, bundle_signature,
 
     return info
 
-
-def _make_launch_app(appexe_filename):
-    """
-    Create the text for a script which sets DYLD_LIBRARY_PATH and
-    DYLD_FRAMEWORK_PATH and then exec's the program
-
-    Parameters: appexe_filename -- The executable name, which will be found
-    in Contents/MacOS
-    """
-    script = r"""#!/bin/sh
-
-# Locate important directories
-DIR=$(cd "$(dirname "$0")"; pwd)
-TOPDIR=$DIR/..
-RESDIR=$TOPDIR/Resources
-FRAMEDIR=$TOPDIR/Frameworks
-
-# Set the locations for frameworks and libraries
-export DYLD_LIBRARY_PATH="$FRAMEDIR:$DIR:$RESDIR"
-export DYLD_FRAMEWORK_PATH="$FRAMEDIR"
-env | grep DYLD
-
-# Run the app
-exec $DIR/%s
-    """ % (str(appexe_filename))
-
-    # Return the text of the customized script
-    return script
-
-
 def _find_mdqt(env):
     """
     Look for macdeployqt.
@@ -190,7 +158,7 @@ def _macdeployqt(target, source, env):
     # Run macdeployqt.
     # macdeployqt will give volume name of bundle, so cd to directory just
     # above.
-    Execute(env.ChdirActions([env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg'],
+    Execute(env.ChdirActions([env['MACDEPLOYQT'] + " " + tmpbundle],
                              os.path.dirname(bundle)))
     # Execute(env['MACDEPLOYQT'] + " " + tmpbundle + ' -dmg -verbose=3',)
 
@@ -202,22 +170,24 @@ def _create_bundle(target, source, env):
     """
     Create and populate an OSX application bundle.
 
-    Parameters:
-    target[0] -- The bundle directory
+    Parameters: target[0] -- The bundle directory
 
     source[0] -- The application executable file, e.g. #/proxy/ric_proxy.
     source[1] -- The application icon file, e.g.
                  #/Resources/proxy/proxyIcons.icns.
+    source[2] -- (optional) The Info.plist file to be used in the bundle. If
+                 not provided, a default one will be created.
 
-    Environment values:
-    env['APPNAME']    -- The final application bundle name, e.g. RICProxy-5467M
-    env['APPVERSION'] -- The version number to be included in the manifest,
+    Environment values: env['APPNAME']    -- The final application bundle name,
+    e.g. RICProxy-5467M env['APPVERSION'] -- The version number to be included
+    in the manifest,
                          e.g. 5467M
     """
     appname = env['APPNAME']
     appversion = env['APPVERSION']
     exename = os.path.basename(str(source[0]))
     iconname = os.path.basename(str(source[1]))
+
     bundle = target[0]
     bundledir = bundle.get_abspath()
     contentsdir = Dir(bundledir + '/Contents')
@@ -237,27 +207,21 @@ def _create_bundle(target, source, env):
     # Copy the executable and icon
     Execute(Copy(macosdir, source[0]))
     Execute(Copy(resourcesdir, source[1]))
-
-    # Create Info.plist in the Contents/ directory
-    info = _make_info_plist(
-        bundle_name=appname,
-        bundle_identifier=exename,
-        bundle_signature='ncar-eol-cds-qt-app',
-        bundle_version=appversion,
-        icon_filename=iconname)
-    infofilepath = contentsdir.get_abspath() + '/Info.plist'
-    infoplistfile = open(infofilepath, "w")
-    infoplistfile.write(info)
-
-    # Create launch_app script in the MacOS directory.
-    scripttext = _make_launch_app(exename)
-    filepath = macosdir.get_abspath() + '/launch_app'
-    launchappfile = open(filepath, "w")
-    launchappfile.write(scripttext)
-    os.chmod(filepath, 0o775)
+    if len(source) > 2:
+        Execute(Copy(contentsdir, source[2]))
+    else:
+        info = _make_info_plist(
+            bundle_name=appname,
+            bundle_identifier=exename,
+            bundle_signature='ncar-eol-cds-qt-app',
+            bundle_version=appversion,
+            icon_filename=iconname)
+        infofilepath = contentsdir.get_abspath() + '/Info.plist'
+        infoplistfile = open(infofilepath, "w")
+        infoplistfile.write(info)
 
 
-def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
+def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *args, **kw):
     """
     A pseudo-builder to create an OSX application bundle for a Qt application.
 
@@ -278,13 +242,17 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     appicon    -- The path to the application icon.
     appname    -- The final name of the app, without '.app'. E.g. 'Proxy-6457'
     appversion -- The version number to be included in Info.plist
+    plist     -- (optional) The path to the Info.plist file to be used in the bundle.
     """
 
     # Establish some useful attributes.
     bundledir = Dir(str(destdir))
 
     # Create the bundle.
-    bundle = env.MakeBundle(bundledir, [appexe, appicon], APPNAME=appname,
+    sources = [appexe, appicon]
+    if plist:
+        sources.append(plist)
+    bundle = env.MakeBundle(bundledir, sources, APPNAME=appname,
                             APPVERSION=appversion)
     env.AlwaysBuild(bundle)
     env.Clean(bundle, bundle)
@@ -293,7 +261,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, *args, **kw):
     bogustarget = str(bundledir) + '_bogus'
     mdqt = env.MacDeployQt(bogustarget, bundle)
     env.AlwaysBuild(mdqt)
-    return mdqt
+    return bundle
 
 
 def generate(env):
