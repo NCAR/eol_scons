@@ -45,6 +45,7 @@ import SCons
 from SCons.Script import Execute, Dir, Delete, Copy, Mkdir
 from SCons.Script import Builder
 
+from eol_scons.appbundlechecker import AppBundleChecker
 
 class ToolOsxQtAppWarning(SCons.Warnings.WarningOnByDefault):
     pass
@@ -143,50 +144,23 @@ def _macdeployqt(target, source, env):
     target[0] -- bogus
 
     source[0] -- The bundle directory, e.g. RICProxy-6454.app.
-
-    env['EXENAME']    -- e.g. ric_proxy
     """
     bundle = str(source[0])
-
     tmpbundle = str(os.path.basename(bundle))
-
-    # Remove any existing .dmg file
-    dmg = tmpbundle.replace('.app', '.dmg')
-    if os.path.isfile(dmg):
-        os.remove(dmg)
 
     # Run macdeployqt.
     # macdeployqt will give volume name of bundle, so cd to directory just
     # above.
-    Execute([env['MACDEPLOYQT'] + " " + tmpbundle])
+    Execute(env.ChdirActions([env['MACDEPLOYQT'] + " " + tmpbundle], os.path.dirname(bundle)))
 
 
 #
 # Builder to create a bundle.
 #
-def _create_bundle(target, source, env):
+def _create_bundle(bundle, appname, version, exename, iconname, plist=None):
     """
     Create and populate an OSX application bundle.
-
-    Parameters: target[0] -- The bundle directory
-
-    source[0] -- The application executable file, e.g. #/proxy/ric_proxy.
-    source[1] -- The application icon file, e.g.
-                 #/Resources/proxy/proxyIcons.icns.
-    source[2] -- (optional) The Info.plist file to be used in the bundle. If
-                 not provided, a default one will be created.
-
-    Environment values: env['APPNAME']    -- The final application bundle name,
-    e.g. RICProxy-5467M env['APPVERSION'] -- The version number to be included
-    in the manifest,
-                         e.g. 5467M
     """
-    appname = env['APPNAME']
-    appversion = env['APPVERSION']
-    exename = os.path.basename(str(source[0]))
-    iconname = os.path.basename(str(source[1]))
-
-    bundle = target[0]
     bundledir = bundle.get_abspath()
     contentsdir = Dir(bundledir + '/Contents')
     macosdir = Dir(bundledir + '/Contents/MacOS')
@@ -203,21 +177,61 @@ def _create_bundle(target, source, env):
     Execute(Mkdir(resourcesdir))
 
     # Copy the executable and icon
-    Execute(Copy(macosdir, source[0]))
-    Execute(Copy(resourcesdir, source[1]))
-    if len(source) > 2:
+    Execute(Copy(macosdir, exename))
+    Execute(Copy(resourcesdir, iconname))
+    if plist:
         # name needs to be exactly 'Info.plist'
-        Execute(Copy(os.path.join(contentsdir.path, 'Info.plist'), source[2]))
+        Execute(Copy(os.path.join(contentsdir.path, 'Info.plist'), plist))
     else:
         info = _make_info_plist(
             bundle_name=appname,
             bundle_identifier=exename,
             bundle_signature='ncar-eol-cds-qt-app',
-            bundle_version=appversion,
+            bundle_version=version,
             icon_filename=iconname)
         infofilepath = contentsdir.get_abspath() + '/Info.plist'
         infoplistfile = open(infofilepath, "w")
         infoplistfile.write(info)
+
+
+def _fix_app_bundle_paths(app, env):
+    checker = AppBundleChecker(app, brew_prefix=env['MACOS_PREFIX'])
+    checker.check()
+
+
+def _createOsxQtApp(target, source, env):
+    """
+    Create an OSX application bundle for a Qt application.
+
+    Parameters:
+    target[0] -- The bundle directory, e.g. RICProxy-6454.app.
+
+    source[0] -- The application executable to be bundled, e.g. ric_proxy.
+    source[1] -- The application icon file, e.g. '#/Resources/proxy/proxyIcon.icns'
+    source[2] -- (optional) The Info.plist file to be used in the bundle. If not provided, a default one will be created with the appropriate fields filled in.
+
+    env['EXENAME']    -- e.g. ric_proxy
+    env['VERSION']   -- e.g. 6454
+    env['ICON']      -- e.g. '#/Resources/proxy/proxyIcon.icns'
+    env['PLIST']     -- (optional) The path to the Info.plist file to be used in the bundle.
+    """
+    bundle = target[0]
+    exename = source[0].path
+    iconname = source[1].path
+    plist = None
+    if len(source) > 2:
+        plist = source[2].path
+    version = env['VERSION']
+    appname = env['APPNAME']
+    # create the bundle structure and copy in exe, icon, and plist
+    _create_bundle(bundle, appname, version, exename, iconname, plist=plist)
+    # run macdeployqt
+    _macdeployqt(bundle, [bundle.path], env)
+    # finish what macdeployqt started
+    _fix_app_bundle_paths(bundle.path, env)
+    # codesign if cert is present
+    if os.environ.get('DEVELOPER_CERT'):
+        Execute(['codesign -s "' + os.environ.get('DEVELOPER_CERT') + '" -v -f --deep ' + bundle.path])
 
 
 def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *args, **kw):
@@ -244,35 +258,29 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *ar
     plist     -- (optional) The path to the Info.plist file to be used in the bundle.
     """
 
+
     # Establish some useful attributes.
     bundledir = Dir(str(destdir))
 
-    # Create the bundle.
     sources = [appexe, appicon]
     if plist:
         sources.append(plist)
-    bundle = env.MakeBundle(bundledir, sources, APPNAME=appname,
-                            APPVERSION=appversion)
+    bundle = env.CreateOsxQtApp(bundledir, sources, VERSION=appversion, APPNAME=appname)
     env.AlwaysBuild(bundle)
     env.Clean(bundle, bundle)
-
-    # Run macdeployqt on the bundle.
-    _macdeployqt(bundle, bundle, env)
     return bundle
 
 
 def generate(env):
     """Add Builders and construction variables to the Environment."""
 
-    # Define the bundle builder. It takes the executable and other artifacts
-    # as sources, and populates a new bundle hierarchy.
-    bldr = Builder(action=_create_bundle)
-    env.Append(BUILDERS={'MakeBundle': bldr})
-
     # find macdeployqt command
     env['MACDEPLOYQT'] = _find_mdqt(env)
 
-    # Define the important method.
+    # Define the entire osx app process builder.
+    bldr = Builder(action=_createOsxQtApp)
+    env.Append(BUILDERS={'CreateOsxQtApp': bldr})
+
     env.AddMethod(OsxQtApp, "OsxQtApp")
 
 
