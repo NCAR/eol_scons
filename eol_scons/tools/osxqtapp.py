@@ -39,7 +39,9 @@ apname.app/
       Info.plist
 """
 
+import glob
 import os
+import shutil
 import sys
 import SCons
 from SCons.Script import Execute, Dir, Delete, Copy, Mkdir
@@ -271,6 +273,36 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *ar
     return bundle
 
 
+def _createOsxCmdline(target, source, env):
+    """
+    Parameters:
+
+    target[0]   -- Path to the directory containing the executable and its dependencies.
+    source[0]   -- The cmdline executable to be deployed
+    """
+    print("calling _deployCmdline with target: ", target, " and source: ", source)
+    source_executable = str(source[0])
+    dest_dir = str(target[0])
+    dest_executable = os.path.join(dest_dir, os.path.basename(source_executable))
+    # create destination directory and copy source executable
+    os.makedirs(dest_dir, exist_ok=True)
+    shutil.copy(source_executable, dest_executable)
+
+    # add dependencies.
+    checker = AppBundleChecker(dest_executable, app_path_override=True)
+    checker.check_executable(dest_executable)
+    dylibs = glob.glob(os.path.join(dest_dir, "*dylib"))
+    for d in dylibs:
+        checker.check_executable(d)
+
+
+def OsxCmdline(env, target, source):
+    createCmdline = env.CreateOsxCmdline(target, source, env)
+    env.AlwaysBuild(createCmdline)
+    env.Clean(createCmdline, createCmdline)
+    return createCmdline
+
+
 def generate(env):
     """Add Builders and construction variables to the Environment."""
 
@@ -282,6 +314,11 @@ def generate(env):
     env.Append(BUILDERS={'CreateOsxQtApp': bldr})
 
     env.AddMethod(OsxQtApp, "OsxQtApp")
+
+    bldr = Builder(action=_createOsxCmdline)
+    env.Append(BUILDERS={'CreateOsxCmdline': bldr})
+
+    env.AddMethod(OsxCmdline, "OsxCmdline")
 
 
 def exists(env):
