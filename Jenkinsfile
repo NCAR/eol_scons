@@ -43,11 +43,6 @@ pipeline {
               sh './jenkins.sh build_rpms'
             }
           }
-          stage('Sign RPM packages') {
-            steps {
-              sh './jenkins.sh sign_rpms'
-            }
-          }
           stage('Push RPM packages to EOL repository') {
             steps {
               sh './jenkins.sh push_rpms'
@@ -71,11 +66,6 @@ pipeline {
           stage('Build RPM packages') {
             steps {
               sh './jenkins.sh build_rpms'
-            }
-          }
-          stage('Sign RPM packages') {
-            steps {
-              sh './jenkins.sh sign_rpms'
             }
           }
           stage('Push RPM packages to EOL repository') {
@@ -103,8 +93,7 @@ pipeline {
               sh './jenkins.sh build_rpms'
             }
           }
-          // Don't bother signing or pushing rpms on Fedora, just test rpm
-          // build.
+          // Don't bother pushing rpms on Fedora, just test rpm build.
         }
       }
 

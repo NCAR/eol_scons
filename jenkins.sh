@@ -4,7 +4,7 @@
 
 # TOPDIR is the path to the top of the rpmbuild output tree.  We have to set
 # it here so that each step uses the same value.  Packages are written there
-# after being built, then signed, then pushed to the EOL package repository.
+# after being built then pushed to the EOL package repository.
 
 # If the Jenkins WORKSPACE environment variable is set, then use it to set
 # TOPDIR.  Otherwise use the default that build_rpm.sh would use.
@@ -18,7 +18,6 @@ export TOPDIR=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
 DEBIAN_REPOSITORY="${DEBIAN_REPOSITORY:-/net/ftp/pub/archive/software/debian}"
 YUM_REPOSITORY="${YUM_REPOSITORY:-/net/www/docs/software/rpms}"
 export DEBIAN_REPOSITORY YUM_REPOSITORY
-export GPGKEY="NCAR EOL Software <eol-prog2@eol.ucar.edu>"
 
 echo WORKSPACE=$WORKSPACE
 echo TOPDIR=$TOPDIR
@@ -39,17 +38,10 @@ build_rpms()
 }
 
 
-sign_rpms()
-{
-    (set -x; exec rpm --addsign --define="%_gpg_name ${GPGKEY}" --define='_gpg_digest_algo sha256' `cat rpms.txt`)
-}
-
-
 push_eol_repo()
 {
-    source $YUM_REPOSITORY/scripts/repo_funcs.sh
-    move_rpms_to_eol_repo `cat rpms.txt`
-    update_eol_repo $YUM_REPOSITORY
+    # upload packages using the eol-repo script in home directory
+    $HOME/eol-repo/scripts/upload_packages.sh upload `cat rpms.txt`
 }
 
 
@@ -62,10 +54,6 @@ case "$method" in
         build_rpms "$@"
         ;;
 
-    sign_rpms)
-        sign_rpms
-        ;;
-
     push_rpms)
         push_eol_repo
         ;;
@@ -74,7 +62,7 @@ case "$method" in
         if [ "$method" != "help" ]; then
             echo Unknown command "$1".
         fi
-        echo Available commands: build_rpms, sign_rpms, push_rpms.
+        echo Available commands: build_rpms, push_rpms.
         exit 1
         ;;
 
