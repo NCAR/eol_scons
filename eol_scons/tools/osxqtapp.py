@@ -277,17 +277,20 @@ def _createOsxCmdline(target, source, env):
     """
     Parameters:
 
-    target[0]   -- Path to the directory containing the executable and its dependencies.
+    target[0]   -- Path to the versioned destination directory.
     source[0]   -- The cmdline executable to be deployed
     """
-    print("calling _deployCmdline with target: ", target, " and source: ", source)
-    source_executable = str(source[0])
-    dest_dir = str(target[0])
+    # for whatever reason, within this tool the cwd is already Installers/Mac, so update paths to be relative to that
+    source_executable = os.path.join(os.getcwd(), "../../" + str(source[0]))
+    dest_dir = os.path.basename(str(target[0]))
     dest_executable = os.path.join(dest_dir, os.path.basename(source_executable))
     # create destination directory and copy source executable
-    os.makedirs(dest_dir, exist_ok=True)
+    if os.path.exists(dest_dir):
+        print("removing existing directory: ", dest_dir)
+        shutil.rmtree(dest_dir)
+    os.makedirs(dest_dir, exist_ok=False)
+    print("copying: ", source_executable, " to ", dest_executable)
     shutil.copy(source_executable, dest_executable)
-
     # add dependencies.
     checker = AppBundleChecker(dest_executable, app_path_override=True)
     checker.check_executable(dest_executable)
