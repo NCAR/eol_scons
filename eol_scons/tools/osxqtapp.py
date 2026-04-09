@@ -297,6 +297,8 @@ def _createOsxCmdline(target, source, env):
     dylibs = glob.glob(os.path.join(dest_dir, "*dylib"))
     for d in dylibs:
         checker.check_executable(d)
+    if os.environ.get('DEVELOPER_CERT'):
+        Execute(['codesign -s "' + os.environ.get('DEVELOPER_CERT') + '" -v -f ' + dest_dir + "/*"])
 
 
 def OsxCmdline(env, target, source):
