@@ -280,9 +280,8 @@ def _createOsxCmdline(target, source, env):
     target[0]   -- Path to the versioned destination directory.
     source[0]   -- The cmdline executable to be deployed
     """
-    # for whatever reason, within this tool the cwd is already Installers/Mac, so update paths to be relative to that
-    source_executable = os.path.join(os.getcwd(), "../../" + str(source[0]))
-    dest_dir = os.path.basename(str(target[0]))
+    source_executable = str(source[0])
+    dest_dir = str(target[0])
     dest_executable = os.path.join(dest_dir, os.path.basename(source_executable))
     # create destination directory and copy source executable
     if os.path.exists(dest_dir):
@@ -302,7 +301,7 @@ def _createOsxCmdline(target, source, env):
 
 
 def OsxCmdline(env, target, source):
-    createCmdline = env.CreateOsxCmdline(target, source, env)
+    createCmdline = env.CreateOsxCmdline(target, source)
     env.AlwaysBuild(createCmdline)
     env.Clean(createCmdline, createCmdline)
     return createCmdline
