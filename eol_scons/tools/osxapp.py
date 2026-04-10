@@ -273,7 +273,7 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *ar
     return bundle
 
 
-def _createOsxCmdline(target, source, env):
+def _createOsxCmdlineApp(target, source, env):
     """
     Parameters:
 
@@ -300,8 +300,8 @@ def _createOsxCmdline(target, source, env):
         Execute(['codesign -s "' + os.environ.get('DEVELOPER_CERT') + '" -v -f ' + dest_dir + "/*"])
 
 
-def OsxCmdline(env, target, source):
-    createCmdline = env.CreateOsxCmdline(target, source)
+def OsxCmdlineApp(env, target, source):
+    createCmdline = env.CreateOsxCmdlineApp(target, source)
     env.AlwaysBuild(createCmdline)
     env.Clean(createCmdline, createCmdline)
     return createCmdline
@@ -319,10 +319,10 @@ def generate(env):
 
     env.AddMethod(OsxQtApp, "OsxQtApp")
 
-    bldr = Builder(action=_createOsxCmdline)
-    env.Append(BUILDERS={'CreateOsxCmdline': bldr})
+    bldr = Builder(action=_createOsxCmdlineApp)
+    env.Append(BUILDERS={'CreateOsxCmdlineApp': bldr})
 
-    env.AddMethod(OsxCmdline, "OsxCmdline")
+    env.AddMethod(OsxCmdlineApp, "OsxCmdlineApp")
 
 
 def exists(env):
