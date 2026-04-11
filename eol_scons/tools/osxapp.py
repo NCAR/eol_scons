@@ -269,7 +269,6 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *ar
         sources.append(plist)
     bundle = env.CreateOsxQtApp(bundledir, sources, VERSION=appversion, APPNAME=appname)
     env.AlwaysBuild(bundle)
-    env.Clean(bundle, bundle)
     return bundle
 
 
@@ -303,7 +302,6 @@ def _createOsxCmdlineApp(target, source, env):
 def OsxCmdlineApp(env, target, source):
     createCmdline = env.CreateOsxCmdlineApp(target, source)
     env.AlwaysBuild(createCmdline)
-    env.Clean(createCmdline, createCmdline)
     return createCmdline
 
 
