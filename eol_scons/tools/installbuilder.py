@@ -18,9 +18,13 @@ Example usage (OSX):
 
 """
 
-import glob, os
+import os
+import glob
 import subprocess
-from SCons.Script import *
+
+from SCons.Script import Touch, Mkdir
+
+import eol_scons.installmode as im
 
 
 xml_template = """<folder>
@@ -38,39 +42,36 @@ xml_template = """<folder>
 
 
 def _find_installbuilder(env):
-    """ 
+    """
     Look for the InstallBuilder command line application.
 
     Returns the path to the executable, if found. Otherwise
     returns None.
     """
-    try:
-        return env['INSTALLBUILDER']
-    except KeyError:
-        pass
+    # There is no harm in checking for Windows-specific commands on all
+    # platforms.  Either they are found or not.
+    paths = glob.glob('/c/Tools/InstallBuilder/bin/builder-cli.exe')
+    paths += glob.glob('/c/Program Files/InstallBuilder*/bin/builder-cli.exe')
+    paths += glob.glob('C:/Program Files/InstallBuilder*/bin/builder-cli.exe')
 
-    if env['PLATFORM'] in  ['msys', 'win32', 'cygwin']:
-        for path in glob.glob('/c/Tools/InstallBuilder/bin/builder-cli.exe') + \
-                    glob.glob('/c/Program Files/InstallBuilder*/bin/builder-cli.exe') + \
-                    glob.glob('C:/Program Files/InstallBuilder*/bin/builder-cli.exe'):
-            if os.path.isfile(path):
-                return path
-        return None
+    for path in paths:
+        if os.path.isfile(path):
+            return path
 
-    if env['PLATFORM'] == 'darwin':
-        node = env.FindFile(
-            'installbuilder.sh',
-            [os.path.expanduser('~/Applications/InstallBuilder/bin/Builder.app/Contents/MacOS/'),
-                '/Applications/BitRock/bin/Builder.app/Contents/MacOS/'])
-        return node
+    # Likewise for MacOS-specific commands.
+    node = env.FindFile(
+        'installbuilder.sh',
+        [os.path.expanduser(
+            '~/Applications/InstallBuilder/bin/Builder.app/Contents/MacOS/'),
+         '/Applications/BitRock/bin/Builder.app/Contents/MacOS/'])
 
-    return None
+    return node
+
 
 #
 # Builder to generate windows dependencies and create an installer.
 #
-
-def _get_dependencies(exe_path):
+def _get_dependencies(exe_path: str):
     """ Return list of dependencies for executable """
     result = subprocess.run(['ldd', exe_path], capture_output=True, text=True)
     return result.stdout.splitlines()
@@ -110,7 +111,7 @@ def _add_openssl_deps(openssldir):
         # Prepend /msys64 if path is a MSYS2 ucrt64-relative path (eg /ucrt64/...)
         if not depfile.startswith('/msys64'):
             depfile = '/msys64' + depfile
-        if not depfile in openssl_distribution_files:
+        if depfile not in openssl_distribution_files:
             openssl_distribution_files += f"""<distributionFile>
     <origin>{depfile}</origin>
 </distributionFile>"""
@@ -118,6 +119,7 @@ def _add_openssl_deps(openssldir):
 
 
 def _create_xml(distribution_files, output_path):
+    im.MockEcho(f"_create_xml('...', {output_path})")
     comment = "<!-- add windows dependencies here -->"
     if comment in xml_template:
         contents = xml_template.replace(comment, distribution_files)
@@ -128,6 +130,9 @@ def _create_xml(distribution_files, output_path):
 
 
 def _create_windows_dependencies_xml(env, sources, dest, openssldir):
+    dest = str(dest)
+    im.MockEcho("_create_windows_dependencies_xml("
+                f"{[str(s) for s in sources]}, {dest}, {openssldir})")
     if env['PLATFORM'] == 'darwin':
         # just save the empty template as a placeholder file, since mac
         # doesn't use dependencies here
@@ -136,8 +141,8 @@ def _create_windows_dependencies_xml(env, sources, dest, openssldir):
     else:
         deps = []
         for s in sources:
-            deps += _get_dependencies(s)
-        deps = list(set(deps)) #remove duplicates
+            deps += _get_dependencies(str(s))
+        deps = list(set(deps))  # remove duplicates
         distribution_files = ""
         for d in deps:
             distribution_files += _create_xml_entry(d)
@@ -157,25 +162,31 @@ def _installbuilder(target, source, env):
     Environment values:
     env['SVNVERSION'] -- The version number to be passed to installbuilder.
     """
-
-    sources = source
-    if type(sources) != type(list()):
-        sources = [source]
-
     builder = str(env['INSTALLBUILDER'])
     version = env['REPO_REVISION']
     version = version.replace(':', '-')
-    osid  = env['OSID']
+    osid = env['OSID']
     openssldir = env['OPENSSLDIR']
-    xml = str(sources[0])
-    windeps = os.path.join(os.path.dirname(xml), "WindowsDependencies.xml")
-    
+    xml = str(source[0])
+    windeps = env.get('WINDOWS_DEPENDENCIES_XML')
+
     # create windows dependencies xml file
-    _create_windows_dependencies_xml(env, sources[1:], windeps, openssldir)
+    _create_windows_dependencies_xml(env, source[1:], windeps, openssldir)
 
     # Run InstallBuilder.
-    subprocess.check_call([builder, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
+    cmd = [builder, 'build', xml, '--setvars', f'svnversion={version}',
+           f'osversion={osid}']
+    subprocess.check_call(im.Command(cmd),
                           stderr=subprocess.STDOUT, bufsize=1)
+    if im.MockMode():
+        # On MacOS, installbuilder creates a .app bundle directory for the
+        # installer, while on Windows it creates a .exe file.
+        if str(target[0]).endswith('.app'):
+            env.Execute(Mkdir(target[0]))
+        else:
+            env.Execute(Touch(target[0]))
+
+
 def InstallBuilder(env, destfile, builderxml, sources, version, osid='win',
                    openssldir=None, *args, **kw):
     """
@@ -206,28 +217,38 @@ def InstallBuilder(env, destfile, builderxml, sources, version, osid='win',
         openssldir -- The directory to find openssl dependencies in
 
     """
-    sources = source
-    if type(sources) != type(list()):
-        sources = [source]
+    if not isinstance(sources, list):
+        sources = [sources]
 
-    # Create the installer dependencies and actions.
-    installer = env.RunInstallBuilder(
-        destfile, [builderxml] + sources, SVNVERSION=version, OSID=osid, OPENSSLDIR=openssldir)
+    # create the path here and pass it to the installbuilder in the env, so it
+    # can be added as a clean target.  the alternative is to add it as a
+    # target of the builder, but there may be places which expect the only
+    # target returned by this pseudo-builder to be the installer file.
+    builderxml = env.File(builderxml)
+    windeps = builderxml.File("WindowsDependencies.xml")
+
+    # Create the installer builder.
+    installer = env.Command(destfile, [builderxml] + sources,
+                            action=_installbuilder,
+                            REPO_REVISION=version, OSID=osid,
+                            OPENSSLDIR=openssldir,
+                            WINDOWS_DEPENDENCIES_XML=windeps)
     env.AlwaysBuild(installer)
-    env.Clean(installer, installer)
-
+    env.Clean(installer, windeps)
     return installer
 
 
 def generate(env):
     """Add Builders and construction variables to the Environment."""
 
-    # Define the InstallBuilder builder.
-    bldr = Builder(action=_installbuilder)
-    env.Append(BUILDERS={'RunInstallBuilder': bldr})
-
     # find the InstallBuilder command
-    env['INSTALLBUILDER'] = _find_installbuilder(env)
+    builder = _find_installbuilder(env)
+    if builder is None and im.AllMode():
+        builder = 'builder-cli.exe'
+
+    # This will be None if the installbuilder command is not available.
+    # Callers can use this to create alternative installer builders.
+    env['INSTALLBUILDER'] = builder
 
     # Define that all important method.
     env.AddMethod(InstallBuilder, "InstallBuilder")

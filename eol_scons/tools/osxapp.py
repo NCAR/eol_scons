@@ -41,13 +41,15 @@ apname.app/
 
 import glob
 import os
-import shutil
-import sys
 import SCons
-from SCons.Script import Execute, Dir, Delete, Copy, Mkdir
-from SCons.Script import Builder
+import SCons.Errors
+import SCons.Warnings
+import SCons.Node.FS
+from SCons.Script import Environment, Delete, Copy, Mkdir
 
 from eol_scons.appbundlechecker import AppBundleChecker
+import eol_scons.installmode as im
+
 
 class ToolOsxQtAppWarning(SCons.Warnings.WarningOnByDefault):
     pass
@@ -121,14 +123,12 @@ def _find_mdqt(env):
     Returns the path to the executable, if found. Otherwise
     raises an error exception.
     """
-    try:
-        return env['MACDEPLOYQT']
-    except KeyError:
-        pass
-
     macdeployqt = env.WhereIs('macdeployqt')
     if macdeployqt:
         return macdeployqt
+
+    if im.AllMode():
+        return 'macdeployqt'
 
     raise SCons.Errors.StopError(
         MacdeployqtNotFound,
@@ -137,54 +137,52 @@ def _find_mdqt(env):
 
 
 #
-# Builder to run macdeployqt on a bundle
+# Execute macdeployqt on a bundle
 #
-def _macdeployqt(target, source, env):
+def _macdeployqt(bundle: SCons.Node.FS.Dir, env: Environment):
     """
     Run macdepoyqt on the bundle.
 
     Parameters:
-    target[0] -- bogus
-
-    source[0] -- The bundle directory, e.g. RICProxy-6454.app.
+    bundle -- The bundle directory, e.g. RICProxy-6454.app.
+    env -- The SCons environment.
     """
-    bundle = str(source[0])
-    tmpbundle = str(os.path.basename(bundle))
-
     # Run macdeployqt.
     # macdeployqt will give volume name of bundle, so cd to directory just
     # above.
-    Execute(env.ChdirActions([env['MACDEPLOYQT'] + " " + tmpbundle], os.path.dirname(bundle)))
+    cmd = im.Command(f'{env["MACDEPLOYQT"]} {bundle.name}')
+    env.Execute(env.ChdirActions([cmd], bundle.get_dir()))
 
 
 #
 # Builder to create a bundle.
 #
-def _create_bundle(bundle, appname, version, exename, iconname, plist=None):
+def _create_bundle(env, bundle, appname, version, exename, iconname,
+                   plist=None):
     """
     Create and populate an OSX application bundle.
     """
     bundledir = bundle.get_abspath()
-    contentsdir = Dir(bundledir + '/Contents')
-    macosdir = Dir(bundledir + '/Contents/MacOS')
-    resourcesdir = Dir(bundledir + '/Contents/Resources')
+    contentsdir = env.Dir(bundledir + '/Contents')
+    macosdir = env.Dir(bundledir + '/Contents/MacOS')
+    resourcesdir = env.Dir(bundledir + '/Contents/Resources')
 
     # Get rid of the existing bundle. Otherwise macdeployqt gets bent out of
     # shape when it finds its products already there.
-    Execute(Delete(bundle))
+    env.Execute(Delete(bundle))
 
     # Buid the basic bundle structure
-    Execute(Mkdir(bundledir))
-    Execute(Mkdir(contentsdir))
-    Execute(Mkdir(macosdir))
-    Execute(Mkdir(resourcesdir))
+    env.Execute(Mkdir(bundledir))
+    env.Execute(Mkdir(contentsdir))
+    env.Execute(Mkdir(macosdir))
+    env.Execute(Mkdir(resourcesdir))
 
     # Copy the executable and icon
-    Execute(Copy(macosdir, exename))
-    Execute(Copy(resourcesdir, iconname))
+    env.Execute(Copy(macosdir, exename))
+    env.Execute(Copy(resourcesdir, iconname))
     if plist:
         # name needs to be exactly 'Info.plist'
-        Execute(Copy(os.path.join(contentsdir.path, 'Info.plist'), plist))
+        env.Execute(Copy(contentsdir.File('Info.plist'), plist))
     else:
         info = _make_info_plist(
             bundle_name=appname,
@@ -193,12 +191,16 @@ def _create_bundle(bundle, appname, version, exename, iconname, plist=None):
             bundle_version=version,
             icon_filename=iconname)
         infofilepath = contentsdir.get_abspath() + '/Info.plist'
-        infoplistfile = open(infofilepath, "w")
-        infoplistfile.write(info)
+        with open(infofilepath, "w") as infoplistfile:
+            infoplistfile.write(info)
 
 
-def _fix_app_bundle_paths(app, env):
-    checker = AppBundleChecker(app, brew_prefix=env['MACOS_PREFIX'])
+def _fix_app_bundle_paths(env, app):
+    brew_prefix = env['MACOS_PREFIX']
+    checker = AppBundleChecker(app, brew_prefix=brew_prefix)
+    if im.MockMode():
+        im.MockEcho(f'AppBundleChecker({app}, brew_prefix={brew_prefix})')
+        return
     checker.check()
 
 
@@ -231,14 +233,17 @@ def _createOsxQtApp(target, source, env):
     version = env['VERSION']
     appname = env['APPNAME']
     # create the bundle structure and copy in exe, icon, and plist
-    _create_bundle(bundle, appname, version, exename, iconname, plist=plist)
+    _create_bundle(env, bundle, appname, version, exename, iconname,
+                   plist=plist)
     # run macdeployqt
-    _macdeployqt(bundle, [bundle.path], env)
+    _macdeployqt(bundle, env)
     # finish what macdeployqt started
-    _fix_app_bundle_paths(bundle.path, env)
+    _fix_app_bundle_paths(env, bundle.path)
     # codesign if cert is present
-    if os.environ.get('DEVELOPER_CERT'):
-        Execute(['codesign -s "' + os.environ.get('DEVELOPER_CERT') + '" -v -f --deep ' + bundle.path])
+    cert = os.environ.get('DEVELOPER_CERT')
+    if cert:
+        cmd = f'codesign -s "{cert}" -v -f --deep {bundle.path}'
+        env.Execute(im.Command(cmd))
 
 
 def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None,
@@ -267,45 +272,49 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None,
     """
 
     # Establish some useful attributes.
-    bundledir = Dir(str(destdir))
+    bundledir = env.Dir(str(destdir))
 
     sources = [appexe, appicon]
     if plist:
         sources.append(plist)
-    bundle = env.CreateOsxQtApp(bundledir, sources, VERSION=appversion, APPNAME=appname)
+    bundle = env.Command(bundledir, sources, action=_createOsxQtApp,
+                         VERSION=appversion, APPNAME=appname)
     env.AlwaysBuild(bundle)
     return bundle
 
 
-def _createOsxCmdlineApp(target, source, env):
+def _createOsxCmdlineApp(target, source, env: Environment):
     """
     Parameters:
 
     target[0]   -- Path to the versioned destination directory.
     source[0]   -- The cmdline executable to be deployed
     """
-    source_executable = str(source[0])
-    dest_dir = str(target[0])
-    dest_executable = os.path.join(dest_dir, os.path.basename(source_executable))
-    # create destination directory and copy source executable
-    if os.path.exists(dest_dir):
-        print("removing existing directory: ", dest_dir)
-        shutil.rmtree(dest_dir)
-    os.makedirs(dest_dir, exist_ok=False)
-    print("copying: ", source_executable, " to ", dest_executable)
-    shutil.copy(source_executable, dest_executable)
-    # add dependencies.
-    checker = AppBundleChecker(dest_executable, app_path_override=True)
-    checker.check_executable(dest_executable)
-    dylibs = glob.glob(os.path.join(dest_dir, "*dylib"))
-    for d in dylibs:
-        checker.check_executable(d)
-    if os.environ.get('DEVELOPER_CERT'):
-        Execute(['codesign -s "' + os.environ.get('DEVELOPER_CERT') + '" -v -f ' + dest_dir + "/*"])
+    env.Execute(Delete(target[0]))
+    env.Execute(Mkdir(target[0]))
+    env.Execute(Copy(target[0], source[0]))
+    destexe = target[0].File(source[0].name)
+    checker = AppBundleChecker(str(destexe), app_path_override=True)
+    im.MockEcho(f'AppBundleChecker({destexe}, app_path_override=True)')
+    if not im.MockMode():
+        checker.check_executable(str(destexe))
+    im.MockEcho(f'checker.check_executable({destexe})')
+    dylib_pattern = os.path.join(str(target[0]), "*dylib")
+    dylibs = glob.glob(dylib_pattern)
+    if im.MockMode():
+        im.MockEcho(f'checker.check_executable({dylib_pattern})')
+    else:
+        for d in dylibs:
+            checker.check_executable(d)
+    cert = os.environ.get('DEVELOPER_CERT')
+    if cert:
+        cmd = f'codesign -s "{cert}" -v -f {target[0]}/*'
+        env.Execute(im.Command(cmd))
 
 
 def OsxCmdlineApp(env, target, source):
-    createCmdline = env.CreateOsxCmdlineApp(target, source)
+    createCmdline = env.Command(env.Dir(target), source,
+                                action=_createOsxCmdlineApp)
     env.AlwaysBuild(createCmdline)
     return createCmdline
 
@@ -316,21 +325,15 @@ def generate(env):
     # find macdeployqt command
     env['MACDEPLOYQT'] = _find_mdqt(env)
 
+    # in all mode, provide default MACOS_PREFIX to avoid missing key errors
+    if im.AllMode() and 'MACOS_PREFIX' not in env:
+        env['MACOS_PREFIX'] = "/opt/local"
+
     # Define the entire osx app process builder.
-    bldr = Builder(action=_createOsxQtApp)
-    env.Append(BUILDERS={'CreateOsxQtApp': bldr})
-
     env.AddMethod(OsxQtApp, "OsxQtApp")
-
-    bldr = Builder(action=_createOsxCmdlineApp)
-    env.Append(BUILDERS={'CreateOsxCmdlineApp': bldr})
-
     env.AddMethod(OsxCmdlineApp, "OsxCmdlineApp")
 
 
 def exists(env):
-    if sys.platform != 'darwin':
-        raise SCons.Errors.StopError(
-            NotAnOsxSystem,
-            "Trying to create an application bundle on a non-OSX system")
+    # _find_mdqt raises an error if not found
     return _find_mdqt(env)
