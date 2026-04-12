@@ -5,15 +5,16 @@
 """
 SCons.Tool.osxqtapp
 
-Create an InstallBuilder installer from an application and an InstallBuilder xml configuration. Currently
-only runs on Windows and OSX.
+Create an InstallBuilder installer from an application and an InstallBuilder
+xml configuration. Currently only runs on Windows and OSX.
 
 See InstallBuilder() for the parameter descriptions.
 
 Example usage (OSX):
     installerdir = Dir('RIC-' + svnrevision + '.app')
     sources = Dir('#/installers/mac/RICProxy-' + svnrevision + '.app')
-    installer = env.InstallBuilder(installerdir, builderxml, [sources], svnrevision)
+    installer = env.InstallBuilder(installerdir, builderxml, [sources],
+                                   svnrevision)
 
 """
 
@@ -34,6 +35,7 @@ xml_template = """<folder>
 <!-- add windows dependencies here -->
 </distributionFileList>
 </folder>"""
+
 
 def _find_installbuilder(env):
     """ 
@@ -73,22 +75,26 @@ def _get_dependencies(exe_path):
     result = subprocess.run(['ldd', exe_path], capture_output=True, text=True)
     return result.stdout.splitlines()
 
+
 def _parse_dependency_location(line):
     """ Return path to dependency file from line in ldd output """
     # format: libunistring-5.dll => /ucrt64/bin/libunistring-5.dll (0x7ffd71ba0000)
     fields = line.split(" ")
     return fields[2] if len(fields) >= 3 else None
 
+
 def _create_xml_entry(line):
     depfile = _parse_dependency_location(line)
     if not depfile or depfile.startswith("/c/Windows"):
         # assume dependencies in here are normal windows OS files
         return ""
-    # msys paths start at /ucrt64 but windows paths (that installbuilder uses) are really c:/msys64/ucrt64
+    # msys paths start at /ucrt64 but windows paths (that installbuilder uses)
+    # are really c:/msys64/ucrt64
     return f"""<distributionFile>
     <origin>/msys64{depfile}</origin>
 </distributionFile>
 """
+
 
 def _add_openssl_deps(openssldir):
     openssl_dlls = []
@@ -110,6 +116,7 @@ def _add_openssl_deps(openssldir):
 </distributionFile>"""
     return openssl_distribution_files
 
+
 def _create_xml(distribution_files, output_path):
     comment = "<!-- add windows dependencies here -->"
     if comment in xml_template:
@@ -122,7 +129,8 @@ def _create_xml(distribution_files, output_path):
 
 def _create_windows_dependencies_xml(env, sources, dest, openssldir):
     if env['PLATFORM'] == 'darwin':
-        # just save the empty template as a placeholder file, since mac doesn't use dependencies here
+        # just save the empty template as a placeholder file, since mac
+        # doesn't use dependencies here
         with open(dest, 'w') as f:
             f.write(xml_template)
     else:
@@ -136,6 +144,7 @@ def _create_windows_dependencies_xml(env, sources, dest, openssldir):
         if openssldir:
             distribution_files += _add_openssl_deps(openssldir)
         _create_xml(distribution_files, dest)
+
 
 def _installbuilder(target, source, env):
     """
@@ -167,33 +176,33 @@ def _installbuilder(target, source, env):
     # Run InstallBuilder.
     subprocess.check_call([builder, 'build', xml, '--setvars', 'svnversion='+version, 'osversion='+osid,],
                           stderr=subprocess.STDOUT, bufsize=1)
-
-
-def InstallBuilder(env, destfile, builderxml, source, version, osid='win', openssldir=None, *args, **kw):
+def InstallBuilder(env, destfile, builderxml, sources, version, osid='win',
+                   openssldir=None, *args, **kw):
     """
-    A psuedo-builder for creating InstallBuilder installers. 
+    A psuedo-builder for creating InstallBuilder installers.
 
-    The recipe for creating the installer is provided in the InstallBuilder xml 
-    specification file. In general this file is edited using the InstallBuilder GUI 
-    application, although some modification is possible with a text editor. But
-    if you break it, you get to keep the pieces.
+    The recipe for creating the installer is provided in the InstallBuilder
+    xml specification file. In general this file is edited using the
+    InstallBuilder GUI application, although some modification is possible
+    with a text editor. But if you break it, you get to keep the pieces.
 
     The InstallBuilder xml configuration has an explicitly named output file,
-    and many source files. We will always run InstallBuilder, since it would be hard to
-    account for all of these dependencies. Perhaps in the future we can
-    come up with a scheme to allow this routine to specify the output 
-    file path for InstallBuilder; this will involve modifying the InstallBuilder xml
-    file. 
+    and many source files. We will always run InstallBuilder, since it would
+    be hard to account for all of these dependencies. Perhaps in the future we
+    can come up with a scheme to allow this routine to specify the output file
+    path for InstallBuilder; this will involve modifying the InstallBuilder
+    xml file.
 
-    The git version and os id values are passed to InstallBuilder as variables. The openssldir value is used in creating the dependencies file.
+    The git version and os id values are passed to InstallBuilder as
+    variables. The openssldir value is used in creating the dependencies file.
 
         Parameters:
-        destfile   -- The target generated installer file. This should be 
+        destfile   -- The target generated installer file. This should be
                       the same as the output file specified in the xml file.
         builderxml -- The InstallBuilder xml configuration
         sources    -- Other dependencies that should trigger a rebuild.
         version    -- The version number that will be fed to InstallBuilder.
-        osid       -- The operating system identifier that will be fed to InstallBuilder
+        osid       -- The OS identifier that will be fed to InstallBuilder
         openssldir -- The directory to find openssl dependencies in
 
     """

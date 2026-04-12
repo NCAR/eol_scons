@@ -113,6 +113,7 @@ def _make_info_plist(bundle_name, bundle_identifier, bundle_signature,
 
     return info
 
+
 def _find_mdqt(env):
     """
     Look for macdeployqt.
@@ -209,13 +210,17 @@ def _createOsxQtApp(target, source, env):
     target[0] -- The bundle directory, e.g. RICProxy-6454.app.
 
     source[0] -- The application executable to be bundled, e.g. ric_proxy.
-    source[1] -- The application icon file, e.g. '#/Resources/proxy/proxyIcon.icns'
-    source[2] -- (optional) The Info.plist file to be used in the bundle. If not provided, a default one will be created with the appropriate fields filled in.
+    source[1] -- The application icon file, e.g.
+                 '#/Resources/proxy/proxyIcon.icns'
+    source[2] -- (optional) The Info.plist file to be used in the bundle.
+                 If not provided, a default one will be created with
+                 the appropriate fields filled in.
 
     env['EXENAME']    -- e.g. ric_proxy
     env['VERSION']   -- e.g. 6454
     env['ICON']      -- e.g. '#/Resources/proxy/proxyIcon.icns'
-    env['PLIST']     -- (optional) The path to the Info.plist file to be used in the bundle.
+    env['PLIST']     -- (optional) The path to the Info.plist file to be
+                        used in the bundle.
     """
     bundle = target[0]
     exename = source[0].path
@@ -236,7 +241,8 @@ def _createOsxQtApp(target, source, env):
         Execute(['codesign -s "' + os.environ.get('DEVELOPER_CERT') + '" -v -f --deep ' + bundle.path])
 
 
-def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *args, **kw):
+def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None,
+             *args, **kw):
     """
     A pseudo-builder to create an OSX application bundle for a Qt application.
 
@@ -257,9 +263,8 @@ def OsxQtApp(env, destdir, appexe, appicon, appname, appversion, plist=None, *ar
     appicon    -- The path to the application icon.
     appname    -- The final name of the app, without '.app'. E.g. 'Proxy-6457'
     appversion -- The version number to be included in Info.plist
-    plist     -- (optional) The path to the Info.plist file to be used in the bundle.
+    plist     -- (optional) Path to Info.plist file to be used in the bundle.
     """
-
 
     # Establish some useful attributes.
     bundledir = Dir(str(destdir))
