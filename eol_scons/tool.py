@@ -12,6 +12,7 @@ import os
 import re
 from pathlib import Path
 import SCons.Tool
+import SCons.Errors
 from SCons.Script.SConscript import global_exports
 from SCons.Script import COMMAND_LINE_TARGETS
 
