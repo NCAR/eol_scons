@@ -23,6 +23,12 @@
   and more compact summary.
 
 - The `qt4.py` tool has been removed.
+
+- Add suport for Qt6, netcdf-cxx4, and code signing.
+- Updates for MSYS2/ucrt64, Ubuntu32(i386), Jenkins, and packaging.
+- macos.py tool for setting Mac PREFIX.  Specifically called for by Hombrew which installs
+  in either /usr/local/ or /opt/homebrew based on architecture.
+
 - In the `datafilecache` module, if the remote prefix looks like a URL, then
   data files are downloaded with `curl` instead of `rsync`:
   ```python
