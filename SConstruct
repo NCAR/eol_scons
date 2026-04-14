@@ -49,7 +49,6 @@ for subdir in ['site_tools', 'eol_scons', 'eol_scons/tools',
     install += env.Install(f"$PREFIX/eol_scons/{subdir}", files)
 scripts = [f'scripts/{s}' for s in env.Split("""
 build_rpm.sh
-fix_app_bundle_paths.py
 """)]
 install += env.Install("$PREFIX/eol_scons/scripts", scripts)
 env.Alias('install', install)
