@@ -277,7 +277,7 @@ class GitInfo:
         gitdirty = None
         cmd_out = self._get_output([self.gitcmd, 'status', '--porcelain'])
         if self._cmd_out_ok(cmd_out, error):
-            gitdirty = ",".join(cmd_out.splitlines())
+            gitdirty = ",".join(cmd_out.splitlines()).replace('"', '\\"')
 
         # Derive the revision string which describes the state of the current
         # checkout.  If the current commit exactly matches a tag, then leave
