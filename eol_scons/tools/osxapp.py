@@ -306,6 +306,10 @@ def _createOsxCmdlineApp(target, source, env: Environment):
     else:
         for d in dylibs:
             checker.check_executable(d)
+    frameworks_pattern = os.path.join(str(target[0]), "*framework")
+    frameworks = glob.glob(frameworks_pattern)
+    for f in frameworks:
+        checker.check_framework(f)
     cert = os.environ.get('DEVELOPER_CERT')
     if cert:
         cmd = f'codesign -s "{cert}" -v -f {target[0]}/*'
