@@ -54,6 +54,8 @@ import eol_scons.parseconfig as pc
 import eol_scons.debug as esd
 from eol_scons import Debug
 
+from eol_scons.qt_utils import qualify_module_name, replace_drive_specs
+
 _options = None
 USE_PKG_CONFIG = "Using pkg-config"
 myKey = "HAS_TOOL_QT5"
@@ -571,30 +573,6 @@ def enable_modules(env, modules, debug=False):
     return onefailed
 
 
-def qualify_module_name(module):
-    """
-    Convert the Qt module name to the version-qualified name.
-    """
-    if module.startswith('Qt') and not module.startswith('Qt5'):
-        module = "Qt5" + module[2:]
-    return module
-
-
-def replace_drive_specs(pathlist):
-    """
-    Modify the given list in place.  For each node in pathlist, if the node
-    path starts with a drive specifier like C:, replace it with a string
-    path with the drive specifier replaced with an absolute path like /c.
-    This preserves any list elements as nodes if their path does not need
-    to be fixed.  Returns None.
-    """
-    for i, node in enumerate(pathlist):
-        path = str(node)
-        if path.startswith("C:"):
-            pathlist[i] = path.replace('C:', '/c')
-    return None
-
-
 _qt5_header_path = None
 
 
@@ -635,7 +613,7 @@ def enable_module_linux(env, module, debug=False):
         # pkg-config *package* names for Qt5 modules use Qt5 as the
         # prefix, e.g. Qt5 module 'QtCore' maps to pkg-config
         # package name 'Qt5Core'
-        modpackage = qualify_module_name(module)
+        modpackage = qualify_module_name(module, 'Qt5')
         hdir = get_header_path(env)
 
         # The pkg-config should at least return a library name, so if
@@ -701,7 +679,7 @@ def enable_module_linux(env, module, debug=False):
         # header files.
         env.AppendUnique(CPPPATH=[os.path.join(hdir, module)])
         # The module library names *are* qualified by the version.
-        env.Append(LIBS=[qualify_module_name(module)])
+        env.Append(LIBS=[qualify_module_name(module, 'Qt5')])
         # Because for some reason this is what pkg-config does...
         mdef = "QT_" + module[2:].upper() + "_LIB"
         env.AppendUnique(CPPDEFINES=[mdef])

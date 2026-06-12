@@ -133,7 +133,7 @@ def test_5_xercesc():
 
 def test_7_load_all_tools():
     qt_version = ARGUMENTS.get('qt_version', None)
-    qt_version = int(qt_version) if qt_version else 5
+    qt_version = int(qt_version) if qt_version else None
     # Test each tool individually, so we can catch SCons.Errors.StopError
     # from the tools which abort if their component is not found.
     tut = dict([(name, None) for name in toolnames])
@@ -154,19 +154,28 @@ def test_7_load_all_tools():
     tut['cppunit'] = stop_or_none
 
     # Tools which require a specific QT_VERSION should fail if the other
-    # version is set.
-    if (qt_version == 5):
-        tut['qt6'] = stop_or_none
-    elif (qt_version == 6):
-        tut['qt5'] = stop_or_none
+    # version is set.  On the other hand, a qt tool will fail if qt that
+    # version is not installed, so allow both to fail if qt_version is not
+    # set, and otherwise the requested version should not fail.
+    tut['qt5'] = stop_or_none
+    tut['qt6'] = stop_or_none
 
+    if (qt_version and qt_version == 5):
+        tut['qt5'] = None
+    elif (qt_version and qt_version == 6):
+        tut['qt6'] = None
+
+    args = {}
+    if qt_version:
+        args['QT_VERSION'] = qt_version
     for toolname, error in tut.items():
         result = None
         try:
             print("Loading tool %s..." % (toolname))
             x = Environment(tools=['default'] + [toolname],
-                            QT_VERSION=qt_version)
-            assert x['QT_VERSION'] == qt_version
+                            **args)
+            if qt_version:
+                assert x['QT_VERSION'] == qt_version
         except Exception as ex:
             result = ex
             # If no error expected but got one, raise it again to get a

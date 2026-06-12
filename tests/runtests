@@ -35,7 +35,7 @@ test_sconstruct() # sfile options
     fi
 }
 
-test_sconstruct SConstruct
+test_sconstruct SConstruct "$@"
 # test_sconstruct SConstruct qt_version=6
 
 pytest=pytest
