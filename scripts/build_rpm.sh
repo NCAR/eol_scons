@@ -183,6 +183,7 @@ create_build_clone() # tag
             exit 1
         fi
     fi
+    (cd "$builddir/$sourcename" && git submodule update --init --recursive)
     setup_tar_source "$builddir/$sourcename"
 }
 
