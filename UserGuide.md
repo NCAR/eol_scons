@@ -166,7 +166,7 @@ tool modules which are imported as python modules.  See
 [tool_logx.py](examples/logx/tool_logx.py) for an example.
 
 Tools are not limited to changing the library and include paths in the
-`Envrionment` construction variables. Tools can also modify the methods
+`Environment` construction variables. Tools can also modify the methods
 available on an `Environment` to provide new functionality.  For example, the
 `doxygen` tool adds the `Apidocs()` build wrapper ("pseudo-builder") to an
 `Environment`.
@@ -201,7 +201,7 @@ software developments.
 The eol_scons modules and tools reside in a directory meant to be shared among
 software projects.  The idea is that this directory should hold the files for
 a project build framework which are not specific to a particular project.  The
-directoy can be linked into a source tree, checked out separately, or included
+directory can be linked into a source tree, checked out separately, or included
 as a _git_ submodule or _svn_ external.  SCons automatically checks for a
 directory called `site_scons` in the top directory, where the `SConstruct`
 file is located.  So one common way to include eol_scons in a project is to
@@ -422,7 +422,7 @@ eol_scons follows the prior practice of applying tools multiple times, which
 is consistent with the standard SCons behavior.
 
 The eol_scons package also adds a `Require()` method to the SCons
-Environment.  The `Require()` mehod simply loops over a tool list calling
+Environment.  The `Require()` method simply loops over a tool list calling
 `Tool()`.  The customized eol_scons `Tool()` method returns the tool that was
 applied, as opposed to the `SCons.Environment.Environment` method which does
 not.  This makes it possible to use `Require()` similarly to past usage,
