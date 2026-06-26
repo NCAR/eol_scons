@@ -34,7 +34,7 @@ then a particular module may not be installed and pkg-config for it will
 fail.
 
 The qt5 tool must be included first to force all the subsequent qt modules to
-be applied as qt5 modules.  The distintions are in the location of the header
+be applied as qt5 modules.  The distinctions are in the location of the header
 files and the version-qualified library names like libQt5<Module>.
 """
 

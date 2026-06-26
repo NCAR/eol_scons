@@ -16,7 +16,7 @@ The git describe uses a '--match [vV][0-9]*' argument for a
 file-glob style match on possible tags, looking for one that
 starts with 'v' or 'V', followed by a number, followed by anything.
 
-Example variable assigments:
+Example variable assignments:
 
     env['REPO_TAG']       V3.2
     env['REPO_COMMITS']   26
@@ -98,13 +98,13 @@ class GitInfo:
       stored in the REPO_DIRTY key.  If this is not empty, then the git
       revision will have the suffix 'M'.
 
-    The following keys are available. If the details are not avaiable, the
+    The following keys are available. If the details are not available, the
     value will be None.  Values of None are translated as 'unknown' in
     generated header files.
 
     REPO_TAG -
         The most recent tag available on the branch. In keeping with git
-        tagging conventions, it is recomended that the tags on the master
+        tagging conventions, it is recommended that the tags on the master
         branch follow a dot release format, such as V3.2 or V10.2.a, etc.
 
     REPO_COMMITS -
@@ -205,7 +205,7 @@ class GitInfo:
 
     def _cmd_out_ok(self, cmd_out, error):
         """
-        See if the commad output contains an error string.
+        See if the command output contains an error string.
         If no, return true
         If yes, append the string to the error message, and return false.
 

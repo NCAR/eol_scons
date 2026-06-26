@@ -171,7 +171,7 @@ def _create_bundle(env, bundle, appname, version, exename, iconname,
     # shape when it finds its products already there.
     env.Execute(Delete(bundle))
 
-    # Buid the basic bundle structure
+    # Build the basic bundle structure
     env.Execute(Mkdir(bundledir))
     env.Execute(Mkdir(contentsdir))
     env.Execute(Mkdir(macosdir))

@@ -8,7 +8,7 @@ synchronize them from a master remote location as needed.
 
 There are two parts to caching data files: the local directory in which the
 data files are cached, and the remote directory specifier from which data
-files can be synchronized.  There is a seach path of local directories
+files can be synchronized.  There is a search path of local directories
 which is searched first.  If a requested data file is not found in the
 cache, then it can be downloaded from the remote specifier.  It will be
 downloaded into the first directory in the search path which exists on the

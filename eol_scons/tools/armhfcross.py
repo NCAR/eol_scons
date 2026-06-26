@@ -46,7 +46,7 @@ def generate(env, **kw):
     # not otherwise found in the path.
     # But scons is too smart. If you append /opt/arcom/bin
     # to env['ENV']['PATH'], scons will remove any earlier
-    # occurances of /opt/arcom/bin in the PATH, and you may
+    # occurences of /opt/arcom/bin in the PATH, and you may
     # get your second choice for arm-linux-gcc.
     # So, we only append /opt/arcom/bin if "which arm-linux-gcc"
     # fails.

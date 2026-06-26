@@ -53,7 +53,7 @@ header files and the version-qualified library names like libQt6<Module>.
 #   Qt .pc files exist in non-standard location that is not searched.
 #   /usr/local/opt/qt6/libexec/lib/pkgconfig
 #
-# qmake avaiable in standard qt path /usr/local/opt/qt6/bin - in PATH
+# qmake available in standard qt path /usr/local/opt/qt6/bin - in PATH
 # All other binaries (moc & uic) are in /usr/local/opt/qt/share/qt6/libexec/
 
 # MacOS - w/ Homebrew on ARM
@@ -69,7 +69,7 @@ header files and the version-qualified library names like libQt6<Module>.
 #
 # pkg-conifg works
 #
-# qmake avaiable in standard path /bin - in PATH
+# qmake available in standard path /bin - in PATH
 # All other binaries (moc & uic) are in /usr/lib64/qt6/libexec
 
 import re

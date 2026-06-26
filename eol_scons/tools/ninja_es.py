@@ -50,7 +50,7 @@ ninja -f all.ninja aeros/aeros
 @endcode
 
 Note that ninja seems to build up its cache of which targets have been
-updated, seprate from scons, so the first ninja run may build everything
+updated, separate from scons, so the first ninja run may build everything
 even if a scons build wouldn't.  Eventually they converge so that both know
 all targets are up to date and neither rebuilds any targets, although ninja
 is much faster at checking the dependencies, since they are "pre-computed"

@@ -23,7 +23,7 @@ def generate(env):
         macPrefix = subprocess.run(['port'], capture_output=True, text=True).stdout.strip()
         macPrefix='/opt/local'
       except FileNotFoundError:
-        print('macprefix: no brew or port command avaialble, unclear install prefix.')
+        print('macprefix: no brew or port command available, unclear install prefix.')
         sys.exit()
 
 

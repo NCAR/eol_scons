@@ -51,7 +51,7 @@ to the default targets so they will be cleaned.  Run 'scons -c' to clean
 the default targets along with any test programs and their output.  Running
 'scons -u -c' in a subdirectory only cleans targets, whether tests or
 otherwise, beneath that directory.  To clean all the targets within a whole
-source tree, whether tests or not, it is necesary to specify the top
+source tree, whether tests or not, it is necessary to specify the top
 directory as the target:
 
  scons -c .

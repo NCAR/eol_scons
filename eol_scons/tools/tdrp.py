@@ -46,7 +46,7 @@ def tdrpEmitter(target, source, env):
 # The extension on the source file is assumed to be the app name.
 def tdrpGenerator(source, target, env, for_signature):
     # Get the directory of the source file, since we must cd there before
-    # running tdrp_gen. We must do this because tdrp_gen explcitly generates
+    # running tdrp_gen. We must do this because tdrp_gen explicitly generates
     # Params.cc and Params.hh in the current working directory.
     srcdir = os.path.split(source[0].path)[0]
 

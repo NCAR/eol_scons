@@ -35,7 +35,7 @@ def _apply_default_tool(env):
     list of instantiated default tools.  We can cache the names returned
     by tool_list in tools.cache, and then we can create the Tool()
     instances for those names and store them in a local variable for
-    re-use on each new Environment.
+    reuse on each new Environment.
     """
 
     # Install the default tools for the platform.  This used to cache the

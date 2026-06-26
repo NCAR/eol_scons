@@ -52,7 +52,7 @@ pg.stop()
 
 pg.destroy()
 
-    Stop the postgres server and clean up everything creatd by init().
+    Stop the postgres server and clean up everything created by init().
 
 For running the database within scons builders and testers, there are class
 members which can be used in SCons action lists.  These pull the current

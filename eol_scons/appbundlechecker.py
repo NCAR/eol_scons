@@ -22,7 +22,7 @@ class AppBundleChecker:
             self.executable_path = app
         else:
             self.app_path = os.path.join(os.getcwd(), app)
-            # Determine the exectutable to check
+            # Determine the executable to check
             files = os.listdir(os.path.join(self.app_path, 'Contents/MacOS'))
             # assumes only one executable in MacOS dir, which I think is standard
             # for mac apps

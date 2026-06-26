@@ -77,7 +77,7 @@ def _replace_static_libraries(env):
     # for this tool is to get static linking of boost_serialization, and so
     # on OSX this is equivalent to the original working fix of hardcoding
     # the boost path according to where brew puts it.  This is not
-    # necesssary if LIBPATH already contains it, but I don't want to risk
+    # necessary if LIBPATH already contains it, but I don't want to risk
     # breaking on OSX yet again.
     if env['PLATFORM'] == 'darwin':
         searchpaths.append('/usr/local/opt/boost/lib')

@@ -109,7 +109,7 @@ def _download_data_file(env, filepath):
     if False and "datasync" in SCons.Script.BUILD_TARGETS:
         env.AlwaysBuild(target)
     # Return just the single node rather than the list that a builder would
-    # actually return, so it can be substitued easily for a file path.
+    # actually return, so it can be substituted easily for a file path.
     return target[0]
 
 
