@@ -28,4 +28,6 @@ def replace_drive_specs(pathlist):
         path = str(node)
         if path.startswith("C:"):
             pathlist[i] = path.replace('C:', '/c')
+        if path.startswith("D:"):
+            pathlist[i] = path.replace('D:', '/d')
     return None
