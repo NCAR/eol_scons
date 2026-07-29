@@ -3,6 +3,8 @@ Helper functions for the Qt tools, so they do not need to be duplicated across
 Qt versions.
 """
 
+from eol_scons import Debug
+
 
 def qualify_module_name(module, xprefix):
     """
@@ -30,4 +32,6 @@ def replace_drive_specs(pathlist):
             pathlist[i] = path.replace('C:', '/c')
         if path.startswith("D:"):
             pathlist[i] = path.replace('D:', '/d')
+        if path != str(pathlist[i]):
+            Debug("  replaced %s with %s" % (path, pathlist[i]))
     return None

@@ -4,7 +4,9 @@
 # file in the root directory of this source tree.
 import os
 import subprocess as sp
+import re
 import SCons.Util
+
 from SCons.Script import Environment
 
 """
@@ -136,10 +138,23 @@ def _get_config(env: Environment, search_paths, config_script, args):
         # The env dictionary must be converted to strings or else
         # execve() complains.
         psenv = _string_env(env['ENV'])
-        if False:
-            # This is not done by default because it violates the scons
-            # principle of precisely controlling the build environment.
+        use_pkg_config = os.environ.get('EOL_SCONS_USE_PKG_CONFIG')
+        if use_pkg_config:
+            # The UCRT64 pkg-config returns Windows paths, which then have to be
+            # converted to msys paths in replace_drive_specs().  Instead, allow
+            # the MSYS pkg-config to be forced, as well as passing the UCRT64
+            # package config path in the environment through to the process. For
+            # example, export EOL_SCONS_USE_PKG_CONFIG=/usr/bin/pkg-config to
+            # use MSYS in a UCRT64 environment. This is not done by default
+            # (yet) because it violates the scons principle of precisely
+            # controlling a repeatable build environment.  This could be useful
+            # for other builds, not just MSYS, where the PKG_CONFIG_PATH should
+            # be inherited from the environment.  If this proves workable, then
+            # it might be more useful as a Variable, with different defaults for
+            # different platforms.
+            # 
             PassPkgConfigPath(env, psenv)
+            config = re.sub(r'^pkg-config', use_pkg_config, config)
         if _debug:
             print("calling Popen([%s])" % ",".join([config]+args))
             print("\n".join(["%s=%s" % (k, v) for k, v in psenv.items()]))
