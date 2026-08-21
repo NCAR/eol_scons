@@ -47,14 +47,17 @@ def _apply_default_tool(env):
     # created.
     global _default_tool_list
     if _default_tool_list is None:
-        toolnames = []
+        tools = []
         if env['PLATFORM'] != 'win32':
-            toolnames = SCons.Tool.tool_list(env['PLATFORM'], env)
+            tools = SCons.Tool.tool_list(env['PLATFORM'], env)
         else:
-            toolnames = ['mingw']
-        # Now instantiate a Tool for each of the names.
-        Debug("Applying default tools: %s" % (",".join(toolnames)))
-        _default_tool_list = [SCons.Tool.Tool(t) for t in toolnames]
+            tools = ['mingw']
+        # Now instantiate a Tool for each of the names.  As of SCons 4.11,
+        # most of these will already be Tool instances.
+        _default_tool_list = [SCons.Tool.Tool(t) for t in tools]
+
+    Debug("Applying default tools: %s" %
+          (",".join(str(t) for t in _default_tool_list)))
 
     # Now apply the default tools
     for tool in _default_tool_list:
