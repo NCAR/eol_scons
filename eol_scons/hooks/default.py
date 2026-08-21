@@ -13,6 +13,29 @@ import SCons.Tool
 import eol_scons.tool
 from eol_scons.debug import Debug
 
+from pathlib import Path
+from eol_scons.methods import PrintProgress
+
+
+# When the eol_scons package is imported, __init__.py sets up the tool path so
+# this default tool is found first, besides doing other setup like adding all
+# the other eol_scons tools to the tool path and creating the global default
+# Environment.  Unfortunately this setup happens even when eol_scons is not
+# being used in a SCons run, such as to import gitinfo or other modules. Maybe
+# it's possible for __init__.py to only setup the tool path, and leave the
+# rest of the eol_scons setup to happen when this tool is applied.  Or maybe
+# it's about time there were a better way to share functionality like gitinfo
+# outside of eol_scons...
+#
+# Anyway, this message was moved here from __init__.py so it would only be
+# printed when scons is running and loading eol_scons tools.  It will no
+# longer be printed when python code imports eol_scons for other modules.
+#
+# Give the top of the eol_scons package directory as the location.
+PrintProgress("Loading eol_scons from %s..." %
+              (Path(__file__).parent.parent.parent.resolve()))
+
+
 _default_tool_list = None
 
 
