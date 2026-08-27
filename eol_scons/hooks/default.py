@@ -33,9 +33,8 @@ def _apply_default_tool(env):
     own implementation here.  First time through, accumulate the default
     list of tool names, cache it for the next time around, and stash the
     list of instantiated default tools.  We can cache the names returned
-    by tool_list in tools.cache, and then we can create the Tool()
-    instances for those names and store them in a local variable for
-    reuse on each new Environment.
+    by tool_list in tools.cache, and then we can store the resulting tools in
+    a local variable for reuse on each new Environment.
     """
 
     # Install the default tools for the platform.  This used to cache the
@@ -52,9 +51,13 @@ def _apply_default_tool(env):
             toolnames = SCons.Tool.tool_list(env['PLATFORM'], env)
         else:
             toolnames = ['mingw']
-        # Now instantiate a Tool for each of the names.
-        Debug("Applying default tools: %s" % (",".join(toolnames)))
-        _default_tool_list = [SCons.Tool.Tool(t) for t in toolnames]
+        # SCons versions differ in whether tool_list returns names or Tools.
+        Debug("Applying default tools: %s" % (",".join(map(str, toolnames))))
+        _default_tool_list = [
+            tool if isinstance(tool, SCons.Tool.Tool)
+            else SCons.Tool.Tool(tool)
+            for tool in toolnames
+        ]
 
     # Now apply the default tools
     for tool in _default_tool_list:

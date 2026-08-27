@@ -87,6 +87,10 @@ without eol_scons.  The eol_scons default tool also optimizes the loading of
 all the default tools, helping to speed up builds which create many
 `Environment`s.
 
+The default-tool hook supports SCons releases that return either tool names or
+already-instantiated `Tool` objects from `SCons.Tool.tool_list()`.  This keeps
+the hook compatible with both older and newer SCons releases.
+
 It is also possible to apply eol_scons to an `Environment` like a regular
 tool, without overriding the default tool, but this is an experimental
 technique.  In this case, an `Environment` which needs the eol_scons
