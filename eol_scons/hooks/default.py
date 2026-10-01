@@ -13,10 +13,34 @@ import SCons.Tool
 import eol_scons.tool
 from eol_scons.debug import Debug
 
+from pathlib import Path
+from eol_scons.methods import PrintProgress
+
+
+# When the eol_scons package is imported, __init__.py sets up the tool path so
+# this default tool is found first, besides doing other setup like adding all
+# the other eol_scons tools to the tool path and creating the global default
+# Environment.  Unfortunately this setup happens even when eol_scons is not
+# being used in a SCons run, such as to import gitinfo or other modules. Maybe
+# it's possible for __init__.py to only setup the tool path, and leave the
+# rest of the eol_scons setup to happen when this tool is applied.  Or maybe
+# it's about time there were a better way to share functionality like gitinfo
+# outside of eol_scons...
+#
+# Anyway, this message was moved here from __init__.py so it would only be
+# printed when scons is running and loading eol_scons tools.  It will no
+# longer be printed when python code imports eol_scons for other modules.
+#
+# Give the top of the eol_scons package directory as the location.
+PrintProgress("Loading eol_scons from %s..." %
+              (Path(__file__).parent.parent.parent.resolve()))
+
+
+# Once initialized, this will be a list[SCons.Tool.Tool]
 _default_tool_list = None
 
 
-def _apply_default_tool(env):
+def _load_default_tool_list(env):
     """
     This is just an optimization which avoids searching the filesystem
     every time SCons needs to load all the default tools.  The original
@@ -25,42 +49,31 @@ def _apply_default_tool(env):
     import SCons.Tool.default
     SCons.Tool.default.generate(env)
 
-    The default tool just loads a list of platform-specific tool modules,
-    so this function caches that list and the loaded tool modules.
-
-    We only need to find the tools once, so
-    subvert the SCons.Tool.default.generate(env) implementation with our
-    own implementation here.  First time through, accumulate the default
-    list of tool names, cache it for the next time around, and stash the
-    list of instantiated default tools.  We can cache the names returned
-    by tool_list in tools.cache, and then we can store the resulting tools in
-    a local variable for reuse on each new Environment.
+    The default tool just loads a list of platform-specific tool modules, so
+    this function loads the tools and also caches the list of instances. This
+    caching assumes the PLATFORM and the corresponding default tool list will
+    be the same for every Environment created.
     """
-
-    # Install the default tools for the platform.  This used to cache the
-    # tool names in the global variable cache, but that only had an effect
-    # the first time through, since after that all the instantiated tools
-    # would be in _default_tool_list.  Better to skip the cache and just
-    # get them fresh on each startup, since the real optimization comes
-    # from not needing to reload them for every Envioronment that gets
-    # created.
     global _default_tool_list
     if _default_tool_list is None:
-        toolnames = []
+        tools = []
         if env['PLATFORM'] != 'win32':
-            toolnames = SCons.Tool.tool_list(env['PLATFORM'], env)
+            tools = SCons.Tool.tool_list(env['PLATFORM'], env)
         else:
-            toolnames = ['mingw']
-        # SCons versions differ in whether tool_list returns names or Tools.
-        Debug("Applying default tools: %s" % (",".join(map(str, toolnames))))
-        _default_tool_list = [
-            tool if isinstance(tool, SCons.Tool.Tool)
-            else SCons.Tool.Tool(tool)
-            for tool in toolnames
-        ]
+            tools = ['mingw']
+        # Now instantiate a Tool for any tool names in the list.  As of SCons
+        # 4.11, most of these will already be Tool instances, but prior to
+        # that they were names.  Tool(t) when t is already a Tool just returns
+        # t, so this works for all versions.
+        _default_tool_list = [SCons.Tool.Tool(t) for t in tools]
+    return _default_tool_list
 
+
+def _apply_default_tool(env):
+    tools = _load_default_tool_list(env)
+    Debug("Applying default tools: %s" % (",".join(str(t) for t in tools)))
     # Now apply the default tools
-    for tool in _default_tool_list:
+    for tool in tools:
         tool(env)
 
 

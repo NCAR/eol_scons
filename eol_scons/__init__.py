@@ -112,10 +112,6 @@ def RunScripts():
 
 Debug("__init__ __file__=%s" % __file__)
 
-# Give the top of the eol_scons package directory as the location.
-PrintProgress("Loading eol_scons from %s..." %
-              (Path(__file__).parent.parent.resolve()))
-
 
 def _InstallToolsPath():
     "Add the eol_scons/tools dir to the tool path."

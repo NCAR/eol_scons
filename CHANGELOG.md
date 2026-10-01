@@ -2,6 +2,12 @@
 
 ## [Unreleased] - Unreleased
 
+- Do not print the `Loading eol_scons from...` message when `eol_scons` is
+  imported, only when `eol_scons` is being loaded through `SCons`.
+
+- Fix an exception with SCons 4.11.0 due to the default platform tool list
+  returning `Tool` instances and not just names.
+
 ## [4.3] - 2026-03-25
 
 - `GlobalVariables()` now returns an instance of `BriefVariables`, a subclass
