@@ -61,11 +61,12 @@ def _load_default_tool_list(env):
             tools = SCons.Tool.tool_list(env['PLATFORM'], env)
         else:
             tools = ['mingw']
-        # Now instantiate a Tool for any tool names in the list.  As of SCons
+        # Instantiate a Tool for any tool names in the list.  As of SCons
         # 4.11, most of these will already be Tool instances, but prior to
-        # that they were names.  Tool(t) when t is already a Tool just returns
-        # t, so this works for all versions.
-        _default_tool_list = [SCons.Tool.Tool(t) for t in tools]
+        # that they were names.  For newer versions of SCons, Tool(t) returns
+        # t when t is already a Tool, but that fails for 4.8 on CentOS8.
+        _default_tool_list = [t if isinstance(t, SCons.Tool.Tool)
+                              else SCons.Tool.Tool(t) for t in tools]
     return _default_tool_list
 
 
