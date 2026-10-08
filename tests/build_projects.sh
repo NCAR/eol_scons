@@ -3,7 +3,7 @@
 # Used to test eol_scons changes against building a few projects.
 
 
-scons="scons --site-dir=`realpath $(dirname $0)/..`"
+scons="scons --site-dir=`realpath $(dirname $0)/../..`"
 config="--config=force"
 projects=""
 do_tests=0
