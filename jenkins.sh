@@ -11,13 +11,9 @@
 if [ -n "$WORKSPACE" ]; then
     export TOPDIR=$WORKSPACE/rpm_build
 fi
-export TOPDIR=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
-
-# In EOL Jenkins, these are global properties set in Manage Jenkins ->
-# Configure System.  Provide defaults here to test outside of Jenkins.
-DEBIAN_REPOSITORY="${DEBIAN_REPOSITORY:-/net/ftp/pub/archive/software/debian}"
-YUM_REPOSITORY="${YUM_REPOSITORY:-/net/www/docs/software/rpms}"
-export DEBIAN_REPOSITORY YUM_REPOSITORY
+if command -v rpmbuild >/dev/null 2>&1; then
+    export TOPDIR=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
+fi
 
 reposcripts="$HOME/eol-repo/scripts"
 if [ ! -d "$reposcripts" ]; then
@@ -27,8 +23,6 @@ fi
 
 echo WORKSPACE=$WORKSPACE
 echo TOPDIR=$TOPDIR
-echo DEBIAN_REPOSITORY=$DEBIAN_REPOSITORY
-echo YUM_REPOSITORY=$YUM_REPOSITORY
 echo reposcripts=$reposcripts
 
 
@@ -42,6 +36,35 @@ build_rpms()
     fi
     # this conveniently creates a list of built rpm files in rpms.txt.
     (set -x; $reposcripts/build_rpm.sh rpm/eol_scons.spec snapshot)
+}
+
+
+dpkgdir=
+codename=
+
+get_dpkgdir() # codename
+{
+    if [ -n "$codename" ]; then
+        return
+    fi
+    codename="$1"
+    if [ -z "$codename" ]; then
+        echo "Codename is required, eg bionic"
+        exit 1
+    fi
+    # get architecture for current container or host
+    dpkgarch="$(dpkg-architecture -qDEB_BUILD_ARCH)"
+    dpkgdir="build/dpkg-$codename-$dpkgarch"
+}
+
+
+build_dpkg() # codename
+{
+    get_dpkgdir "$@"
+    rm -rf ${dpkgdir}
+    mkdir -p ${dpkgdir}
+    # $reposcripts/build_dpkg.sh -d ${dpkgdir} ${dpkgarch}
+    $reposcripts/build_dpkg.sh ${dpkgdir}
 }
 
 
@@ -65,11 +88,20 @@ case "$method" in
         push_eol_repo
         ;;
 
+    build_dpkg)
+        build_dpkg "$@"
+        ;;
+
+    upload_dpkg)
+        get_dpkgdir "$1"
+        $reposcripts/upload_packages.sh codename="$codename" upload ${dpkgdir}
+        ;;
+
     *)
         if [ "$method" != "help" ]; then
             echo Unknown command "$1".
         fi
-        echo Available commands: build_rpms, push_rpms.
+        echo Available commands: build_rpms, push_rpms, build_dpkg, upload_dpkg.
         exit 1
         ;;
 
