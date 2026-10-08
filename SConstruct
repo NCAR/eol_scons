@@ -45,10 +45,6 @@ for subdir in ['site_tools', 'eol_scons', 'eol_scons/tools',
     files = env.Glob(f"{subdir}/*.py")
     files += env.Glob(f"{subdir}/pylintrc")
     install += env.Install(f"$PREFIX/eol_scons/{subdir}", files)
-scripts = [f'scripts/{s}' for s in env.Split("""
-build_rpm.sh
-""")]
-install += env.Install("$PREFIX/eol_scons/scripts", scripts)
 env.Alias('install', install)
 
 if env.GetOption('clean'):

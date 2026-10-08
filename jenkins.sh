@@ -41,7 +41,7 @@ build_rpms()
         (set -x; rm -rf "$TOPDIR/RPMS"; rm -rf "$TOPDIR/SRPMS")
     fi
     # this conveniently creates a list of built rpm files in rpms.txt.
-    (set -x; $reposcripts/build_rpm scripts/eol_scons.spec snapshot)
+    (set -x; $reposcripts/build_rpm.sh rpm/eol_scons.spec snapshot)
 }
 
 
@@ -57,11 +57,11 @@ shift
 
 case "$method" in
 
-    build_rpms)
+    build_rpm|build_rpms)
         build_rpms "$@"
         ;;
 
-    push_rpms)
+    push_rpm|push_rpms)
         push_eol_repo
         ;;
 
