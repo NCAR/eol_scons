@@ -6,8 +6,6 @@ sys.path.append(str(Path('.').absolute().joinpath('eol_scons')))
 
 import eol_scons
 
-eol_scons.RunScripts()
-
 from SCons.Script import PathVariable, Environment, Delete
 
 env = Environment(tools=['default'])

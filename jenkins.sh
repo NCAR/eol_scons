@@ -19,10 +19,17 @@ DEBIAN_REPOSITORY="${DEBIAN_REPOSITORY:-/net/ftp/pub/archive/software/debian}"
 YUM_REPOSITORY="${YUM_REPOSITORY:-/net/www/docs/software/rpms}"
 export DEBIAN_REPOSITORY YUM_REPOSITORY
 
+reposcripts="$HOME/eol-repo/scripts"
+if [ ! -d "$reposcripts" ]; then
+    echo "Not found: $reposcripts"
+    exit 1
+fi
+
 echo WORKSPACE=$WORKSPACE
 echo TOPDIR=$TOPDIR
 echo DEBIAN_REPOSITORY=$DEBIAN_REPOSITORY
 echo YUM_REPOSITORY=$YUM_REPOSITORY
+echo reposcripts=$reposcripts
 
 
 build_rpms()
@@ -34,14 +41,14 @@ build_rpms()
         (set -x; rm -rf "$TOPDIR/RPMS"; rm -rf "$TOPDIR/SRPMS")
     fi
     # this conveniently creates a list of built rpm files in rpms.txt.
-    (set -x; scons build_rpm scripts/eol_scons.spec snapshot)
+    (set -x; $reposcripts/build_rpm scripts/eol_scons.spec snapshot)
 }
 
 
 push_eol_repo()
 {
     # upload packages using the eol-repo script in home directory
-    $HOME/eol-repo/scripts/upload_packages.sh upload `cat rpms.txt`
+    $reposcripts/upload_packages.sh upload `cat rpms.txt`
 }
 
 

@@ -31,8 +31,6 @@ messages.
 """
 
 import os
-import sys
-from pathlib import Path
 
 import SCons.Tool
 import SCons.Defaults
@@ -47,9 +45,6 @@ from eol_scons.tool import DefineQtTools
 from eol_scons.methods import EnableInstallAlias
 from eol_scons.methods import PrintProgress
 
-# import this here so it can be called as eol_scons.ScriptsDir()
-from eol_scons.tool import ScriptsDir
-
 # make it explicit what is meant for export
 __all__ = [
     'Debug',
@@ -58,8 +53,6 @@ __all__ = [
     'PathToAbsolute',
     'EnableInstallAlias',
     'PrintProgress',
-    'ScriptsDir',
-    'RunScripts',
     'RemoveDefaultHook',
 ]
 
@@ -77,28 +70,6 @@ _execmsg = """
 if bool("__eol_scons_init_exec__" not in globals() and
         __file__.endswith("site_scons/eol_scons/__init__.py")):
     print(_execmsg)
-
-
-def _run_script(argname, name=None):
-    if name is None:
-        name = argname
-    script = str(Path(ScriptsDir()) / name)
-    args = [script] + sys.argv[sys.argv.index(argname)+1:]
-    PrintProgress("Executing: %s" % (" ".join(map(str, args))))
-    os.execv(script, args)
-
-
-def RunScripts():
-    """
-    Use scons to provide a hook to scripts shared through eol_scons.  When a
-    known script name is on the scons command-line, exec that script with all
-    the succeeding arguments.  Note that the script cannot use single-hyphen
-    arguments, because scons will catch those and act on them.  However, any
-    double-hyphen arguments not recognized by scons will be ignored and passed
-    to the script.
-    """
-    if 'build_rpm' in sys.argv:
-        _run_script('build_rpm', 'build_rpm.sh')
 
 
 # This would be needed if the eol_scons package were going to be loaded as
