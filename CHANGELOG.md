@@ -2,6 +2,12 @@
 
 ## [Unreleased] - Unreleased
 
+- `RunScripts()` has been removed, along with the related `ScriptsDir()` and
+  `EOL_SCONS_SCRIPTS_DIR` variable.  It was a bad idea from the beginning.
+  The scripts `build_rpm`, `build_dpkg`, and `deb_changelog.sh` have also been
+  removed.  They will be shared through a separate repo instead of keeping
+  copies in this repo.
+
 - Do not print the `Loading eol_scons from...` message when `eol_scons` is
   imported, only when `eol_scons` is being loaded through `SCons`.
 

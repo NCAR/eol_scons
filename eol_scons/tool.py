@@ -316,20 +316,6 @@ def Require(env, tools):
     return applied
 
 
-_scripts_dir = None
-
-
-def ScriptsDir() -> str:
-    """
-    Return absolute path to eol_scons scripts directory.
-    """
-    global _scripts_dir
-    if _scripts_dir is None:
-        pscripts = (Path(__file__).parent / "../scripts").resolve()
-        _scripts_dir = str(pscripts.resolve())
-    return _scripts_dir
-
-
 def generate(env, **_kw):
     """
     Generate the basic eol_scons customizations for the given environment,
@@ -342,8 +328,6 @@ def generate(env, **_kw):
         env.LogDebug("skipping _generate(), already applied")
         return
     env._eol_scons_generated = True
-
-    env['EOL_SCONS_SCRIPTS_DIR'] = ScriptsDir()
 
     # Setup methods
     eol_scons.methods.AddMethods(env)

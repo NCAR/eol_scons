@@ -11,18 +11,19 @@
 if [ -n "$WORKSPACE" ]; then
     export TOPDIR=$WORKSPACE/rpm_build
 fi
-export TOPDIR=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
+if command -v rpmbuild >/dev/null 2>&1; then
+    export TOPDIR=${TOPDIR:-$(rpmbuild --eval %_topdir)_$(hostname)}
+fi
 
-# In EOL Jenkins, these are global properties set in Manage Jenkins ->
-# Configure System.  Provide defaults here to test outside of Jenkins.
-DEBIAN_REPOSITORY="${DEBIAN_REPOSITORY:-/net/ftp/pub/archive/software/debian}"
-YUM_REPOSITORY="${YUM_REPOSITORY:-/net/www/docs/software/rpms}"
-export DEBIAN_REPOSITORY YUM_REPOSITORY
+reposcripts="$HOME/eol-repo/scripts"
+if [ ! -d "$reposcripts" ]; then
+    echo "Not found: $reposcripts"
+    exit 1
+fi
 
 echo WORKSPACE=$WORKSPACE
 echo TOPDIR=$TOPDIR
-echo DEBIAN_REPOSITORY=$DEBIAN_REPOSITORY
-echo YUM_REPOSITORY=$YUM_REPOSITORY
+echo reposcripts=$reposcripts
 
 
 build_rpms()
@@ -34,14 +35,43 @@ build_rpms()
         (set -x; rm -rf "$TOPDIR/RPMS"; rm -rf "$TOPDIR/SRPMS")
     fi
     # this conveniently creates a list of built rpm files in rpms.txt.
-    (set -x; scons build_rpm scripts/eol_scons.spec snapshot)
+    (set -x; $reposcripts/build_rpm.sh rpm/eol_scons.spec snapshot)
+}
+
+
+dpkgdir=
+codename=
+
+get_dpkgdir() # codename
+{
+    if [ -n "$codename" ]; then
+        return
+    fi
+    codename="$1"
+    if [ -z "$codename" ]; then
+        echo "Codename is required, eg bionic"
+        exit 1
+    fi
+    # get architecture for current container or host
+    dpkgarch="$(dpkg-architecture -qDEB_BUILD_ARCH)"
+    dpkgdir="build/dpkg-$codename-$dpkgarch"
+}
+
+
+build_dpkg() # codename
+{
+    get_dpkgdir "$@"
+    rm -rf ${dpkgdir}
+    mkdir -p ${dpkgdir}
+    # $reposcripts/build_dpkg.sh -d ${dpkgdir} ${dpkgarch}
+    $reposcripts/build_dpkg.sh ${dpkgdir}
 }
 
 
 push_eol_repo()
 {
     # upload packages using the eol-repo script in home directory
-    $HOME/eol-repo/scripts/upload_packages.sh upload `cat rpms.txt`
+    $reposcripts/upload_packages.sh upload `cat rpms.txt`
 }
 
 
@@ -50,19 +80,28 @@ shift
 
 case "$method" in
 
-    build_rpms)
+    build_rpm|build_rpms)
         build_rpms "$@"
         ;;
 
-    push_rpms)
+    push_rpm|push_rpms)
         push_eol_repo
+        ;;
+
+    build_dpkg)
+        build_dpkg "$@"
+        ;;
+
+    upload_dpkg)
+        get_dpkgdir "$1"
+        $reposcripts/upload_packages.sh codename="$codename" upload ${dpkgdir}
         ;;
 
     *)
         if [ "$method" != "help" ]; then
             echo Unknown command "$1".
         fi
-        echo Available commands: build_rpms, push_rpms.
+        echo Available commands: build_rpms, push_rpms, build_dpkg, upload_dpkg.
         exit 1
         ;;
 
