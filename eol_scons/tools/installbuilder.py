@@ -20,7 +20,7 @@ Example usage (OSX):
 
 import os
 import glob
-import subprocess
+import subprocess as sp
 
 from SCons.Script import Touch, Mkdir
 
@@ -29,16 +29,20 @@ import eol_scons.installmode as im
 
 xml_template = """<folder>
 <description>Program Files</description>
-<destination>${installdir}</destination>
+<destination>${{installdir}}</destination>
 <name>programfileswindowsdeps</name>
 <platforms>windows-x64</platforms>
 <distributionFileList>
 <distributionDirectory>
-    <origin>C:/msys64/ucrt64/share/qt6/plugins/platforms</origin>
+    <origin>{distributionDirectory}</origin>
 </distributionDirectory>
-<!-- add windows dependencies here -->
+{dependencies}
 </distributionFileList>
 </folder>"""
+
+
+def _cygpath(path):
+    return sp.check_output(['cygpath', '-w', '-a', path], text=True).strip()
 
 
 def _find_installbuilder(env):
@@ -73,7 +77,7 @@ def _find_installbuilder(env):
 #
 def _get_dependencies(exe_path: str):
     """ Return list of dependencies for executable """
-    result = subprocess.run(['ldd', exe_path], capture_output=True, text=True)
+    result = sp.run(['ldd', exe_path], capture_output=True, text=True)
     return result.stdout.splitlines()
 
 
@@ -89,10 +93,10 @@ def _create_xml_entry(line):
     if not depfile or depfile.startswith("/c/Windows"):
         # assume dependencies in here are normal windows OS files
         return ""
-    # msys paths start at /ucrt64 but windows paths (that installbuilder uses)
-    # are really c:/msys64/ucrt64
+    # InstallBuilder needs a Windows-style absolute path
+    depfile = _cygpath(depfile)
     return f"""<distributionFile>
-    <origin>/msys64{depfile}</origin>
+    <origin>{depfile}</origin>
 </distributionFile>
 """
 
@@ -108,9 +112,7 @@ def _add_openssl_deps(openssldir):
         if len(openssl_dir_xml) > 1 and openssl_dir_xml[1] == ':':
             openssl_dir_xml = openssl_dir_xml[2:]
         depfile = openssl_dir_xml + '/' + os.path.basename(dll)
-        # Prepend /msys64 if path is a MSYS2 ucrt64-relative path (eg /ucrt64/...)
-        if not depfile.startswith('/msys64'):
-            depfile = '/msys64' + depfile
+        depfile = _cygpath(depfile)
         if depfile not in openssl_distribution_files:
             openssl_distribution_files += f"""<distributionFile>
     <origin>{depfile}</origin>
@@ -120,13 +122,12 @@ def _add_openssl_deps(openssldir):
 
 def _create_xml(distribution_files, output_path):
     im.MockEcho(f"_create_xml('...', {output_path})")
-    comment = "<!-- add windows dependencies here -->"
-    if comment in xml_template:
-        contents = xml_template.replace(comment, distribution_files)
-        with open(output_path, "w") as f:
-            f.write(contents)
-    else:
-        print("No comment placeholder in template to insert dependencies in.")
+    distdir = "/ucrt64/share/qt6/plugins/platforms"
+    distdir = _cygpath(distdir)
+    xml = xml_template.format(distributionDirectory=distdir,
+                              dependencies=distribution_files)
+    with open(output_path, "w") as f:
+        f.write(xml)
 
 
 def _create_windows_dependencies_xml(env, sources, dest, openssldir):
@@ -176,8 +177,8 @@ def _installbuilder(target, source, env):
     # Run InstallBuilder.
     cmd = [builder, 'build', xml, '--setvars', f'svnversion={version}',
            f'osversion={osid}']
-    subprocess.check_call(im.Command(cmd),
-                          stderr=subprocess.STDOUT, bufsize=1)
+    env.PrintProgress(" ".join(cmd))
+    sp.check_call(im.Command(cmd), stderr=sp.STDOUT, bufsize=1)
     if im.MockMode():
         # On MacOS, installbuilder creates a .app bundle directory for the
         # installer, while on Windows it creates a .exe file.
