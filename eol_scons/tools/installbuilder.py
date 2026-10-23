@@ -33,15 +33,24 @@ xml_template = """<folder>
 <name>programfileswindowsdeps</name>
 <platforms>windows-x64</platforms>
 <distributionFileList>
-<distributionDirectory>
-    <origin>{distributionDirectory}</origin>
-</distributionDirectory>
 {dependencies}
 </distributionFileList>
 </folder>"""
 
+_distfile_format = """<distributionFile>
+    <origin>{distfile}</origin>
+</distributionFile>
+"""
 
-def _cygpath(path):
+_distdir_format = """<distributionDirectory>
+    <origin>{distdir}</origin>
+</distributionDirectory>
+"""
+
+
+def _windows_path(path):
+    if im.MockMode():
+        return f"_windows_path({path})"
     return sp.check_output(['cygpath', '-w', '-a', path], text=True).strip()
 
 
@@ -72,15 +81,6 @@ def _find_installbuilder(env):
     return node
 
 
-#
-# Builder to generate windows dependencies and create an installer.
-#
-def _get_dependencies(exe_path: str):
-    """ Return list of dependencies for executable """
-    result = sp.run(['ldd', exe_path], capture_output=True, text=True)
-    return result.stdout.splitlines()
-
-
 def _parse_dependency_location(line):
     """ Return path to dependency file from line in ldd output """
     # format: libunistring-5.dll => /ucrt64/bin/libunistring-5.dll (0x7ffd71ba0000)
@@ -88,49 +88,51 @@ def _parse_dependency_location(line):
     return fields[2] if len(fields) >= 3 else None
 
 
-def _create_xml_entry(line):
-    depfile = _parse_dependency_location(line)
-    if not depfile or depfile.startswith("/c/Windows"):
-        # assume dependencies in here are normal windows OS files
-        return ""
-    # InstallBuilder needs a Windows-style absolute path
-    depfile = _cygpath(depfile)
-    return f"""<distributionFile>
-    <origin>{depfile}</origin>
-</distributionFile>
-"""
+def _get_dependencies(exe_path: str) -> list[str]:
+    """ Return list of dependencies for executable """
+    result = sp.run(['ldd', exe_path], capture_output=True, text=True)
+    deps = []
+    for line in result.stdout.splitlines():
+        dep = _parse_dependency_location(line)
+        if dep:
+            deps.append(dep)
+    return deps
 
 
-def _add_openssl_deps(openssldir):
+def _add_openssl_deps(openssldir) -> list[str]:
     openssl_dlls = []
-    openssl_distribution_files = ""
     for pattern in ['libssl-*.dll', 'libcrypto-*.dll']:
         openssl_dlls += glob.glob(os.path.join(openssldir, pattern))
+    deps = []
     for dll in openssl_dlls:
-        openssl_dir_xml = openssldir.rstrip('/')
-        # Strip windows drive letter if present (C:/msys64/ucrt64/bin -> /msys64/ucrt64/bin)
-        if len(openssl_dir_xml) > 1 and openssl_dir_xml[1] == ':':
-            openssl_dir_xml = openssl_dir_xml[2:]
-        depfile = openssl_dir_xml + '/' + os.path.basename(dll)
-        depfile = _cygpath(depfile)
-        if depfile not in openssl_distribution_files:
-            openssl_distribution_files += f"""<distributionFile>
-    <origin>{depfile}</origin>
-</distributionFile>"""
-    return openssl_distribution_files
+        depfile = os.path.join(openssldir, os.path.basename(dll))
+        deps.append(depfile)
+    return deps
 
 
-def _create_xml(distribution_files, output_path):
+def _create_xml(deps: list[str], output_path):
     im.MockEcho(f"_create_xml('...', {output_path})")
-    distdir = "/ucrt64/share/qt6/plugins/platforms"
-    distdir = _cygpath(distdir)
-    xml = xml_template.format(distributionDirectory=distdir,
-                              dependencies=distribution_files)
+    deps = list(set(deps))  # remove duplicates
+    dependencies = ""
+    # the Qt6 platforms directory needs to be included as a distribution
+    # directory, so convert msys-relative fixed path to Windows absolute path
+    distdir = _windows_path("/ucrt64/share/qt6/plugins/platforms")
+    dependencies += _distdir_format.format(distdir=distdir)
+    # convert all dependency files to canonical Windows-style absolute paths
+    deps = [_windows_path(dep) for dep in deps]
+    # ignore dependencies that look like normal Windows OS files
+    deps = [dep for dep in deps if not dep.startswith(r"C:\Windows")]
+    for dep in deps:
+        dependencies += _distfile_format.format(distfile=dep)
+
+    # finally, render the template XML with the dependencies
+    xml = xml_template.format(dependencies=dependencies)
     with open(output_path, "w") as f:
         f.write(xml)
 
 
 def _create_windows_dependencies_xml(env, sources, dest, openssldir):
+    "Collect Windows DLL dependencies and write them to XML."
     dest = str(dest)
     im.MockEcho("_create_windows_dependencies_xml("
                 f"{[str(s) for s in sources]}, {dest}, {openssldir})")
@@ -139,17 +141,13 @@ def _create_windows_dependencies_xml(env, sources, dest, openssldir):
         # doesn't use dependencies here
         with open(dest, 'w') as f:
             f.write(xml_template)
-    else:
-        deps = []
-        for s in sources:
-            deps += _get_dependencies(str(s))
-        deps = list(set(deps))  # remove duplicates
-        distribution_files = ""
-        for d in deps:
-            distribution_files += _create_xml_entry(d)
-        if openssldir:
-            distribution_files += _add_openssl_deps(openssldir)
-        _create_xml(distribution_files, dest)
+        return
+    deps = []
+    for s in sources:
+        deps += _get_dependencies(str(s))
+    if openssldir:
+        deps += _add_openssl_deps(openssldir)
+    _create_xml(deps, dest)
 
 
 def _installbuilder(target, source, env):
