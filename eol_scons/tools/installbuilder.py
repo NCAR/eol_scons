@@ -20,7 +20,8 @@ Example usage (OSX):
 
 import os
 import glob
-import subprocess
+import subprocess as sp
+from typing import List
 
 from SCons.Script import Touch, Mkdir
 
@@ -29,16 +30,29 @@ import eol_scons.installmode as im
 
 xml_template = """<folder>
 <description>Program Files</description>
-<destination>${installdir}</destination>
+<destination>${{installdir}}</destination>
 <name>programfileswindowsdeps</name>
 <platforms>windows-x64</platforms>
 <distributionFileList>
-<distributionDirectory>
-    <origin>C:/msys64/ucrt64/share/qt6/plugins/platforms</origin>
-</distributionDirectory>
-<!-- add windows dependencies here -->
+{dependencies}
 </distributionFileList>
 </folder>"""
+
+_distfile_format = """<distributionFile>
+    <origin>{distfile}</origin>
+</distributionFile>
+"""
+
+_distdir_format = """<distributionDirectory>
+    <origin>{distdir}</origin>
+</distributionDirectory>
+"""
+
+
+def _windows_path(path):
+    if im.MockMode():
+        return f"_windows_path({path})"
+    return sp.check_output(['cygpath', '-w', '-a', path], text=True).strip()
 
 
 def _find_installbuilder(env):
@@ -68,15 +82,6 @@ def _find_installbuilder(env):
     return node
 
 
-#
-# Builder to generate windows dependencies and create an installer.
-#
-def _get_dependencies(exe_path: str):
-    """ Return list of dependencies for executable """
-    result = subprocess.run(['ldd', exe_path], capture_output=True, text=True)
-    return result.stdout.splitlines()
-
-
 def _parse_dependency_location(line):
     """ Return path to dependency file from line in ldd output """
     # format: libunistring-5.dll => /ucrt64/bin/libunistring-5.dll (0x7ffd71ba0000)
@@ -84,52 +89,51 @@ def _parse_dependency_location(line):
     return fields[2] if len(fields) >= 3 else None
 
 
-def _create_xml_entry(line):
-    depfile = _parse_dependency_location(line)
-    if not depfile or depfile.startswith("/c/Windows"):
-        # assume dependencies in here are normal windows OS files
-        return ""
-    # msys paths start at /ucrt64 but windows paths (that installbuilder uses)
-    # are really c:/msys64/ucrt64
-    return f"""<distributionFile>
-    <origin>/msys64{depfile}</origin>
-</distributionFile>
-"""
+def _get_dependencies(exe_path: str) -> List[str]:
+    """ Return list of dependencies for executable """
+    result = sp.run(['ldd', exe_path], capture_output=True, text=True)
+    deps = []
+    for line in result.stdout.splitlines():
+        dep = _parse_dependency_location(line)
+        if dep:
+            deps.append(dep)
+    return deps
 
 
-def _add_openssl_deps(openssldir):
+def _add_openssl_deps(openssldir) -> List[str]:
     openssl_dlls = []
-    openssl_distribution_files = ""
     for pattern in ['libssl-*.dll', 'libcrypto-*.dll']:
         openssl_dlls += glob.glob(os.path.join(openssldir, pattern))
+    deps = []
     for dll in openssl_dlls:
-        openssl_dir_xml = openssldir.rstrip('/')
-        # Strip windows drive letter if present (C:/msys64/ucrt64/bin -> /msys64/ucrt64/bin)
-        if len(openssl_dir_xml) > 1 and openssl_dir_xml[1] == ':':
-            openssl_dir_xml = openssl_dir_xml[2:]
-        depfile = openssl_dir_xml + '/' + os.path.basename(dll)
-        # Prepend /msys64 if path is a MSYS2 ucrt64-relative path (eg /ucrt64/...)
-        if not depfile.startswith('/msys64'):
-            depfile = '/msys64' + depfile
-        if depfile not in openssl_distribution_files:
-            openssl_distribution_files += f"""<distributionFile>
-    <origin>{depfile}</origin>
-</distributionFile>"""
-    return openssl_distribution_files
+        depfile = os.path.join(openssldir, os.path.basename(dll))
+        deps.append(depfile)
+    return deps
 
 
-def _create_xml(distribution_files, output_path):
+def _create_xml(deps: List[str], output_path):
     im.MockEcho(f"_create_xml('...', {output_path})")
-    comment = "<!-- add windows dependencies here -->"
-    if comment in xml_template:
-        contents = xml_template.replace(comment, distribution_files)
-        with open(output_path, "w") as f:
-            f.write(contents)
-    else:
-        print("No comment placeholder in template to insert dependencies in.")
+    deps = list(set(deps))  # remove duplicates
+    dependencies = ""
+    # the Qt6 platforms directory needs to be included as a distribution
+    # directory, so convert msys-relative fixed path to Windows absolute path
+    distdir = _windows_path("/ucrt64/share/qt6/plugins/platforms")
+    dependencies += _distdir_format.format(distdir=distdir)
+    # convert all dependency files to canonical Windows-style absolute paths
+    deps = [_windows_path(dep) for dep in deps]
+    # ignore dependencies that look like normal Windows OS files
+    deps = [dep for dep in deps if not dep.startswith(r"C:\Windows")]
+    for dep in deps:
+        dependencies += _distfile_format.format(distfile=dep)
+
+    # finally, render the template XML with the dependencies
+    xml = xml_template.format(dependencies=dependencies)
+    with open(output_path, "w") as f:
+        f.write(xml)
 
 
 def _create_windows_dependencies_xml(env, sources, dest, openssldir):
+    "Collect Windows DLL dependencies and write them to XML."
     dest = str(dest)
     im.MockEcho("_create_windows_dependencies_xml("
                 f"{[str(s) for s in sources]}, {dest}, {openssldir})")
@@ -137,18 +141,14 @@ def _create_windows_dependencies_xml(env, sources, dest, openssldir):
         # just save the empty template as a placeholder file, since mac
         # doesn't use dependencies here
         with open(dest, 'w') as f:
-            f.write(xml_template)
-    else:
-        deps = []
-        for s in sources:
-            deps += _get_dependencies(str(s))
-        deps = list(set(deps))  # remove duplicates
-        distribution_files = ""
-        for d in deps:
-            distribution_files += _create_xml_entry(d)
-        if openssldir:
-            distribution_files += _add_openssl_deps(openssldir)
-        _create_xml(distribution_files, dest)
+            f.write(xml_template.format(dependencies=""))
+        return
+    deps = []
+    for s in sources:
+        deps += _get_dependencies(str(s))
+    if openssldir:
+        deps += _add_openssl_deps(openssldir)
+    _create_xml(deps, dest)
 
 
 def _installbuilder(target, source, env):
@@ -176,8 +176,8 @@ def _installbuilder(target, source, env):
     # Run InstallBuilder.
     cmd = [builder, 'build', xml, '--setvars', f'svnversion={version}',
            f'osversion={osid}']
-    subprocess.check_call(im.Command(cmd),
-                          stderr=subprocess.STDOUT, bufsize=1)
+    env.PrintProgress(" ".join(cmd))
+    sp.check_call(im.Command(cmd), stderr=sp.STDOUT, bufsize=1)
     if im.MockMode():
         # On MacOS, installbuilder creates a .app bundle directory for the
         # installer, while on Windows it creates a .exe file.
