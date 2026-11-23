@@ -21,6 +21,7 @@ Example usage (OSX):
 import os
 import glob
 import subprocess as sp
+from typing import List
 
 from SCons.Script import Touch, Mkdir
 
@@ -88,7 +89,7 @@ def _parse_dependency_location(line):
     return fields[2] if len(fields) >= 3 else None
 
 
-def _get_dependencies(exe_path: str) -> list[str]:
+def _get_dependencies(exe_path: str) -> List[str]:
     """ Return list of dependencies for executable """
     result = sp.run(['ldd', exe_path], capture_output=True, text=True)
     deps = []
@@ -99,7 +100,7 @@ def _get_dependencies(exe_path: str) -> list[str]:
     return deps
 
 
-def _add_openssl_deps(openssldir) -> list[str]:
+def _add_openssl_deps(openssldir) -> List[str]:
     openssl_dlls = []
     for pattern in ['libssl-*.dll', 'libcrypto-*.dll']:
         openssl_dlls += glob.glob(os.path.join(openssldir, pattern))
@@ -110,7 +111,7 @@ def _add_openssl_deps(openssldir) -> list[str]:
     return deps
 
 
-def _create_xml(deps: list[str], output_path):
+def _create_xml(deps: List[str], output_path):
     im.MockEcho(f"_create_xml('...', {output_path})")
     deps = list(set(deps))  # remove duplicates
     dependencies = ""
