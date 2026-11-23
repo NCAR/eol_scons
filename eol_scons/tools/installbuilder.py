@@ -141,7 +141,7 @@ def _create_windows_dependencies_xml(env, sources, dest, openssldir):
         # just save the empty template as a placeholder file, since mac
         # doesn't use dependencies here
         with open(dest, 'w') as f:
-            f.write(xml_template)
+            f.write(xml_template.format(dependencies=""))
         return
     deps = []
     for s in sources:
